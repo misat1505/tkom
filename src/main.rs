@@ -1,12 +1,19 @@
 pub mod ast;
-use std::{env::args, fs::{self, File}, io::{BufReader, Error}};
+use std::{
+    env::args,
+    fs::{self, File},
+    io::{BufReader, Error},
+};
 
-use crate::{ast::AstNodeActions, lazy_char_reader::{ILazyStreamReader, ETX}};
+use crate::ast::AstNodeActions;
 use ast::AstNode;
-mod lexer;
-use lexer::lexer;
-mod lazy_char_reader;
-use lazy_char_reader::LazyStreamReader;
+use flexer::{ILexer, Lexer};
+mod lazy_stream_reader;
+use lazy_stream_reader::LazyStreamReader;
+use tokens::{Token, TokenCategory};
+
+mod flexer;
+mod tokens;
 
 #[allow(dead_code)]
 fn test1() {
@@ -40,24 +47,31 @@ fn read_file(path: &str) -> String {
 }
 
 fn main() -> Result<(), Error> {
-    // test1();
     let path = parse_filename();
-    let file_content = read_file(path.as_str());
-    let src_code = format!(r#"{}"#, file_content);
-    // println!("{}", src_code);
-
-    let tokens = lexer(src_code.as_str());
-    // for token in tokens {
-    //     println!("{:?}", token);
-    // }
 
     let file = File::open(path.as_str())?;
     let code = BufReader::new(file);
     let mut reader = LazyStreamReader::new(code);
 
-    while let Ok(char) = reader.next() {
-        if *char == ETX {break;}
-        print!("{}", char);
+    let mut flexer = Lexer::new(reader);
+    let mut tokens: Vec<Token> = vec![];
+
+    loop {
+        match flexer.generate_token() {
+            Some(token) => {
+                tokens.push(token.clone());
+                if token.category == TokenCategory::ETX {
+                    break;
+                }
+            }
+            None => {
+                break;
+            }
+        }
+    }
+
+    for token in &tokens {
+        println!("{:?}", token);
     }
 
     Ok(())

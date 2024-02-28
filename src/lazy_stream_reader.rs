@@ -1,15 +1,12 @@
-use read_char::read_next_char;
-use std::fmt::{Debug, Display};
-use std::io;
+use std::error::Error;
 use std::io::BufRead;
-use thiserror::Error;
 
 pub const STX: char = '\u{2}';
 pub const ETX: char = '\u{3}';
 
 pub trait ILazyStreamReader {
     fn current(&self) -> &char;
-    fn next(&mut self) -> Result<&char>;
+    fn next(&mut self) -> Result<&char, Box<dyn Error>>;
     fn position(&self) -> Position;
 }
 
@@ -22,30 +19,18 @@ pub struct Position {
 
 impl Position {
     pub fn new(line: u32, column: u32, offset: usize) -> Self {
-        Position { line, column, offset }
-    }
-}
-
-pub type Result<T> = std::result::Result<T, Error>;
-
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error("inconsistent newline sequence encountered: expected {expected:?}, got {got:?}")]
-    InconsistentNewline { expected: Vec<u8>, got: Vec<u8> },
-    #[error("reading character")]
-    Read(#[from] read_char::Error),
-}
-
-impl From<io::Error> for Error {
-    fn from(value: io::Error) -> Self {
-        Error::Read(read_char::Error::Io(value))
+        Position {
+            line,
+            column,
+            offset,
+        }
     }
 }
 
 pub struct LazyStreamReader<R: BufRead> {
     src: R,
     current_char: char,
-    char_len: usize,
+    // char_len: usize,
     newline: Option<Vec<u8>>,
     current_position: Position,
 }
@@ -55,7 +40,7 @@ impl<R: BufRead> ILazyStreamReader for LazyStreamReader<R> {
         &self.current_char
     }
 
-    fn next(&mut self) -> Result<&char> {
+    fn next(&mut self) -> Result<&char, Box<dyn Error>> {
         let new_char = self.read_char()?;
         self.update_position(self.current_char);
         self.current_char = new_char;
@@ -72,13 +57,13 @@ impl<R: BufRead> LazyStreamReader<R> {
         LazyStreamReader {
             src,
             current_char: STX,
-            char_len: 0,
+            // char_len: 0,
             newline: None,
-            current_position: Position::new(0, 0, 0)
+            current_position: Position::new(0, 0, 0),
         }
     }
 
-    fn read_char(&mut self) -> Result<char> {
+    fn read_char(&mut self) -> Result<char, Box<dyn Error>> {
         let new_char = match self.try_handle_newline()? {
             None => self.process_char()?,
             Some(c) => c,
@@ -87,9 +72,9 @@ impl<R: BufRead> LazyStreamReader<R> {
         Ok(new_char)
     }
 
-    fn try_handle_newline(&mut self) -> Result<Option<char>> {
+    fn try_handle_newline(&mut self) -> Result<Option<char>, Box<dyn Error>> {
         let buffer = self.src.fill_buf()?;
-        
+
         if let Some(&first_char) = buffer.get(0) {
             if let Some(&second_char) = buffer.get(1) {
                 let skippable = [b'\n', b'\r'];
@@ -105,22 +90,22 @@ impl<R: BufRead> LazyStreamReader<R> {
                 }
             }
         }
-    
+
         Ok(None)
     }
 
-    fn process_char(&mut self) -> Result<char> {
+    fn process_char(&mut self) -> Result<char, Box<dyn Error>> {
         let buffer = self.src.fill_buf()?;
-    
+
         if buffer.is_empty() {
             return Ok(ETX);
         }
-    
+
         let first_byte = *buffer.get(0).unwrap();
         let char = first_byte as char;
 
         self.src.consume(1);
-    
+
         Ok(char)
     }
 
