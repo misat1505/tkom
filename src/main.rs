@@ -1,12 +1,12 @@
 pub mod ast;
 use std::{env::args, fs::{self, File}, io::{BufReader, Error}};
 
-use crate::{ast::AstNodeActions, char_reader::{CharRead, ETX}};
+use crate::{ast::AstNodeActions, lazy_char_reader::{ILazyStreamReader, ETX}};
 use ast::AstNode;
 mod lexer;
 use lexer::lexer;
-mod char_reader;
-use char_reader::CharReader;
+mod lazy_char_reader;
+use lazy_char_reader::LazyStreamReader;
 
 #[allow(dead_code)]
 fn test1() {
@@ -53,7 +53,7 @@ fn main() -> Result<(), Error> {
 
     let file = File::open(path.as_str())?;
     let code = BufReader::new(file);
-    let mut reader = CharReader::new(code);
+    let mut reader = LazyStreamReader::new(code);
 
     while let Ok(char) = reader.next() {
         if *char == ETX {break;}

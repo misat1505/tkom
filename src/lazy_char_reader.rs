@@ -7,7 +7,7 @@ use thiserror::Error;
 pub const STX: char = '\u{2}';
 pub const ETX: char = '\u{3}';
 
-pub trait CharRead {
+pub trait ILazyStreamReader {
     fn current(&self) -> &char;
     fn next(&mut self) -> Result<&char>;
     fn position(&self) -> Position;
@@ -26,18 +26,6 @@ impl Position {
     }
 }
 
-// impl Display for Position {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "[{}:{}]", self.line, self.column)
-//     }
-// }
-
-// impl Debug for Position {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "[{}:{},{}]", self.line, self.column, self.offset)
-//     }
-// }
-
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Error, Debug)]
@@ -54,7 +42,7 @@ impl From<io::Error> for Error {
     }
 }
 
-pub struct CharReader<R: BufRead> {
+pub struct LazyStreamReader<R: BufRead> {
     src: R,
     current_char: char,
     char_len: usize,
@@ -62,7 +50,7 @@ pub struct CharReader<R: BufRead> {
     current_position: Position,
 }
 
-impl<R: BufRead> CharRead for CharReader<R> {
+impl<R: BufRead> ILazyStreamReader for LazyStreamReader<R> {
     fn current(&self) -> &char {
         &self.current_char
     }
@@ -79,9 +67,9 @@ impl<R: BufRead> CharRead for CharReader<R> {
     }
 }
 
-impl<R: BufRead> CharReader<R> {
-    pub fn new(src: R) -> CharReader<R> {
-        CharReader {
+impl<R: BufRead> LazyStreamReader<R> {
+    pub fn new(src: R) -> LazyStreamReader<R> {
+        LazyStreamReader {
             src,
             current_char: STX,
             char_len: 0,
