@@ -10,7 +10,7 @@ pub trait ILazyStreamReader {
     fn position(&self) -> Position;
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Position {
     pub line: u32,
     pub column: u32,

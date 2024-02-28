@@ -37,7 +37,10 @@ impl<T: BufRead> Lexer<T> {
         let result = self.try_generating_sign();
         match result {
             Some(r) => Some(r),
-            None => panic!("Bad stuff"),
+            None => {
+              let position = self.src.position();
+              panic!("Bad sign at {:?}", position);
+            }
         }
     }
 
