@@ -1,10 +1,12 @@
 pub mod ast;
-use std::{env::args, fs};
+use std::{env::args, fs::{self, File}, io::{BufReader, Error}};
 
-use crate::ast::AstNodeActions;
+use crate::{ast::AstNodeActions, char_reader::{CharRead, ETX}};
 use ast::AstNode;
 mod lexer;
 use lexer::lexer;
+mod char_reader;
+use char_reader::CharReader;
 
 #[allow(dead_code)]
 fn test1() {
@@ -37,14 +39,26 @@ fn read_file(path: &str) -> String {
     content
 }
 
-fn main() {
+fn main() -> Result<(), Error> {
     // test1();
     let path = parse_filename();
     let file_content = read_file(path.as_str());
     let src_code = format!(r#"{}"#, file_content);
+    println!("{}", src_code);
 
     let tokens = lexer(src_code.as_str());
     for token in tokens {
         println!("{:?}", token);
     }
+
+    let file = File::open(path.as_str())?;
+    let code = BufReader::new(file);
+    let mut reader = CharReader::new(code);
+
+    while let Ok(char) = reader.next() {
+        if *char == ETX {break;}
+        print!("{}", char);
+    }
+
+    Ok(())
 }

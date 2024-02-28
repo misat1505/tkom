@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 regex = "1"
+read_char = "0.1.1"
+thiserror = "1.0.39"
+
