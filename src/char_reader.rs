@@ -20,17 +20,23 @@ pub struct Position {
     pub offset: usize,
 }
 
-impl Display for Position {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}:{}]", self.line, self.column)
+impl Position {
+    pub fn new(line: u32, column: u32, offset: usize) -> Self {
+        Position { line, column, offset }
     }
 }
 
-impl Debug for Position {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}:{},{}]", self.line, self.column, self.offset)
-    }
-}
+// impl Display for Position {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "[{}:{}]", self.line, self.column)
+//     }
+// }
+
+// impl Debug for Position {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "[{}:{},{}]", self.line, self.column, self.offset)
+//     }
+// }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -80,16 +86,12 @@ impl<R: BufRead> CharReader<R> {
             current_char: STX,
             char_len: 0,
             newline: None,
-            current_position: Position {
-                line: 0,
-                column: 0,
-                offset: 0,
-            },
+            current_position: Position::new(0, 0, 0)
         }
     }
 
     fn read_char(&mut self) -> Result<char> {
-        let new_char = match self.try_process_newline()? {
+        let new_char = match self.try_handle_newline()? {
             None => self.process_char()?,
             Some(c) => c,
         };
@@ -97,54 +99,47 @@ impl<R: BufRead> CharReader<R> {
         Ok(new_char)
     }
 
-    fn try_process_newline(&mut self) -> Result<Option<char>> {
-        let newline: Vec<u8> = match self.src.fill_buf()? {
-            &[first, ..] if [b'\n', b'\r'].contains(&first) => {
-                self.src.consume(1);
-                let mut bytes = vec![first];
-                if let &[second, ..] = self.src.fill_buf()? {
-                    if [b"\n\r", b"\r\n"].contains(&&[first, second]) {
+    fn try_handle_newline(&mut self) -> Result<Option<char>> {
+        let buffer = self.src.fill_buf()?;
+        
+        if let Some(&first_char) = buffer.get(0) {
+            if let Some(&second_char) = buffer.get(1) {
+                let skippable = [b'\n', b'\r'];
+                if skippable.contains(&first_char) {
+                    let mut newline_sequence = vec![first_char];
+                    self.src.consume(1);
+                    if skippable.contains(&second_char) {
+                        newline_sequence.push(second_char);
                         self.src.consume(1);
-                        bytes.push(second)
                     }
-                };
-                bytes
+                    self.newline = Some(newline_sequence.clone());
+                    return Ok(Some('\n'));
+                }
             }
-            _ => return Ok(None),
-        };
-
-        if let Some(expected_newline) = &self.newline {
-            if newline != *expected_newline {
-                return Err(Error::InconsistentNewline {
-                    expected: expected_newline.clone(),
-                    got: newline,
-                });
-            }
-        } else {
-            self.newline = Some(newline.clone())
         }
-
-        Ok(Some('\n'))
+    
+        Ok(None)
     }
 
     fn process_char(&mut self) -> Result<char> {
-        let char = match read_next_char(&mut self.src) {
-            Ok(c) => c,
-            Err(read_char::Error::EOF) => ETX,
-            Err(x) => return Err(Error::Read(x)),
-        };
-        self.char_len = char.len_utf8();
+        let buffer = self.src.fill_buf()?;
+    
+        if buffer.is_empty() {
+            return Ok(ETX);
+        }
+    
+        let first_byte = *buffer.get(0).unwrap();
+        let char = first_byte as char;
+
+        self.src.consume(1);
+    
         Ok(char)
     }
 
     fn update_position(&mut self, read_character: char) {
         match read_character {
             STX => {
-                self.current_position = Position {
-                    line: 1,
-                    column: 1,
-                    offset: 0,
-                }
+                self.current_position = Position::new(1, 1, 0);
             }
             ETX => {}
             '\n' => {

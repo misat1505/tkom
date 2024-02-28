@@ -44,12 +44,12 @@ fn main() -> Result<(), Error> {
     let path = parse_filename();
     let file_content = read_file(path.as_str());
     let src_code = format!(r#"{}"#, file_content);
-    println!("{}", src_code);
+    // println!("{}", src_code);
 
     let tokens = lexer(src_code.as_str());
-    for token in tokens {
-        println!("{:?}", token);
-    }
+    // for token in tokens {
+    //     println!("{:?}", token);
+    // }
 
     let file = File::open(path.as_str())?;
     let code = BufReader::new(file);
