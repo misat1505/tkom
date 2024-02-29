@@ -76,6 +76,8 @@ impl<T: BufRead> Lexer<T> {
             '<' => Some(self.extend_to_next('=', TokenCategory::Less, TokenCategory::LessOrEqual)),
             '>' => Some(self.extend_to_next('=', TokenCategory::Greater, TokenCategory::GreaterOrEqual)),
             '=' => Some(self.extend_to_next('=', TokenCategory::Assign, TokenCategory::Equal)),
+            '&' => Some(self.extend_to_next_or_panic('&', TokenCategory::And)),
+            '|' => Some(self.extend_to_next_or_panic('|', TokenCategory::Or)),
             _ => None
         };
         if token.is_some() {
@@ -90,6 +92,14 @@ impl<T: BufRead> Lexer<T> {
             return Token { category: found, value: TokenValue::Undefined };
         }
         return Token { category: not_found, value: TokenValue::Undefined };
+    }
+
+    fn extend_to_next_or_panic(&mut self, char_to_search: char, found: TokenCategory) -> Token {
+        let next_char = self.src.next().unwrap();
+        if *next_char == char_to_search {
+            return Token { category: found, value: TokenValue::Undefined };
+        }
+        panic!("Expected {} in {:?}", char_to_search, self.src.position());
     }
 }
 
