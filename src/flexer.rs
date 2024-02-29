@@ -34,7 +34,7 @@ impl<T: BufRead> Lexer<T> {
     pub fn generate_token(&mut self) -> Option<Token> {
         self.skip_whitespaces();
 
-        let result = self.try_generating_sign().or_else(|| self.try_generating_operand());
+        let result = self.try_generating_sign().or_else(|| self.try_generating_operand()).or_else(|| self.try_generating_string());
         match result {
             Some(r) => Some(r),
             None => {
@@ -100,6 +100,25 @@ impl<T: BufRead> Lexer<T> {
             return Token { category: found, value: TokenValue::Undefined };
         }
         panic!("Expected {} in {:?}", char_to_search, self.src.position());
+    }
+
+    fn try_generating_string(&mut self) -> Option<Token> {
+        let mut current_char = self.src.current();
+        if *current_char != '"' {
+            return None;
+        }
+        let mut created_string = String::new();
+        current_char = self.src.next().unwrap();
+        while *current_char != '"' {
+            if *current_char == '\n' {
+                panic!("Unexpected newline in string in {:?}", self.src.position());
+            }
+            created_string.push(*current_char);
+            current_char = self.src.next().unwrap();
+        }
+        // consume next "
+        let _ = self.src.next();
+        Some(Token { category: TokenCategory::StringValue, value: TokenValue::String(created_string) })
     }
 }
 

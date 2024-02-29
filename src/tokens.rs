@@ -54,7 +54,7 @@ pub enum TokenCategory {
     Identifier(String),
     Comment(String),
     // Literals
-    StringValue(String),
+    StringValue,
     I64Value(i64),
     F64Value(f64),
 }
