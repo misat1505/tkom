@@ -167,12 +167,18 @@ impl<T: BufRead> Lexer<T> {
         let mut decimal = self.parse_integer();
         current_char = self.src.current();
         if *current_char != '.' {
-            return Some(Token { category: TokenCategory::I64, value: TokenValue::I64(decimal) });
+            return Some(Token {
+                category: TokenCategory::I64,
+                value: TokenValue::I64(decimal),
+            });
         }
         let _ = self.src.next();
         let fraction = self.parse_integer();
         let float_value = Self::merge_to_float(decimal, fraction);
-        Some(Token { category: TokenCategory::F64, value: TokenValue::F64(float_value) })
+        Some(Token {
+            category: TokenCategory::F64,
+            value: TokenValue::F64(float_value),
+        })
     }
 
     fn parse_integer(&mut self) -> i64 {
@@ -185,7 +191,7 @@ impl<T: BufRead> Lexer<T> {
         let number = stringified_number.parse::<i64>();
         match number {
             Ok(num) => num,
-            Err(err) => panic!("Bad conversion in {:?}", self.src.position())
+            Err(err) => panic!("Bad conversion in {:?}", self.src.position()),
         }
     }
 
@@ -204,8 +210,14 @@ impl<T: BufRead> Lexer<T> {
             current_char = self.src.next().unwrap();
         }
         match KEYWORDS.get(created_string.as_str()) {
-            Some(category) => Some(Token { category: category.clone(), value: TokenValue::Undefined }),
-            None => Some(Token { category: TokenCategory::Identifier, value: TokenValue::String(created_string) })
+            Some(category) => Some(Token {
+                category: category.clone(),
+                value: TokenValue::Undefined,
+            }),
+            None => Some(Token {
+                category: TokenCategory::Identifier,
+                value: TokenValue::String(created_string),
+            }),
         }
     }
 }
@@ -235,5 +247,7 @@ static KEYWORDS: phf::Map<&'static str, TokenCategory> = phf_map! {
     "i64" => TokenCategory::I64,
     "f64" => TokenCategory::F64,
     "str" => TokenCategory::String,
-    "bool" => TokenCategory::Bool
+    "bool" => TokenCategory::Bool,
+    "true" => TokenCategory::True,
+    "false" => TokenCategory::False
 };
