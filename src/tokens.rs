@@ -51,7 +51,7 @@ pub enum TokenCategory {
     ETX,
 
     // Complex
-    Identifier(String),
+    Identifier,
     Comment(String),
     // Literals
     StringValue,

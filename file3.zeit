@@ -1,0 +1,8 @@
+fn add(i64 x, i64 y): i64 {
+  i64 sum = x + y - 0.12;
+  return sum;
+}
+
+for(i64 i = 0; i < 10; i = i+1) {
+  add(i, i);
+}

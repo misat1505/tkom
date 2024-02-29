@@ -38,7 +38,8 @@ impl<T: BufRead> Lexer<T> {
             .try_generating_sign()
             .or_else(|| self.try_generating_operand())
             .or_else(|| self.try_generating_string())
-            .or_else(|| self.try_generating_number());
+            .or_else(|| self.try_generating_number())
+            .or_else(|| self.try_creating_identifier_or_keyword());
         match result {
             Some(r) => Some(r),
             None => {
@@ -194,6 +195,19 @@ impl<T: BufRead> Lexer<T> {
         let float_value = decimal as f64 + fraction_value;
         float_value
     }
+
+    fn try_creating_identifier_or_keyword(&mut self) -> Option<Token> {
+        let mut current_char = self.src.current();
+        let mut created_string = String::new();
+        while current_char.is_ascii_digit() || current_char.is_ascii_alphabetic() {
+            created_string.push(*current_char);
+            current_char = self.src.next().unwrap();
+        }
+        match KEYWORDS.get(created_string.as_str()) {
+            Some(category) => Some(Token { category: category.clone(), value: TokenValue::Undefined }),
+            None => Some(Token { category: TokenCategory::Identifier, value: TokenValue::String(created_string) })
+        }
+    }
 }
 
 static SIGNS: phf::Map<char, TokenCategory> = phf_map! {
@@ -209,4 +223,17 @@ static SIGNS: phf::Map<char, TokenCategory> = phf_map! {
     '\u{2}' => TokenCategory::STX,
     '\u{3}' => TokenCategory::ETX,
 
+};
+
+static KEYWORDS: phf::Map<&'static str, TokenCategory> = phf_map! {
+    "fn" => TokenCategory::Fn,
+    "for" => TokenCategory::For,
+    "while" => TokenCategory::While,
+    "if" => TokenCategory::If,
+    "else" => TokenCategory::Else,
+    "return" => TokenCategory::Return,
+    "i64" => TokenCategory::I64,
+    "f64" => TokenCategory::F64,
+    "str" => TokenCategory::String,
+    "bool" => TokenCategory::Bool
 };
