@@ -58,7 +58,7 @@ impl<T: BufRead> Lexer<T> {
             Some(token_category) => {
                 let token = Token {
                     category: token_category.clone(),
-                    value: TokenValue::Char(*current_char),
+                    value: TokenValue::Undefined,
                 };
                 let _ = self.src.next();
                 Some(token)
@@ -69,16 +69,27 @@ impl<T: BufRead> Lexer<T> {
     fn try_generating_operand(&mut self) -> Option<Token> {
         let current_char = self.src.current();
         let token = match current_char {
-            '+' => Some(Token { category: TokenCategory::Plus, value: TokenValue::Char('+') }),
-            '-' => Some(Token { category: TokenCategory::Minus, value: TokenValue::Char('-') }),
-            '*' => Some(Token { category: TokenCategory::Multiply, value: TokenValue::Char('*') }),
-            '/' => Some(Token { category: TokenCategory::Divide, value: TokenValue::Char('/') }),
+            '+' => Some(Token { category: TokenCategory::Plus, value: TokenValue::Undefined }),
+            '-' => Some(Token { category: TokenCategory::Minus, value: TokenValue::Undefined }),
+            '*' => Some(Token { category: TokenCategory::Multiply, value: TokenValue::Undefined }),
+            '/' => Some(Token { category: TokenCategory::Divide, value: TokenValue::Undefined }),
+            '<' => Some(self.extend_to_next('=', TokenCategory::Less, TokenCategory::LessOrEqual)),
+            '>' => Some(self.extend_to_next('=', TokenCategory::Greater, TokenCategory::GreaterOrEqual)),
+            '=' => Some(self.extend_to_next('=', TokenCategory::Assign, TokenCategory::Equal)),
             _ => None
         };
         if token.is_some() {
             let _ = self.src.next();
         }
         token
+    }
+
+    fn extend_to_next(&mut self, char_to_search: char, not_found: TokenCategory, found: TokenCategory) -> Token {
+        let next_char = self.src.next().unwrap();
+        if *next_char == char_to_search {
+            return Token { category: found, value: TokenValue::Undefined };
+        }
+        return Token { category: not_found, value: TokenValue::Undefined };
     }
 }
 
