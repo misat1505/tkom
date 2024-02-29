@@ -34,7 +34,7 @@ impl<T: BufRead> Lexer<T> {
     pub fn generate_token(&mut self) -> Option<Token> {
         self.skip_whitespaces();
 
-        let result = self.try_generating_sign();
+        let result = self.try_generating_sign().or_else(|| self.try_generating_operand());
         match result {
             Some(r) => Some(r),
             None => {
@@ -64,6 +64,21 @@ impl<T: BufRead> Lexer<T> {
                 Some(token)
             }
         }
+    }
+
+    fn try_generating_operand(&mut self) -> Option<Token> {
+        let current_char = self.src.current();
+        let token = match current_char {
+            '+' => Some(Token { category: TokenCategory::Plus, value: TokenValue::Char('+') }),
+            '-' => Some(Token { category: TokenCategory::Minus, value: TokenValue::Char('-') }),
+            '*' => Some(Token { category: TokenCategory::Multiply, value: TokenValue::Char('*') }),
+            '/' => Some(Token { category: TokenCategory::Divide, value: TokenValue::Char('/') }),
+            _ => None
+        };
+        if token.is_some() {
+            let _ = self.src.next();
+        }
+        token
     }
 }
 
