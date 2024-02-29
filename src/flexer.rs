@@ -34,12 +34,16 @@ impl<T: BufRead> Lexer<T> {
     pub fn generate_token(&mut self) -> Option<Token> {
         self.skip_whitespaces();
 
-        let result = self.try_generating_sign().or_else(|| self.try_generating_operand()).or_else(|| self.try_generating_string());
+        let result = self
+            .try_generating_sign()
+            .or_else(|| self.try_generating_operand())
+            .or_else(|| self.try_generating_string())
+            .or_else(|| self.try_generating_number());
         match result {
             Some(r) => Some(r),
             None => {
-              let position = self.src.position();
-              panic!("Bad sign at {:?}", position);
+                let position = self.src.position();
+                panic!("Bad sign at {:?}", position);
             }
         }
     }
@@ -69,16 +73,32 @@ impl<T: BufRead> Lexer<T> {
     fn try_generating_operand(&mut self) -> Option<Token> {
         let current_char = self.src.current();
         let token = match current_char {
-            '+' => Some(Token { category: TokenCategory::Plus, value: TokenValue::Undefined }),
-            '-' => Some(Token { category: TokenCategory::Minus, value: TokenValue::Undefined }),
-            '*' => Some(Token { category: TokenCategory::Multiply, value: TokenValue::Undefined }),
-            '/' => Some(Token { category: TokenCategory::Divide, value: TokenValue::Undefined }),
+            '+' => Some(Token {
+                category: TokenCategory::Plus,
+                value: TokenValue::Undefined,
+            }),
+            '-' => Some(Token {
+                category: TokenCategory::Minus,
+                value: TokenValue::Undefined,
+            }),
+            '*' => Some(Token {
+                category: TokenCategory::Multiply,
+                value: TokenValue::Undefined,
+            }),
+            '/' => Some(Token {
+                category: TokenCategory::Divide,
+                value: TokenValue::Undefined,
+            }),
             '<' => Some(self.extend_to_next('=', TokenCategory::Less, TokenCategory::LessOrEqual)),
-            '>' => Some(self.extend_to_next('=', TokenCategory::Greater, TokenCategory::GreaterOrEqual)),
+            '>' => Some(self.extend_to_next(
+                '=',
+                TokenCategory::Greater,
+                TokenCategory::GreaterOrEqual,
+            )),
             '=' => Some(self.extend_to_next('=', TokenCategory::Assign, TokenCategory::Equal)),
             '&' => Some(self.extend_to_next_or_panic('&', TokenCategory::And)),
             '|' => Some(self.extend_to_next_or_panic('|', TokenCategory::Or)),
-            _ => None
+            _ => None,
         };
         if token.is_some() {
             let _ = self.src.next();
@@ -86,18 +106,32 @@ impl<T: BufRead> Lexer<T> {
         token
     }
 
-    fn extend_to_next(&mut self, char_to_search: char, not_found: TokenCategory, found: TokenCategory) -> Token {
+    fn extend_to_next(
+        &mut self,
+        char_to_search: char,
+        not_found: TokenCategory,
+        found: TokenCategory,
+    ) -> Token {
         let next_char = self.src.next().unwrap();
         if *next_char == char_to_search {
-            return Token { category: found, value: TokenValue::Undefined };
+            return Token {
+                category: found,
+                value: TokenValue::Undefined,
+            };
         }
-        return Token { category: not_found, value: TokenValue::Undefined };
+        return Token {
+            category: not_found,
+            value: TokenValue::Undefined,
+        };
     }
 
     fn extend_to_next_or_panic(&mut self, char_to_search: char, found: TokenCategory) -> Token {
         let next_char = self.src.next().unwrap();
         if *next_char == char_to_search {
-            return Token { category: found, value: TokenValue::Undefined };
+            return Token {
+                category: found,
+                value: TokenValue::Undefined,
+            };
         }
         panic!("Expected {} in {:?}", char_to_search, self.src.position());
     }
@@ -118,7 +152,47 @@ impl<T: BufRead> Lexer<T> {
         }
         // consume next "
         let _ = self.src.next();
-        Some(Token { category: TokenCategory::StringValue, value: TokenValue::String(created_string) })
+        Some(Token {
+            category: TokenCategory::StringValue,
+            value: TokenValue::String(created_string),
+        })
+    }
+
+    fn try_generating_number(&mut self) -> Option<Token> {
+        let mut current_char = self.src.current();
+        if !current_char.is_ascii_digit() {
+            return None;
+        }
+        let mut decimal = self.parse_integer();
+        current_char = self.src.current();
+        if *current_char != '.' {
+            return Some(Token { category: TokenCategory::I64, value: TokenValue::I64(decimal) });
+        }
+        let _ = self.src.next();
+        let fraction = self.parse_integer();
+        let float_value = Self::merge_to_float(decimal, fraction);
+        Some(Token { category: TokenCategory::F64, value: TokenValue::F64(float_value) })
+    }
+
+    fn parse_integer(&mut self) -> i64 {
+        let mut current_char = self.src.current();
+        let mut stringified_number = String::new();
+        while current_char.is_ascii_digit() {
+            stringified_number.push(*current_char);
+            current_char = self.src.next().unwrap();
+        }
+        let number = stringified_number.parse::<i64>();
+        match number {
+            Ok(num) => num,
+            Err(err) => panic!("Bad conversion in {:?}", self.src.position())
+        }
+    }
+
+    fn merge_to_float(decimal: i64, fraction: i64) -> f64 {
+        let fraction_digits = (fraction as f64).log10().ceil() as i32;
+        let fraction_value = fraction as f64 / f64::powi(10.0, fraction_digits);
+        let float_value = decimal as f64 + fraction_value;
+        float_value
     }
 }
 
