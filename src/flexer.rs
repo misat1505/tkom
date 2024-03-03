@@ -2,7 +2,7 @@ use std::io::BufRead;
 
 use phf::phf_map;
 
-use crate::lazy_stream_reader::{ILazyStreamReader, LazyStreamReader};
+use crate::lazy_stream_reader::{ILazyStreamReader, LazyStreamReader, ETX};
 use crate::tokens::{Token, TokenCategory, TokenValue};
 
 pub trait ILexer<T: BufRead> {
@@ -44,7 +44,7 @@ impl<T: BufRead> Lexer<T> {
             Some(r) => Some(r),
             None => {
                 let position = self.src.position();
-                panic!("Bad sign at {:?}", position);
+                panic!("Unexpected token at {:?}", position);
             }
         }
     }
@@ -95,6 +95,11 @@ impl<T: BufRead> Lexer<T> {
                 '=',
                 TokenCategory::Greater,
                 TokenCategory::GreaterOrEqual,
+            )),
+            '!' => Some(self.extend_to_next(
+                '=',
+                TokenCategory::Negate,
+                TokenCategory::NotEqual,
             )),
             '=' => Some(self.extend_to_next('=', TokenCategory::Assign, TokenCategory::Equal)),
             '&' => Some(self.extend_to_next_or_panic('&', TokenCategory::And)),
@@ -147,6 +152,9 @@ impl<T: BufRead> Lexer<T> {
         while *current_char != '"' {
             if *current_char == '\n' {
                 panic!("Unexpected newline in string in {:?}", self.src.position());
+            } 
+            if *current_char == ETX {
+                panic!("String not closed at {:?}", self.src.position());
             }
             created_string.push(*current_char);
             current_char = self.src.next().unwrap();
