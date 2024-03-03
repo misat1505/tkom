@@ -44,7 +44,8 @@ impl<T: BufRead> Lexer<T> {
             Some(r) => Some(r),
             None => {
                 let position = self.src.position();
-                panic!("Unexpected token at {:?}", position);
+                let code_snippet = self.src.error_code_snippet();
+                panic!("Unexpected character at {:?}.\n{}", position, code_snippet);
             }
         }
     }
@@ -151,7 +152,7 @@ impl<T: BufRead> Lexer<T> {
         current_char = self.src.next().unwrap();
         while *current_char != '"' {
             if *current_char == '\n' {
-                panic!("Unexpected newline in string in {:?}", self.src.position());
+                panic!("Unexpected newline in string in {:?}\n{}", self.src.position(), self.src.error_code_snippet());
             } 
             if *current_char == ETX {
                 panic!("String not closed at {:?}", self.src.position());
@@ -201,7 +202,7 @@ impl<T: BufRead> Lexer<T> {
         let number = stringified_number.parse::<i64>();
         match number {
             Ok(num) => (num, length),
-            Err(err) => panic!("Bad conversion in {:?}", self.src.position()),
+            Err(_) => panic!("Bad conversion in {:?}", self.src.position()),
         }
     }
 

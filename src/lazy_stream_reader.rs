@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fmt::Debug;
 use std::io::BufRead;
 
 pub const STX: char = '\u{2}';
@@ -10,11 +11,17 @@ pub trait ILazyStreamReader {
     fn position(&self) -> Position;
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub struct Position {
     pub line: u32,
     pub column: u32,
     pub offset: usize,
+}
+
+impl Debug for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "line: {}, column: {}", self.line, self.column)
+    }
 }
 
 impl Position {
@@ -29,6 +36,7 @@ impl Position {
 
 pub struct LazyStreamReader<R: BufRead> {
     src: R,
+    current_line: String,
     current_char: char,
     // char_len: usize,
     newline: Option<Vec<u8>>,
@@ -56,6 +64,7 @@ impl<R: BufRead> LazyStreamReader<R> {
     pub fn new(src: R) -> LazyStreamReader<R> {
         LazyStreamReader {
             src,
+            current_line: String::new(),
             current_char: STX,
             // char_len: 0,
             newline: None,
@@ -119,11 +128,23 @@ impl<R: BufRead> LazyStreamReader<R> {
                 self.current_position.offset += self.newline.as_ref().unwrap().len();
                 self.current_position.line += 1;
                 self.current_position.column = 1;
+                self.current_line = String::new();
             }
-            _ => {
+            char => {
                 self.current_position.offset += self.current_char.len_utf8();
                 self.current_position.column += 1;
+                self.current_line.push(char);
             }
         };
+    }
+
+    pub fn error_code_snippet(&mut self) -> String {
+        let mut buffer = String::new();
+        let _ = self.src.read_line(&mut buffer);
+
+        let spaces = " ".repeat((self.position().column - 1) as usize);
+        let caret_string = format!("{}^", spaces);
+
+        format!("\nAt line:\n{}{}{}{}", self.current_line, self.current_char, buffer, caret_string)
     }
 }
