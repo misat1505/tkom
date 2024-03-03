@@ -172,7 +172,7 @@ impl<T: BufRead> Lexer<T> {
         if !current_char.is_ascii_digit() {
             return None;
         }
-        let mut decimal = self.parse_integer();
+        let (decimal, _) = self.parse_integer();
         current_char = self.src.current();
         if *current_char != '.' {
             return Some(Token {
@@ -181,31 +181,32 @@ impl<T: BufRead> Lexer<T> {
             });
         }
         let _ = self.src.next();
-        let fraction = self.parse_integer();
-        let float_value = Self::merge_to_float(decimal, fraction);
+        let (fraction, fraction_length) = self.parse_integer();
+        let float_value = Self::merge_to_float(decimal, fraction, fraction_length);
         Some(Token {
             category: TokenCategory::F64,
             value: TokenValue::F64(float_value),
         })
     }
 
-    fn parse_integer(&mut self) -> i64 {
+    fn parse_integer(&mut self) -> (i64, i64) {
         let mut current_char = self.src.current();
         let mut stringified_number = String::new();
+        let mut length = 0;
         while current_char.is_ascii_digit() {
             stringified_number.push(*current_char);
             current_char = self.src.next().unwrap();
+            length += 1;
         }
         let number = stringified_number.parse::<i64>();
         match number {
-            Ok(num) => num,
+            Ok(num) => (num, length),
             Err(err) => panic!("Bad conversion in {:?}", self.src.position()),
         }
     }
 
-    fn merge_to_float(decimal: i64, fraction: i64) -> f64 {
-        let fraction_digits = (fraction as f64).log10().ceil() as i32;
-        let fraction_value = fraction as f64 / f64::powi(10.0, fraction_digits);
+    fn merge_to_float(decimal: i64, fraction: i64, fraction_length: i64) -> f64 {
+        let fraction_value = fraction as f64 / f64::powi(10.0, fraction_length as i32);
         let float_value = decimal as f64 + fraction_value;
         float_value
     }
