@@ -204,6 +204,9 @@ impl<T: BufRead> Lexer<T> {
 
     fn try_creating_identifier_or_keyword(&mut self) -> Option<Token> {
         let mut current_char = self.src.current();
+        if !current_char.is_ascii_alphabetic() {
+            return None;
+        }
         let mut created_string = String::new();
         while current_char.is_ascii_digit() || current_char.is_ascii_alphabetic() {
             created_string.push(*current_char);
