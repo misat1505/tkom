@@ -37,6 +37,7 @@ impl<T: BufRead> Lexer<T> {
         let result = self
             .try_generating_sign()
             .or_else(|| self.try_generating_operand())
+            .or_else(|| self.try_genarting_comment())
             .or_else(|| self.try_generating_string())
             .or_else(|| self.try_generating_number())
             .or_else(|| self.try_creating_identifier_or_keyword());
@@ -54,6 +55,21 @@ impl<T: BufRead> Lexer<T> {
         while self.src.current().is_whitespace() {
             let _ = self.src.next();
         }
+    }
+
+    fn try_genarting_comment(&mut self) -> Option<Token> {
+        let current_char = self.src.current();
+        if *current_char != '#' {
+            return None;
+        }
+
+        let mut comment = String::new();
+        while let Ok(current) = self.src.next() {
+            if *current == '\n' || *current == ETX { break; }
+            comment.push(*current);
+        }
+
+        Some(Token { category: TokenCategory::Comment, value: TokenValue::String(comment) })
     }
 
     fn try_generating_sign(&mut self) -> Option<Token> {

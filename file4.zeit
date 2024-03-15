@@ -1,5 +1,5 @@
 fn add(i64 x, i64 y): i64 {
-  if (x < 1) {
+  if (x < 1) {      # komentarz
     x = x - 1;
   } else {
     y = y + 2;
@@ -52,3 +52,4 @@ fn fib(i64 x): i64 {
 
 str text = "hello world";
 print(text);
+# jakis komentarz

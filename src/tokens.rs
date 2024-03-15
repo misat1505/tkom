@@ -56,7 +56,7 @@ pub enum TokenCategory {
 
     // Complex
     Identifier,
-    Comment(String),
+    Comment,
     // Literals
     StringValue,
     I64Value(i64),
