@@ -51,7 +51,7 @@ fn main() -> Result<(), Error> {
 
     let file = File::open(path.as_str())?;
     let code = BufReader::new(file);
-    let mut reader = LazyStreamReader::new(code);
+    let reader = LazyStreamReader::new(code);
 
     let mut flexer = Lexer::new(reader);
     let mut tokens: Vec<Token> = vec![];

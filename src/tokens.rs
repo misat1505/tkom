@@ -37,16 +37,20 @@ pub enum TokenCategory {
     True,
     False,
     Return,
+    Switch,
     // Type keywords
     Bool,
     String,
     I64,
     F64,
+    Void,
     // Others
     Assign,
     Colon,
     Semicolon,
     Comma,
+    Reference,
+    Arrow,
     STX,
     ETX,
 
@@ -61,7 +65,6 @@ pub enum TokenCategory {
 
 #[derive(Debug, Clone)]
 pub enum TokenValue {
-    Char(char),
     String(String),
     Bool(bool),
     F64(f64),

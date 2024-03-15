@@ -1,10 +1,10 @@
-fn add(i64 x, & i64 y): i64 {
+fn add(i64 x, i64 y): i64 {
   if (x < 1) {
     x = x - 1;
   } else {
     y = y + 2;
   }
-  f64 sum = x + y - 0.12;
+  f64 sum = x as f64 + y as f64 - 0.12;
   return sum;
 }
 
@@ -15,23 +15,23 @@ for(i64 i = 0; i < 10; i = i+1) {
 
 fn do_stuff(i64 x, f64 y): void {
   switch (x) {
-    (x < 5) => {
+    (x < 5) -> {
       print("Less than 5.");
     },
-    (x < 10) => {
+    (x < 10) -> {
       print("Less than 10.");
       break;
     }
   }
 
   switch (x as temp1, y as temp2) {
-    (x < 5, temp2 < 5) => {
+    (x < 5 && temp2 < 5.0) -> {
       print("Less than 5.");
       print(temp1);
       print(temp2);
       break;
     },
-    (temp1 < 10, y < 10) => {
+    (temp1 < 10 || y < 10.0) -> {
       print("Less than 10.");
       print(temp1);
       print(temp2);

@@ -79,10 +79,6 @@ impl<T: BufRead> Lexer<T> {
                 category: TokenCategory::Plus,
                 value: TokenValue::Undefined,
             }),
-            '-' => Some(Token {
-                category: TokenCategory::Minus,
-                value: TokenValue::Undefined,
-            }),
             '*' => Some(Token {
                 category: TokenCategory::Multiply,
                 value: TokenValue::Undefined,
@@ -91,6 +87,7 @@ impl<T: BufRead> Lexer<T> {
                 category: TokenCategory::Divide,
                 value: TokenValue::Undefined,
             }),
+            '-' => Some(self.extend_to_next('>', TokenCategory::Minus, TokenCategory::Arrow)),
             '<' => Some(self.extend_to_next('=', TokenCategory::Less, TokenCategory::LessOrEqual)),
             '>' => Some(self.extend_to_next(
                 '=',
@@ -103,7 +100,7 @@ impl<T: BufRead> Lexer<T> {
                 TokenCategory::NotEqual,
             )),
             '=' => Some(self.extend_to_next('=', TokenCategory::Assign, TokenCategory::Equal)),
-            '&' => Some(self.extend_to_next_or_panic('&', TokenCategory::And)),
+            '&' => Some(self.extend_to_next('&', TokenCategory::Reference, TokenCategory::And)),
             '|' => Some(self.extend_to_next_or_panic('|', TokenCategory::Or)),
             _ => None,
         };
@@ -218,7 +215,7 @@ impl<T: BufRead> Lexer<T> {
             return None;
         }
         let mut created_string = String::new();
-        while current_char.is_ascii_digit() || current_char.is_ascii_alphabetic() {
+        while current_char.is_ascii_digit() || current_char.is_ascii_alphabetic() || *current_char == '_' {
             created_string.push(*current_char);
             current_char = self.src.next().unwrap();
         }
@@ -236,7 +233,7 @@ impl<T: BufRead> Lexer<T> {
 }
 
 static SIGNS: phf::Map<char, TokenCategory> = phf_map! {
-  '('     => TokenCategory::ParenOpen,
+    '('     => TokenCategory::ParenOpen,
     ')'     => TokenCategory::ParenClose,
     '['     => TokenCategory::BracketOpen,
     ']'     => TokenCategory::BracketClose,
@@ -260,7 +257,10 @@ static KEYWORDS: phf::Map<&'static str, TokenCategory> = phf_map! {
     "i64" => TokenCategory::I64,
     "f64" => TokenCategory::F64,
     "str" => TokenCategory::String,
+    "void" => TokenCategory::Void,
     "bool" => TokenCategory::Bool,
     "true" => TokenCategory::True,
-    "false" => TokenCategory::False
+    "false" => TokenCategory::False,
+    "as" => TokenCategory::As,
+    "switch" => TokenCategory::Switch
 };
