@@ -205,18 +205,19 @@ impl<T: BufRead> Lexer<T> {
 
     fn parse_integer(&mut self) -> (i64, i64) {
         let mut current_char = self.src.current();
-        let mut stringified_number = String::new();
         let mut length = 0;
+        let mut total: i64 = 0;
         while current_char.is_ascii_digit() {
-            stringified_number.push(*current_char);
-            current_char = self.src.next().unwrap();
+            let digit = *current_char as i64 - '0' as i64;
+            match total.checked_mul(10) {
+                Some(result) => total = result,
+                None => panic!("Overflow occurred while parsing integer."),
+            }
+            total += digit;
             length += 1;
+            current_char = self.src.next().unwrap();
         }
-        let number = stringified_number.parse::<i64>();
-        match number {
-            Ok(num) => (num, length),
-            Err(_) => panic!("Bad conversion in {:?}", self.src.position()),
-        }
+        (total, length)
     }
 
     fn merge_to_float(decimal: i64, fraction: i64, fraction_length: i64) -> f64 {

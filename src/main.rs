@@ -2,7 +2,7 @@ pub mod ast;
 use std::{
     env::args,
     fs::{self, File},
-    io::{BufReader, Error},
+    io::{BufReader, Error}, time::Instant,
 };
 
 use crate::ast::AstNodeActions;
@@ -56,6 +56,7 @@ fn main() -> Result<(), Error> {
     let mut flexer = Lexer::new(reader);
     let mut tokens: Vec<Token> = vec![];
 
+    let start = Instant::now();
     loop {
         match flexer.generate_token() {
             Some(token) => {
@@ -69,10 +70,13 @@ fn main() -> Result<(), Error> {
             }
         }
     }
+    let finish = Instant::now();
 
     for token in &tokens {
         println!("{:?}", token);
     }
+
+    println!("Time {:?}", finish - start);
 
     Ok(())
 }
