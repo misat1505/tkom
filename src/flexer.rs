@@ -106,21 +106,9 @@ impl<T: BufRead> Lexer<T> {
     fn try_generating_operand(&mut self) -> Option<Token> {
         let current_char = self.src.current();
         let token = match current_char {
-            '+' => Some(Token {
-                category: TokenCategory::Plus,
-                value: TokenValue::Undefined,
-                position: self.position
-            }),
-            '*' => Some(Token {
-                category: TokenCategory::Multiply,
-                value: TokenValue::Undefined,
-                position: self.position
-            }),
-            '/' => Some(Token {
-                category: TokenCategory::Divide,
-                value: TokenValue::Undefined,
-                position: self.position
-            }),
+            '+' => Some(self.single_char(TokenCategory::Plus)),
+            '*' => Some(self.single_char(TokenCategory::Multiply)),
+            '/' => Some(self.single_char(TokenCategory::Divide)),
             '-' => Some(self.extend_to_next('>', TokenCategory::Minus, TokenCategory::Arrow)),
             '<' => Some(self.extend_to_next('=', TokenCategory::Less, TokenCategory::LessOrEqual)),
             '>' => Some(self.extend_to_next(
@@ -138,10 +126,16 @@ impl<T: BufRead> Lexer<T> {
             '|' => Some(self.extend_to_next_or_panic('|', TokenCategory::Or)),
             _ => None,
         };
-        if token.is_some() {
-            let _ = self.src.next();
-        }
         token
+    }
+
+    fn single_char(&mut self, category: TokenCategory) -> Token {
+        let _ = self.src.next();
+        Token {
+            category,
+            value: TokenValue::Undefined,
+            position: self.position
+        }
     }
 
     fn extend_to_next(
@@ -152,6 +146,7 @@ impl<T: BufRead> Lexer<T> {
     ) -> Token {
         let next_char = self.src.next().unwrap();
         if *next_char == char_to_search {
+            let _ = self.src.next();
             return Token {
                 category: found,
                 value: TokenValue::Undefined,
@@ -168,6 +163,7 @@ impl<T: BufRead> Lexer<T> {
     fn extend_to_next_or_panic(&mut self, char_to_search: char, found: TokenCategory) -> Token {
         let next_char = self.src.next().unwrap();
         if *next_char == char_to_search {
+            let _ = self.src.next();
             return Token {
                 category: found,
                 value: TokenValue::Undefined,
@@ -212,7 +208,7 @@ impl<T: BufRead> Lexer<T> {
         current_char = self.src.current();
         if *current_char != '.' {
             return Some(Token {
-                category: TokenCategory::I64,
+                category: TokenCategory::I64Value,
                 value: TokenValue::I64(decimal),
                 position: self.position
             });
@@ -221,7 +217,7 @@ impl<T: BufRead> Lexer<T> {
         let (fraction, fraction_length) = self.parse_integer();
         let float_value = Self::merge_to_float(decimal, fraction, fraction_length);
         Some(Token {
-            category: TokenCategory::F64,
+            category: TokenCategory::F64Value,
             value: TokenValue::F64(float_value),
             position: self.position
         })
@@ -310,5 +306,6 @@ static KEYWORDS: phf::Map<&'static str, TokenCategory> = phf_map! {
     "true" => TokenCategory::True,
     "false" => TokenCategory::False,
     "as" => TokenCategory::As,
-    "switch" => TokenCategory::Switch
+    "switch" => TokenCategory::Switch,
+    "break" => TokenCategory::Break
 };

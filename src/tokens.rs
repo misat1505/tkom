@@ -30,15 +30,13 @@ pub enum TokenCategory {
     While,
     If,
     Else,
-    Use,
     As,
-    In,
-    Unit,
     Fn,
     True,
     False,
     Return,
     Switch,
+    Break,
     // Type keywords
     Bool,
     String,
@@ -59,8 +57,8 @@ pub enum TokenCategory {
     Comment,
     // Literals
     StringValue,
-    I64Value(i64),
-    F64Value(f64),
+    I64Value,
+    F64Value,
 }
 
 #[derive(Debug, Clone)]
