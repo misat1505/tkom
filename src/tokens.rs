@@ -1,3 +1,5 @@
+use crate::lazy_stream_reader::Position;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenCategory {
     // Comparison
@@ -12,7 +14,6 @@ pub enum TokenCategory {
     Minus,
     Multiply,
     Divide,
-    Power,
     // Boolean arithmetic
     Negate,
     And,
@@ -53,7 +54,6 @@ pub enum TokenCategory {
     Arrow,
     STX,
     ETX,
-
     // Complex
     Identifier,
     Comment,
@@ -76,4 +76,5 @@ pub enum TokenValue {
 pub struct Token {
     pub category: TokenCategory,
     pub value: TokenValue,
+    pub position: Position
 }

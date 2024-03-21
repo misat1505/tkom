@@ -5,7 +5,7 @@ use std::{
     io::{BufReader, Error}, time::Instant,
 };
 
-use crate::ast::AstNodeActions;
+use crate::{ast::AstNodeActions, flexer::LexerOptions};
 use ast::AstNode;
 use flexer::{ILexer, Lexer};
 mod lazy_stream_reader;
@@ -53,7 +53,8 @@ fn main() -> Result<(), Error> {
     let code = BufReader::new(file);
     let reader = LazyStreamReader::new(code);
 
-    let mut flexer = Lexer::new(reader);
+    let lexer_options = LexerOptions { max_comment_length: 100, max_identifier_length: 20 };
+    let mut flexer = Lexer::new(reader, lexer_options);
     let mut tokens: Vec<Token> = vec![];
 
     let start = Instant::now();

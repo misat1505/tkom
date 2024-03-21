@@ -2,23 +2,31 @@ use std::io::BufRead;
 
 use phf::phf_map;
 
-use crate::lazy_stream_reader::{ILazyStreamReader, LazyStreamReader, ETX};
+use crate::lazy_stream_reader::{ILazyStreamReader, LazyStreamReader, Position, ETX};
 use crate::tokens::{Token, TokenCategory, TokenValue};
 
 pub trait ILexer<T: BufRead> {
-    fn new(src: LazyStreamReader<T>) -> Self;
+    fn new(src: LazyStreamReader<T>, options: LexerOptions) -> Self;
     fn next(&mut self) -> &Option<Token>;
     fn current(&self) -> &Option<Token>;
+}
+
+pub struct LexerOptions {
+    pub max_comment_length: u32,
+    pub max_identifier_length: u32,
 }
 
 pub struct Lexer<T: BufRead> {
     pub src: LazyStreamReader<T>,
     current: Option<Token>,
+    position: Position,
+    options: LexerOptions
 }
 
 impl<T: BufRead> ILexer<T> for Lexer<T> {
-    fn new(src: LazyStreamReader<T>) -> Self {
-        Lexer { src, current: None }
+    fn new(src: LazyStreamReader<T>, options: LexerOptions) -> Self {
+        let position = src.position().clone();
+        Lexer { src, current: None, position, options }
     }
 
     fn current(&self) -> &Option<Token> {
@@ -33,6 +41,7 @@ impl<T: BufRead> ILexer<T> for Lexer<T> {
 impl<T: BufRead> Lexer<T> {
     pub fn generate_token(&mut self) -> Option<Token> {
         self.skip_whitespaces();
+        self.position = self.src.position().clone();
 
         let result = self
             .try_generating_sign()
@@ -64,12 +73,17 @@ impl<T: BufRead> Lexer<T> {
         }
 
         let mut comment = String::new();
+        let mut comment_length: u32 = 0;
         while let Ok(current) = self.src.next() {
+            if comment_length > self.options.max_comment_length {
+                panic!("Comment too long. Max comment length: {}", self.options.max_comment_length);
+            }
             if *current == '\n' || *current == ETX { break; }
             comment.push(*current);
+            comment_length += 1;
         }
 
-        Some(Token { category: TokenCategory::Comment, value: TokenValue::String(comment) })
+        Some(Token { category: TokenCategory::Comment, value: TokenValue::String(comment), position: self.position })
     }
 
     fn try_generating_sign(&mut self) -> Option<Token> {
@@ -81,6 +95,7 @@ impl<T: BufRead> Lexer<T> {
                 let token = Token {
                     category: token_category.clone(),
                     value: TokenValue::Undefined,
+                    position: self.position
                 };
                 let _ = self.src.next();
                 Some(token)
@@ -94,14 +109,17 @@ impl<T: BufRead> Lexer<T> {
             '+' => Some(Token {
                 category: TokenCategory::Plus,
                 value: TokenValue::Undefined,
+                position: self.position
             }),
             '*' => Some(Token {
                 category: TokenCategory::Multiply,
                 value: TokenValue::Undefined,
+                position: self.position
             }),
             '/' => Some(Token {
                 category: TokenCategory::Divide,
                 value: TokenValue::Undefined,
+                position: self.position
             }),
             '-' => Some(self.extend_to_next('>', TokenCategory::Minus, TokenCategory::Arrow)),
             '<' => Some(self.extend_to_next('=', TokenCategory::Less, TokenCategory::LessOrEqual)),
@@ -137,11 +155,13 @@ impl<T: BufRead> Lexer<T> {
             return Token {
                 category: found,
                 value: TokenValue::Undefined,
+                position: self.position
             };
         }
         return Token {
             category: not_found,
             value: TokenValue::Undefined,
+            position: self.position
         };
     }
 
@@ -151,6 +171,7 @@ impl<T: BufRead> Lexer<T> {
             return Token {
                 category: found,
                 value: TokenValue::Undefined,
+                position: self.position
             };
         }
         panic!("Expected {} in {:?}", char_to_search, self.src.position());
@@ -178,6 +199,7 @@ impl<T: BufRead> Lexer<T> {
         Some(Token {
             category: TokenCategory::StringValue,
             value: TokenValue::String(created_string),
+            position: self.position
         })
     }
 
@@ -192,6 +214,7 @@ impl<T: BufRead> Lexer<T> {
             return Some(Token {
                 category: TokenCategory::I64,
                 value: TokenValue::I64(decimal),
+                position: self.position
             });
         }
         let _ = self.src.next();
@@ -200,6 +223,7 @@ impl<T: BufRead> Lexer<T> {
         Some(Token {
             category: TokenCategory::F64,
             value: TokenValue::F64(float_value),
+            position: self.position
         })
     }
 
@@ -232,18 +256,25 @@ impl<T: BufRead> Lexer<T> {
             return None;
         }
         let mut created_string = String::new();
+        let mut string_length: u32 = 0;
         while current_char.is_ascii_digit() || current_char.is_ascii_alphabetic() || *current_char == '_' {
+            if string_length > self.options.max_identifier_length {
+                panic!("Identifier name too long. Max identifier length: {}", self.options.max_identifier_length);
+            }
             created_string.push(*current_char);
             current_char = self.src.next().unwrap();
+            string_length += 1;
         }
         match KEYWORDS.get(created_string.as_str()) {
             Some(category) => Some(Token {
                 category: category.clone(),
                 value: TokenValue::Undefined,
+                position: self.position
             }),
             None => Some(Token {
                 category: TokenCategory::Identifier,
                 value: TokenValue::String(created_string),
+                position: self.position
             }),
         }
     }
