@@ -344,7 +344,8 @@ mod tests {
             max_comment_length: 100,
             max_identifier_length: 20,
         };
-        let mut lexer = Lexer::new(reader, lexer_options);
+
+        let lexer = Lexer::new(reader, lexer_options);
 
         lexer
     }
@@ -467,6 +468,39 @@ mod tests {
             (TokenCategory::F64Value, TokenValue::F64(12.3)),
             (TokenCategory::F64Value, TokenValue::F64(2.0)),
             (TokenCategory::F64Value, TokenValue::F64(0.0)),
+        ];
+
+        for (category, value) in &expected {
+            let token = lexer.generate_token().unwrap();
+            assert!(token.category == *category);
+            assert!(token.value == *value);
+        }
+    }
+
+    #[test]
+    fn keyword_or_identifier() {
+        let text = "fn for while if else return i64 f64
+        str void bool true false as switch break my_identifier1";
+        let mut lexer = create_lexer_with_skip(text);
+        
+        let expected: Vec<(TokenCategory, TokenValue)> = vec![
+            (TokenCategory::Fn, TokenValue::Undefined),
+            (TokenCategory::For, TokenValue::Undefined),
+            (TokenCategory::While, TokenValue::Undefined),
+            (TokenCategory::If, TokenValue::Undefined),
+            (TokenCategory::Else, TokenValue::Undefined),
+            (TokenCategory::Return, TokenValue::Undefined),
+            (TokenCategory::I64, TokenValue::Undefined),
+            (TokenCategory::F64, TokenValue::Undefined),
+            (TokenCategory::String, TokenValue::Undefined),
+            (TokenCategory::Void, TokenValue::Undefined),
+            (TokenCategory::Bool, TokenValue::Undefined),
+            (TokenCategory::True, TokenValue::Undefined),
+            (TokenCategory::False, TokenValue::Undefined),
+            (TokenCategory::As, TokenValue::Undefined),
+            (TokenCategory::Switch, TokenValue::Undefined),
+            (TokenCategory::Break, TokenValue::Undefined),
+            (TokenCategory::Identifier, TokenValue::String("my_identifier1".to_owned())),
         ];
 
         for (category, value) in &expected {
