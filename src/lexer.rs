@@ -369,7 +369,9 @@ mod tests {
     #[test]
     fn last_token() {
         let mut lexer = create_lexer_with_skip("");
-        let token = lexer.generate_token().unwrap();
+        let mut token = lexer.generate_token().unwrap();
+        assert!(token.category == TokenCategory::ETX);
+        token = lexer.generate_token().unwrap();
         assert!(token.category == TokenCategory::ETX);
     }
 
@@ -426,7 +428,8 @@ mod tests {
 
     #[test]
     fn comment() {
-        let text = "# this is a comment\n # another";
+        let text = "# this is a comment
+        # another";
         let mut lexer = create_lexer_with_skip(text);
 
         let mut token = lexer.generate_token().unwrap();

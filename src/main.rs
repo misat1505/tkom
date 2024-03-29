@@ -6,14 +6,14 @@ use std::{
     time::Instant,
 };
 
-use crate::{ast::AstNodeActions, flexer::LexerOptions};
+use crate::{ast::AstNodeActions, lexer::LexerOptions};
 use ast::AstNode;
-use flexer::{ILexer, Lexer};
+use lexer::{ILexer, Lexer};
 mod lazy_stream_reader;
 use lazy_stream_reader::LazyStreamReader;
 use tokens::{Token, TokenCategory};
 
-mod flexer;
+mod lexer;
 mod tokens;
 
 #[allow(dead_code)]
