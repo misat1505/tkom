@@ -425,11 +425,33 @@ mod tests {
 
     #[test]
     fn comment() {
-        let text = "# this is a comment";
+        let text = "# this is a comment\n # another";
         let mut lexer = create_lexer_with_skip(text);
 
-        let token = lexer.generate_token().unwrap();
+        let mut token = lexer.generate_token().unwrap();
         assert!(token.category == TokenCategory::Comment);
         assert!(token.value == TokenValue::String(" this is a comment".to_string()));
+
+        token = lexer.generate_token().unwrap();
+        assert!(token.category == TokenCategory::Comment);
+        assert!(token.value == TokenValue::String(" another".to_string()));
+    }
+
+    #[test]
+    fn string() {
+        let text = r#""string1"    " string2  ""string3""#;
+        let mut lexer = create_lexer_with_skip(text);
+
+        let mut token = lexer.generate_token().unwrap();
+        assert!(token.category == TokenCategory::StringValue);
+        assert!(token.value == TokenValue::String("string1".to_owned()));
+
+        token = lexer.generate_token().unwrap();
+        assert!(token.category == TokenCategory::StringValue);
+        assert!(token.value == TokenValue::String(" string2  ".to_owned()));
+
+        token = lexer.generate_token().unwrap();
+        assert!(token.category == TokenCategory::StringValue);
+        assert!(token.value == TokenValue::String("string3".to_owned()));
     }
 }
