@@ -454,4 +454,25 @@ mod tests {
         assert!(token.category == TokenCategory::StringValue);
         assert!(token.value == TokenValue::String("string3".to_owned()));
     }
+
+    #[test]
+    fn numbers() {
+        let text = "123 0 5 12.3 2.0 0.0";
+        let mut lexer = create_lexer_with_skip(text);
+
+        let expected: Vec<(TokenCategory, TokenValue)> = vec![
+            (TokenCategory::I64Value, TokenValue::I64(123)),
+            (TokenCategory::I64Value, TokenValue::I64(0)),
+            (TokenCategory::I64Value, TokenValue::I64(5)),
+            (TokenCategory::F64Value, TokenValue::F64(12.3)),
+            (TokenCategory::F64Value, TokenValue::F64(2.0)),
+            (TokenCategory::F64Value, TokenValue::F64(0.0)),
+        ];
+
+        for (category, value) in &expected {
+            let token = lexer.generate_token().unwrap();
+            assert!(token.category == *category);
+            assert!(token.value == *value);
+        }
+    }
 }
