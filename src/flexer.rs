@@ -510,3 +510,89 @@ mod tests {
         }
     }
 }
+
+
+#[cfg(test)]
+mod edge_case_tests {
+    use std::io::BufReader;
+
+    use super::*;
+
+    fn create_lexer(text: &str) -> Lexer<BufReader<&[u8]>> {
+        let code = BufReader::new(text.as_bytes());
+        let reader = LazyStreamReader::new(code);
+
+        let lexer_options = LexerOptions {
+            max_comment_length: 100,
+            max_identifier_length: 20,
+        };
+
+        let lexer = Lexer::new(reader, lexer_options);
+
+        lexer
+    }
+
+    fn create_lexer_with_skip(text: &str) -> Lexer<BufReader<&[u8]>> {
+        let mut lexer = create_lexer(text);
+        let _ = lexer.generate_token().unwrap();
+
+        lexer
+    }
+
+    #[test]
+    #[should_panic]
+    fn too_long_comment() {
+        let chars = "a".repeat(150);
+        let text = format!("# {}", chars);
+        let mut lexer = create_lexer_with_skip(text.as_str());
+
+        lexer.generate_token();
+    }
+
+    #[test]
+    #[should_panic]
+    fn too_long_identifier() {
+        let text = "a".repeat(30);
+        let mut lexer = create_lexer_with_skip(text.as_str());
+
+        lexer.generate_token();
+    }
+
+    #[test]
+    #[should_panic]
+    fn extend_to_next_or_panic() {
+        let text = "|";
+        let mut lexer = create_lexer_with_skip(text);
+
+        lexer.generate_token();
+    }
+
+    #[test]
+    #[should_panic]
+    fn newline_in_string() {
+        let text = r#""my
+        string""#;
+        let mut lexer = create_lexer_with_skip(text);
+
+        lexer.generate_token();
+    }
+
+    #[test]
+    #[should_panic]
+    fn string_unclosed() {
+        let text = r#""my_string"#;
+        let mut lexer = create_lexer_with_skip(text);
+
+        lexer.generate_token();
+    }
+
+    #[test]
+    #[should_panic]
+    fn int_overflow() {
+        // 1 more than limit
+        let text = "9223372036854775808";
+        let mut lexer = create_lexer_with_skip(text);
+
+        lexer.generate_token();
+    }
+}
