@@ -61,7 +61,7 @@ pub enum TokenCategory {
     F64Value,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenValue {
     String(String),
     Bool(bool),

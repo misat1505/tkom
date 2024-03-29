@@ -393,4 +393,43 @@ mod tests {
             assert!(token.category == *expected_token);
         }
     }
+
+    #[test]
+    fn operands() {
+        let text = "+* / --> <<= > >= ! != = == & && || ";
+        let mut lexer = create_lexer_with_skip(text);
+        let expected_tokens: Vec<TokenCategory> = vec![
+            TokenCategory::Plus,
+            TokenCategory::Multiply,
+            TokenCategory::Divide,
+            TokenCategory::Minus,
+            TokenCategory::Arrow,
+            TokenCategory::Less,
+            TokenCategory::LessOrEqual,
+            TokenCategory::Greater,
+            TokenCategory::GreaterOrEqual,
+            TokenCategory::Negate,
+            TokenCategory::NotEqual,
+            TokenCategory::Assign,
+            TokenCategory::Equal,
+            TokenCategory::Reference,
+            TokenCategory::And,
+            TokenCategory::Or,
+        ];
+
+        for expected_token in &expected_tokens {
+            let token = lexer.generate_token().unwrap();
+            assert!(token.category == *expected_token);
+        }
+    }
+
+    #[test]
+    fn comment() {
+        let text = "# this is a comment";
+        let mut lexer = create_lexer_with_skip(text);
+
+        let token = lexer.generate_token().unwrap();
+        assert!(token.category == TokenCategory::Comment);
+        assert!(token.value == TokenValue::String(" this is a comment".to_string()));
+    }
 }
