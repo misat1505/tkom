@@ -74,5 +74,5 @@ pub enum TokenValue {
 pub struct Token {
     pub category: TokenCategory,
     pub value: TokenValue,
-    pub position: Position
+    pub position: Position,
 }

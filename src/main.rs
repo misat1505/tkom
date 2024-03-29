@@ -2,7 +2,8 @@ pub mod ast;
 use std::{
     env::args,
     fs::{self, File},
-    io::{BufReader, Error}, time::Instant,
+    io::{BufReader, Error},
+    time::Instant,
 };
 
 use crate::{ast::AstNodeActions, flexer::LexerOptions};
@@ -53,7 +54,10 @@ fn main() -> Result<(), Error> {
     let code = BufReader::new(file);
     let reader = LazyStreamReader::new(code);
 
-    let lexer_options = LexerOptions { max_comment_length: 100, max_identifier_length: 20 };
+    let lexer_options = LexerOptions {
+        max_comment_length: 100,
+        max_identifier_length: 20,
+    };
     let mut flexer = Lexer::new(reader, lexer_options);
     let mut tokens: Vec<Token> = vec![];
 

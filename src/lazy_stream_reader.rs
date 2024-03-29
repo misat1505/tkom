@@ -145,6 +145,9 @@ impl<R: BufRead> LazyStreamReader<R> {
         let spaces = " ".repeat((self.position().column - 1) as usize);
         let caret_string = format!("{}^", spaces);
 
-        format!("\nAt line:\n{}{}{}{}", self.current_line, self.current_char, buffer, caret_string)
+        format!(
+            "\nAt line:\n{}{}{}{}",
+            self.current_line, self.current_char, buffer, caret_string
+        )
     }
 }
