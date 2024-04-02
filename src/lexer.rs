@@ -7,7 +7,7 @@ use crate::tokens::{Token, TokenCategory, TokenValue};
 
 #[derive(Debug, Clone)]
 pub struct LexerError {
-    pub message: String
+    pub message: String,
 }
 
 impl LexerError {
@@ -31,7 +31,7 @@ pub struct Lexer<T: BufRead> {
     current: Option<Token>,
     position: Position,
     options: LexerOptions,
-    error: Option<LexerError>
+    error: Option<LexerError>,
 }
 
 impl<T: BufRead> ILexer<T> for Lexer<T> {
@@ -42,7 +42,7 @@ impl<T: BufRead> ILexer<T> for Lexer<T> {
             current: None,
             position,
             options,
-            error: None
+            error: None,
         }
     }
 
@@ -72,10 +72,8 @@ impl<T: BufRead> Lexer<T> {
             Some(token) => {
                 self.current = Some(token.clone());
                 return Ok(token);
-            },
-            None => {
-                return Err(self.assign_lexer_error("Unexpected character".to_owned()))
             }
+            None => return Err(self.assign_lexer_error("Unexpected character".to_owned())),
         }
     }
 
@@ -275,8 +273,9 @@ impl<T: BufRead> Lexer<T> {
             match total.checked_mul(10) {
                 Some(result) => total = result,
                 None => {
-                    return Err(self.assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
-                },
+                    return Err(self
+                        .assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
+                }
             }
             match total.checked_add(digit) {
                 Some(result) => {
@@ -285,7 +284,8 @@ impl<T: BufRead> Lexer<T> {
                     current_char = self.src.next().unwrap();
                 }
                 None => {
-                    return Err(self.assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
+                    return Err(self
+                        .assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
                 }
             }
         }

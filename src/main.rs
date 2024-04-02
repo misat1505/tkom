@@ -47,7 +47,7 @@ fn main() -> Result<(), Error> {
             }
             Err(err) => {
                 println!("{}", err.message);
-                return Ok(())
+                return Ok(());
             }
         }
     }

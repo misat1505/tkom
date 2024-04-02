@@ -160,8 +160,11 @@ mod tests {
 
     #[test]
     fn test_lazy_stream_reader() {
-        let code = BufReader::new(r#"hello
-world"#.as_bytes());
+        let code = BufReader::new(
+            r#"hello
+world"#
+                .as_bytes(),
+        );
         let mut stream_reader = LazyStreamReader::new(code);
 
         let expected: Vec<(char, u32, u32)> = vec![
@@ -191,4 +194,3 @@ world"#.as_bytes());
         }
     }
 }
-
