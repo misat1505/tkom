@@ -39,14 +39,15 @@ fn main() -> Result<(), Error> {
     let start = Instant::now();
     loop {
         match lexer.generate_token() {
-            Some(token) => {
+            Ok(token) => {
                 tokens.push(token.clone());
                 if token.category == TokenCategory::ETX {
                     break;
                 }
             }
-            None => {
-                break;
+            Err(err) => {
+                println!("{}", err.message);
+                return Ok(())
             }
         }
     }

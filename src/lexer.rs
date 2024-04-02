@@ -5,6 +5,17 @@ use phf::phf_map;
 use crate::lazy_stream_reader::{ILazyStreamReader, LazyStreamReader, Position, ETX};
 use crate::tokens::{Token, TokenCategory, TokenValue};
 
+#[derive(Debug, Clone)]
+pub struct LexerError {
+    pub message: String
+}
+
+impl LexerError {
+    pub fn new(message: String) -> Self {
+        LexerError { message }
+    }
+}
+
 pub trait ILexer<T: BufRead> {
     fn new(src: LazyStreamReader<T>, options: LexerOptions) -> Self;
     fn current(&self) -> &Option<Token>;
@@ -20,6 +31,7 @@ pub struct Lexer<T: BufRead> {
     current: Option<Token>,
     position: Position,
     options: LexerOptions,
+    error: Option<LexerError>
 }
 
 impl<T: BufRead> ILexer<T> for Lexer<T> {
@@ -30,6 +42,7 @@ impl<T: BufRead> ILexer<T> for Lexer<T> {
             current: None,
             position,
             options,
+            error: None
         }
     }
 
@@ -39,7 +52,7 @@ impl<T: BufRead> ILexer<T> for Lexer<T> {
 }
 
 impl<T: BufRead> Lexer<T> {
-    pub fn generate_token(&mut self) -> Option<Token> {
+    pub fn generate_token(&mut self) -> Result<Token, LexerError> {
         self.skip_whitespaces();
         self.position = self.src.position().clone();
 
@@ -52,16 +65,16 @@ impl<T: BufRead> Lexer<T> {
             .or_else(|| self.try_creating_identifier_or_keyword());
         match result {
             Some(r) => {
-                self.current = Some(r.clone());
-                Some(r)
+                match &self.error {
+                    Some(err) => Err(err.clone()),
+                    None => {
+                        self.current = Some(r.clone());
+                        Ok(r)
+                    }
+                }
             },
             None => {
-                let position = self.src.position();
-                let code_snippet = self.src.error_code_snippet();
-                panic!(
-                    "\nUnexpected character at {:?}.\n{}",
-                    position, code_snippet
-                );
+                Err(self.create_lexer_error("Unexpected character".to_owned()))
             }
         }
     }
@@ -82,10 +95,12 @@ impl<T: BufRead> Lexer<T> {
         let mut comment_length: u32 = 0;
         while let Ok(current) = self.src.next().cloned() {
             if comment_length > self.options.max_comment_length {
-                self.create_panic(format!(
+                let error = self.create_lexer_error(format!(
                     "Comment too long. Max comment length: {}",
                     self.options.max_comment_length
                 ));
+                self.error = Some(error);
+                return None;
             }
             if current == '\n' || current == ETX {
                 break;
@@ -199,10 +214,14 @@ impl<T: BufRead> Lexer<T> {
         current_char = self.src.next().unwrap().clone();
         while current_char != '"' {
             if current_char == '\n' {
-                self.create_panic("Unexpected newline in string".to_owned());
+                let error = self.create_lexer_error("Unexpected newline in string".to_owned());
+                self.error = Some(error);
+                return None;
             }
             if current_char == ETX {
-                self.create_panic("String not closed".to_owned());
+                let error = self.create_lexer_error("String not closed".to_owned());
+                self.error = Some(error);
+                return None;
             }
             created_string.push(current_char);
             current_char = self.src.next().unwrap().clone();
@@ -248,11 +267,24 @@ impl<T: BufRead> Lexer<T> {
             let digit = *current_char as i64 - '0' as i64;
             match total.checked_mul(10) {
                 Some(result) => total = result,
-                None => self.create_panic("Overflow occurred while parsing integer".to_owned()),
+                None => {
+                    let error = self.create_lexer_error("Overflow occurred while parsing integer".to_owned());
+                    self.error = Some(error);
+                    return (0, 0);
+                },
             }
-            total += digit;
-            length += 1;
-            current_char = self.src.next().unwrap();
+            match total.checked_add(digit) {
+                Some(result) => {
+                    total = result;
+                    length += 1;
+                    current_char = self.src.next().unwrap();
+                }
+                None => {
+                    let error = self.create_lexer_error("Overflow occurred while parsing integer".to_owned());
+                    self.error = Some(error);
+                    return (0, 0);
+                }
+            }
         }
         (total, length)
     }
@@ -275,10 +307,12 @@ impl<T: BufRead> Lexer<T> {
             || current_char == '_'
         {
             if string_length > self.options.max_identifier_length {
-                self.create_panic(format!(
+                let error = self.create_lexer_error(format!(
                     "Identifier name too long. Max identifier length: {}",
                     self.options.max_identifier_length
                 ));
+                self.error = Some(error);
+                return None;
             }
             created_string.push(current_char);
             current_char = self.src.next().unwrap().clone();
@@ -298,10 +332,16 @@ impl<T: BufRead> Lexer<T> {
         }
     }
 
-    fn create_panic(&mut self, text: String) {
+    fn create_lexer_error(&mut self, text: String) -> LexerError {
         let position = self.src.position();
         let code_snippet = self.src.error_code_snippet();
-        panic!("\n{}\nAt {:?}\n{}\n", text, position, code_snippet);
+        let message = format!("\n{}\nAt {:?}\n{}\n", text, position, code_snippet);
+        LexerError::new(message)
+    }
+
+    fn assign_lexer_error(&mut self, text: String) {
+        let error = self.create_lexer_error(text);
+        self.error = Some(error);
     }
 }
 
@@ -554,22 +594,22 @@ mod edge_case_tests {
     }
 
     #[test]
-    #[should_panic]
     fn too_long_comment() {
         let chars = "a".repeat(150);
         let text = format!("# {}", chars);
         let mut lexer = create_lexer_with_skip(text.as_str());
 
-        lexer.generate_token();
+        let result = lexer.generate_token();
+        assert!(result.is_err());
     }
 
     #[test]
-    #[should_panic]
     fn too_long_identifier() {
         let text = "a".repeat(30);
         let mut lexer = create_lexer_with_skip(text.as_str());
 
-        lexer.generate_token();
+        let result = lexer.generate_token();
+        assert!(result.is_err());
     }
 
     #[test]
@@ -578,35 +618,35 @@ mod edge_case_tests {
         let text = "|";
         let mut lexer = create_lexer_with_skip(text);
 
-        lexer.generate_token();
+        let _ = lexer.generate_token();
     }
 
     #[test]
-    #[should_panic]
     fn newline_in_string() {
         let text = r#""my
         string""#;
         let mut lexer = create_lexer_with_skip(text);
 
-        lexer.generate_token();
+        let result = lexer.generate_token();
+        assert!(result.is_err());
     }
 
     #[test]
-    #[should_panic]
     fn string_unclosed() {
         let text = r#""my_string"#;
         let mut lexer = create_lexer_with_skip(text);
 
-        lexer.generate_token();
+        let result = lexer.generate_token();
+        assert!(result.is_err());
     }
 
     #[test]
-    #[should_panic]
     fn int_overflow() {
         // 1 more than limit
         let text = "9223372036854775808";
         let mut lexer = create_lexer_with_skip(text);
 
-        lexer.generate_token();
+        let result = lexer.generate_token();
+        assert!(result.is_err());
     }
 }
