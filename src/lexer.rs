@@ -366,7 +366,6 @@ static SIGNS: phf::Map<char, TokenCategory> = phf_map! {
 static KEYWORDS: phf::Map<&'static str, TokenCategory> = phf_map! {
     "fn" => TokenCategory::Fn,
     "for" => TokenCategory::For,
-    "while" => TokenCategory::While,
     "if" => TokenCategory::If,
     "else" => TokenCategory::Else,
     "return" => TokenCategory::Return,
@@ -534,14 +533,13 @@ mod tests {
 
     #[test]
     fn keyword_or_identifier() {
-        let text = "fn for while if else return i64 f64
+        let text = "fn for if else return i64 f64
         str void bool true false as switch break my_identifier1";
         let mut lexer = create_lexer_with_skip(text);
 
         let expected: Vec<(TokenCategory, TokenValue)> = vec![
             (TokenCategory::Fn, TokenValue::Null),
             (TokenCategory::For, TokenValue::Null),
-            (TokenCategory::While, TokenValue::Null),
             (TokenCategory::If, TokenValue::Null),
             (TokenCategory::Else, TokenValue::Null),
             (TokenCategory::Return, TokenValue::Null),

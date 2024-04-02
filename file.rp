@@ -54,3 +54,4 @@ str text = "hello world";
 print(text);
 # jakis komentarz
 print(56 + 6532475327647647762)
+2 + 3

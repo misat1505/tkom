@@ -27,7 +27,6 @@ pub enum TokenCategory {
     BraceClose,
     // Keywords
     For,
-    While,
     If,
     Else,
     As,
