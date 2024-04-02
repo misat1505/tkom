@@ -74,7 +74,7 @@ impl<T: BufRead> Lexer<T> {
                 }
             },
             None => {
-                Err(self.create_lexer_error("Unexpected character".to_owned()))
+                Err(self.assign_lexer_error("Unexpected character".to_owned()))
             }
         }
     }
@@ -95,11 +95,10 @@ impl<T: BufRead> Lexer<T> {
         let mut comment_length: u32 = 0;
         while let Ok(current) = self.src.next().cloned() {
             if comment_length > self.options.max_comment_length {
-                let error = self.create_lexer_error(format!(
+                self.assign_lexer_error(format!(
                     "Comment too long. Max comment length: {}",
                     self.options.max_comment_length
                 ));
-                self.error = Some(error);
                 return None;
             }
             if current == '\n' || current == ETX {
@@ -214,13 +213,11 @@ impl<T: BufRead> Lexer<T> {
         current_char = self.src.next().unwrap().clone();
         while current_char != '"' {
             if current_char == '\n' {
-                let error = self.create_lexer_error("Unexpected newline in string".to_owned());
-                self.error = Some(error);
+                self.assign_lexer_error("Unexpected newline in string".to_owned());
                 return None;
             }
             if current_char == ETX {
-                let error = self.create_lexer_error("String not closed".to_owned());
-                self.error = Some(error);
+                self.assign_lexer_error("String not closed".to_owned());
                 return None;
             }
             created_string.push(current_char);
@@ -268,8 +265,7 @@ impl<T: BufRead> Lexer<T> {
             match total.checked_mul(10) {
                 Some(result) => total = result,
                 None => {
-                    let error = self.create_lexer_error("Overflow occurred while parsing integer".to_owned());
-                    self.error = Some(error);
+                    self.assign_lexer_error("Overflow occurred while parsing integer".to_owned());
                     return (0, 0);
                 },
             }
@@ -280,8 +276,7 @@ impl<T: BufRead> Lexer<T> {
                     current_char = self.src.next().unwrap();
                 }
                 None => {
-                    let error = self.create_lexer_error("Overflow occurred while parsing integer".to_owned());
-                    self.error = Some(error);
+                    self.assign_lexer_error("Overflow occurred while parsing integer".to_owned());
                     return (0, 0);
                 }
             }
@@ -307,11 +302,10 @@ impl<T: BufRead> Lexer<T> {
             || current_char == '_'
         {
             if string_length > self.options.max_identifier_length {
-                let error = self.create_lexer_error(format!(
+                self.assign_lexer_error(format!(
                     "Identifier name too long. Max identifier length: {}",
                     self.options.max_identifier_length
                 ));
-                self.error = Some(error);
                 return None;
             }
             created_string.push(current_char);
@@ -339,9 +333,10 @@ impl<T: BufRead> Lexer<T> {
         LexerError::new(message)
     }
 
-    fn assign_lexer_error(&mut self, text: String) {
+    fn assign_lexer_error(&mut self, text: String) -> LexerError {
         let error = self.create_lexer_error(text);
-        self.error = Some(error);
+        self.error = Some(error.clone());
+        error
     }
 }
 
