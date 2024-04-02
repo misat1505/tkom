@@ -40,7 +40,6 @@ fn main() -> Result<(), Error> {
     loop {
         match lexer.generate_token() {
             Some(token) => {
-                println!("{:?}", lexer.current());
                 tokens.push(token.clone());
                 if token.category == TokenCategory::ETX {
                     break;
