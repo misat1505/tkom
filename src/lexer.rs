@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::io::BufRead;
 
 use phf::phf_map;
@@ -8,7 +7,6 @@ use crate::tokens::{Token, TokenCategory, TokenValue};
 
 pub trait ILexer<T: BufRead> {
     fn new(src: LazyStreamReader<T>, options: LexerOptions) -> Self;
-    fn next(&mut self) -> &Option<Token>;
     fn current(&self) -> &Option<Token>;
 }
 
@@ -36,10 +34,6 @@ impl<T: BufRead> ILexer<T> for Lexer<T> {
     }
 
     fn current(&self) -> &Option<Token> {
-        &self.current
-    }
-
-    fn next(&mut self) -> &Option<Token> {
         &self.current
     }
 }
@@ -184,6 +178,7 @@ impl<T: BufRead> Lexer<T> {
                 position: self.position,
             };
         }
+        // self.create_panic(format!("Expected {}", char_to_search));
         let code_snippet = self.src.error_code_snippet();
         panic!(
             "Expected {}\nAt: {:?}\n{}\n",
