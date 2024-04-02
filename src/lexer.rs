@@ -146,7 +146,6 @@ impl<T: BufRead> Lexer<T> {
             '!' => Some(self.extend_to_next('=', TokenCategory::Negate, TokenCategory::NotEqual)),
             '=' => Some(self.extend_to_next('=', TokenCategory::Assign, TokenCategory::Equal)),
             '&' => Some(self.extend_to_next('&', TokenCategory::Reference, TokenCategory::And)),
-            // '|' => Some(self.extend_to_next_or_panic('|', TokenCategory::Or)),
             '|' => {
                 let result = self.extend_to_next_or_error('|', TokenCategory::Or);
                 match result {
