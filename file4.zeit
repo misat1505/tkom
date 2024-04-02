@@ -53,4 +53,4 @@ fn fib(i64 x): i64 {
 str text = "hello world";
 print(text);
 # jakis komentarz
-45345763435646
+print(56 + 6532475327647647762)

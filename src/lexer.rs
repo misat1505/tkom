@@ -60,7 +60,10 @@ impl<T: BufRead> Lexer<T> {
             None => {
                 let position = self.src.position();
                 let code_snippet = self.src.error_code_snippet();
-                panic!("Unexpected character at {:?}.\n{}", position, code_snippet);
+                panic!(
+                    "\nUnexpected character at {:?}.\n{}",
+                    position, code_snippet
+                );
             }
         }
     }
@@ -81,9 +84,11 @@ impl<T: BufRead> Lexer<T> {
         let mut comment_length: u32 = 0;
         while let Ok(current) = self.src.next() {
             if comment_length > self.options.max_comment_length {
+                let position = self.src.position();
+                let code_snippet = self.src.error_code_snippet();
                 panic!(
-                    "Comment too long. Max comment length: {}",
-                    self.options.max_comment_length
+                    "\nComment too long. Max comment length: {}\nAt: {:?}\n{}",
+                    self.options.max_comment_length, position, code_snippet
                 );
             }
             if *current == '\n' || *current == ETX {
@@ -180,7 +185,13 @@ impl<T: BufRead> Lexer<T> {
                 position: self.position,
             };
         }
-        panic!("Expected {} in {:?}", char_to_search, self.src.position());
+        let code_snippet = self.src.error_code_snippet();
+        panic!(
+            "Expected {}\nAt: {:?}\n{}\n",
+            char_to_search,
+            self.src.position(),
+            code_snippet
+        );
     }
 
     fn try_generating_string(&mut self) -> Option<Token> {
@@ -193,13 +204,17 @@ impl<T: BufRead> Lexer<T> {
         while *current_char != '"' {
             if *current_char == '\n' {
                 panic!(
-                    "Unexpected newline in string in {:?}\n{}",
+                    "\nUnexpected newline in string at {:?}\n{}\n",
                     self.src.position(),
                     self.src.error_code_snippet()
                 );
             }
             if *current_char == ETX {
-                panic!("String not closed at {:?}", self.src.position());
+                panic!(
+                    "\nString not closed at {:?}\n{}\n",
+                    self.src.position(),
+                    self.src.error_code_snippet()
+                );
             }
             created_string.push(*current_char);
             current_char = self.src.next().unwrap();
@@ -245,7 +260,14 @@ impl<T: BufRead> Lexer<T> {
             let digit = *current_char as i64 - '0' as i64;
             match total.checked_mul(10) {
                 Some(result) => total = result,
-                None => panic!("Overflow occurred while parsing integer."),
+                None => {
+                    let position = self.src.position();
+                    let code_snippet = self.src.error_code_snippet();
+                    panic!(
+                        "\nOverflow occurred while parsing integer at {:?}\n{}\n",
+                        position, code_snippet
+                    );
+                }
             }
             total += digit;
             length += 1;
@@ -272,9 +294,11 @@ impl<T: BufRead> Lexer<T> {
             || *current_char == '_'
         {
             if string_length > self.options.max_identifier_length {
+                let position = self.src.position();
+                let code_snippet = self.src.error_code_snippet();
                 panic!(
-                    "Identifier name too long. Max identifier length: {}",
-                    self.options.max_identifier_length
+                    "\nIdentifier name too long. Max identifier length: {} at {:?}\n{}\n",
+                    self.options.max_identifier_length, position, code_snippet
                 );
             }
             created_string.push(*current_char);
@@ -485,7 +509,7 @@ mod tests {
         let text = "fn for while if else return i64 f64
         str void bool true false as switch break my_identifier1";
         let mut lexer = create_lexer_with_skip(text);
-        
+
         let expected: Vec<(TokenCategory, TokenValue)> = vec![
             (TokenCategory::Fn, TokenValue::Undefined),
             (TokenCategory::For, TokenValue::Undefined),
@@ -503,7 +527,10 @@ mod tests {
             (TokenCategory::As, TokenValue::Undefined),
             (TokenCategory::Switch, TokenValue::Undefined),
             (TokenCategory::Break, TokenValue::Undefined),
-            (TokenCategory::Identifier, TokenValue::String("my_identifier1".to_owned())),
+            (
+                TokenCategory::Identifier,
+                TokenValue::String("my_identifier1".to_owned()),
+            ),
         ];
 
         for (category, value) in &expected {
@@ -513,7 +540,6 @@ mod tests {
         }
     }
 }
-
 
 #[cfg(test)]
 mod edge_case_tests {
