@@ -51,7 +51,10 @@ impl<T: BufRead> Lexer<T> {
             .or_else(|| self.try_generating_number())
             .or_else(|| self.try_creating_identifier_or_keyword());
         match result {
-            Some(r) => Some(r),
+            Some(r) => {
+                self.current = Some(r.clone());
+                Some(r)
+            },
             None => {
                 let position = self.src.position();
                 let code_snippet = self.src.error_code_snippet();
