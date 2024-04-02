@@ -181,7 +181,6 @@ impl<T: BufRead> Lexer<T> {
                 position: self.position,
             };
         }
-        // self.create_panic(format!("Expected {}", char_to_search));
         let code_snippet = self.src.error_code_snippet();
         panic!(
             "Expected {}\nAt: {:?}\n{}\n",
@@ -302,7 +301,7 @@ impl<T: BufRead> Lexer<T> {
     fn create_panic(&mut self, text: String) {
         let position = self.src.position();
         let code_snippet = self.src.error_code_snippet();
-        panic!("\n{} at {:?}\n{}", text, position, code_snippet);
+        panic!("\n{}\nAt {:?}\n{}\n", text, position, code_snippet);
     }
 }
 
