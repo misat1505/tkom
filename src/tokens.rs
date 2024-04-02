@@ -66,7 +66,7 @@ pub enum TokenValue {
     String(String),
     F64(f64),
     I64(i64),
-    Undefined,
+    Null,
 }
 
 #[derive(Debug, Clone)]

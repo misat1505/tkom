@@ -123,7 +123,7 @@ impl<T: BufRead> Lexer<T> {
             Some(token_category) => {
                 let token = Token {
                     category: token_category.clone(),
-                    value: TokenValue::Undefined,
+                    value: TokenValue::Null,
                     position: self.position,
                 };
                 let _ = self.src.next();
@@ -158,7 +158,7 @@ impl<T: BufRead> Lexer<T> {
         let _ = self.src.next();
         Token {
             category,
-            value: TokenValue::Undefined,
+            value: TokenValue::Null,
             position: self.position,
         }
     }
@@ -174,13 +174,13 @@ impl<T: BufRead> Lexer<T> {
             let _ = self.src.next();
             return Token {
                 category: found,
-                value: TokenValue::Undefined,
+                value: TokenValue::Null,
                 position: self.position,
             };
         }
         return Token {
             category: not_found,
-            value: TokenValue::Undefined,
+            value: TokenValue::Null,
             position: self.position,
         };
     }
@@ -191,7 +191,7 @@ impl<T: BufRead> Lexer<T> {
             let _ = self.src.next();
             return Token {
                 category: found,
-                value: TokenValue::Undefined,
+                value: TokenValue::Null,
                 position: self.position,
             };
         }
@@ -323,7 +323,7 @@ impl<T: BufRead> Lexer<T> {
         match KEYWORDS.get(created_string.as_str()) {
             Some(category) => Some(Token {
                 category: category.clone(),
-                value: TokenValue::Undefined,
+                value: TokenValue::Null,
                 position: self.position,
             }),
             None => Some(Token {
@@ -539,22 +539,22 @@ mod tests {
         let mut lexer = create_lexer_with_skip(text);
 
         let expected: Vec<(TokenCategory, TokenValue)> = vec![
-            (TokenCategory::Fn, TokenValue::Undefined),
-            (TokenCategory::For, TokenValue::Undefined),
-            (TokenCategory::While, TokenValue::Undefined),
-            (TokenCategory::If, TokenValue::Undefined),
-            (TokenCategory::Else, TokenValue::Undefined),
-            (TokenCategory::Return, TokenValue::Undefined),
-            (TokenCategory::I64, TokenValue::Undefined),
-            (TokenCategory::F64, TokenValue::Undefined),
-            (TokenCategory::String, TokenValue::Undefined),
-            (TokenCategory::Void, TokenValue::Undefined),
-            (TokenCategory::Bool, TokenValue::Undefined),
-            (TokenCategory::True, TokenValue::Undefined),
-            (TokenCategory::False, TokenValue::Undefined),
-            (TokenCategory::As, TokenValue::Undefined),
-            (TokenCategory::Switch, TokenValue::Undefined),
-            (TokenCategory::Break, TokenValue::Undefined),
+            (TokenCategory::Fn, TokenValue::Null),
+            (TokenCategory::For, TokenValue::Null),
+            (TokenCategory::While, TokenValue::Null),
+            (TokenCategory::If, TokenValue::Null),
+            (TokenCategory::Else, TokenValue::Null),
+            (TokenCategory::Return, TokenValue::Null),
+            (TokenCategory::I64, TokenValue::Null),
+            (TokenCategory::F64, TokenValue::Null),
+            (TokenCategory::String, TokenValue::Null),
+            (TokenCategory::Void, TokenValue::Null),
+            (TokenCategory::Bool, TokenValue::Null),
+            (TokenCategory::True, TokenValue::Null),
+            (TokenCategory::False, TokenValue::Null),
+            (TokenCategory::As, TokenValue::Null),
+            (TokenCategory::Switch, TokenValue::Null),
+            (TokenCategory::Break, TokenValue::Null),
             (
                 TokenCategory::Identifier,
                 TokenValue::String("my_identifier1".to_owned()),
