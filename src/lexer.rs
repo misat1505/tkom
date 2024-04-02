@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use std::io::BufRead;
 
 use phf::phf_map;
@@ -51,7 +52,7 @@ impl<T: BufRead> Lexer<T> {
         let result = self
             .try_generating_sign()
             .or_else(|| self.try_generating_operand())
-            .or_else(|| self.try_genarting_comment())
+            .or_else(|| self.try_generating_comment())
             .or_else(|| self.try_generating_string())
             .or_else(|| self.try_generating_number())
             .or_else(|| self.try_creating_identifier_or_keyword());
@@ -74,27 +75,25 @@ impl<T: BufRead> Lexer<T> {
         }
     }
 
-    fn try_genarting_comment(&mut self) -> Option<Token> {
-        let current_char = self.src.current();
-        if *current_char != '#' {
+    fn try_generating_comment(&mut self) -> Option<Token> {
+        let current_char = self.src.current().clone();
+        if current_char != '#' {
             return None;
         }
 
         let mut comment = String::new();
         let mut comment_length: u32 = 0;
-        while let Ok(current) = self.src.next() {
+        while let Ok(current) = self.src.next().cloned() {
             if comment_length > self.options.max_comment_length {
-                let position = self.src.position();
-                let code_snippet = self.src.error_code_snippet();
-                panic!(
-                    "\nComment too long. Max comment length: {}\nAt: {:?}\n{}",
-                    self.options.max_comment_length, position, code_snippet
-                );
+                self.create_panic(format!(
+                    "Comment too long. Max comment length: {}",
+                    self.options.max_comment_length
+                ));
             }
-            if *current == '\n' || *current == ETX {
+            if current == '\n' || current == ETX {
                 break;
             }
-            comment.push(*current);
+            comment.push(current);
             comment_length += 1;
         }
 
@@ -176,8 +175,8 @@ impl<T: BufRead> Lexer<T> {
     }
 
     fn extend_to_next_or_panic(&mut self, char_to_search: char, found: TokenCategory) -> Token {
-        let next_char = self.src.next().unwrap();
-        if *next_char == char_to_search {
+        let next_char = self.src.next().unwrap().clone();
+        if next_char == char_to_search {
             let _ = self.src.next();
             return Token {
                 category: found,
@@ -195,29 +194,21 @@ impl<T: BufRead> Lexer<T> {
     }
 
     fn try_generating_string(&mut self) -> Option<Token> {
-        let mut current_char = self.src.current();
-        if *current_char != '"' {
+        let mut current_char = self.src.current().clone();
+        if current_char != '"' {
             return None;
         }
         let mut created_string = String::new();
-        current_char = self.src.next().unwrap();
-        while *current_char != '"' {
-            if *current_char == '\n' {
-                panic!(
-                    "\nUnexpected newline in string at {:?}\n{}\n",
-                    self.src.position(),
-                    self.src.error_code_snippet()
-                );
+        current_char = self.src.next().unwrap().clone();
+        while current_char != '"' {
+            if current_char == '\n' {
+                self.create_panic("Unexpected newline in string".to_owned());
             }
-            if *current_char == ETX {
-                panic!(
-                    "\nString not closed at {:?}\n{}\n",
-                    self.src.position(),
-                    self.src.error_code_snippet()
-                );
+            if current_char == ETX {
+                self.create_panic("String not closed".to_owned());
             }
-            created_string.push(*current_char);
-            current_char = self.src.next().unwrap();
+            created_string.push(current_char);
+            current_char = self.src.next().unwrap().clone();
         }
         // consume next "
         let _ = self.src.next();
@@ -260,14 +251,7 @@ impl<T: BufRead> Lexer<T> {
             let digit = *current_char as i64 - '0' as i64;
             match total.checked_mul(10) {
                 Some(result) => total = result,
-                None => {
-                    let position = self.src.position();
-                    let code_snippet = self.src.error_code_snippet();
-                    panic!(
-                        "\nOverflow occurred while parsing integer at {:?}\n{}\n",
-                        position, code_snippet
-                    );
-                }
+                None => self.create_panic("Overflow occurred while parsing integer".to_owned()),
             }
             total += digit;
             length += 1;
@@ -283,7 +267,7 @@ impl<T: BufRead> Lexer<T> {
     }
 
     fn try_creating_identifier_or_keyword(&mut self) -> Option<Token> {
-        let mut current_char = self.src.current();
+        let mut current_char = self.src.current().clone();
         if !current_char.is_ascii_alphabetic() {
             return None;
         }
@@ -291,18 +275,16 @@ impl<T: BufRead> Lexer<T> {
         let mut string_length: u32 = 0;
         while current_char.is_ascii_digit()
             || current_char.is_ascii_alphabetic()
-            || *current_char == '_'
+            || current_char == '_'
         {
             if string_length > self.options.max_identifier_length {
-                let position = self.src.position();
-                let code_snippet = self.src.error_code_snippet();
-                panic!(
-                    "\nIdentifier name too long. Max identifier length: {} at {:?}\n{}\n",
-                    self.options.max_identifier_length, position, code_snippet
-                );
+                self.create_panic(format!(
+                    "Identifier name too long. Max identifier length: {}",
+                    self.options.max_identifier_length
+                ));
             }
-            created_string.push(*current_char);
-            current_char = self.src.next().unwrap();
+            created_string.push(current_char);
+            current_char = self.src.next().unwrap().clone();
             string_length += 1;
         }
         match KEYWORDS.get(created_string.as_str()) {
@@ -317,6 +299,12 @@ impl<T: BufRead> Lexer<T> {
                 position: self.position,
             }),
         }
+    }
+
+    fn create_panic(&mut self, text: String) {
+        let position = self.src.position();
+        let code_snippet = self.src.error_code_snippet();
+        panic!("\n{} at {:?}\n{}", text, position, code_snippet);
     }
 }
 
