@@ -146,7 +146,14 @@ impl<T: BufRead> Lexer<T> {
             '!' => Some(self.extend_to_next('=', TokenCategory::Negate, TokenCategory::NotEqual)),
             '=' => Some(self.extend_to_next('=', TokenCategory::Assign, TokenCategory::Equal)),
             '&' => Some(self.extend_to_next('&', TokenCategory::Reference, TokenCategory::And)),
-            '|' => Some(self.extend_to_next_or_panic('|', TokenCategory::Or)),
+            // '|' => Some(self.extend_to_next_or_panic('|', TokenCategory::Or)),
+            '|' => {
+                let result = self.extend_to_next_or_error('|', TokenCategory::Or);
+                match result {
+                    Ok(token) => Some(token),
+                    Err(_) => None
+                }
+            }
             _ => None,
         };
         token
@@ -183,23 +190,17 @@ impl<T: BufRead> Lexer<T> {
         };
     }
 
-    fn extend_to_next_or_panic(&mut self, char_to_search: char, found: TokenCategory) -> Token {
+    fn extend_to_next_or_error(&mut self, char_to_search: char, found: TokenCategory) -> Result<Token, LexerError> {
         let next_char = self.src.next().unwrap().clone();
         if next_char == char_to_search {
             let _ = self.src.next();
-            return Token {
+            return Ok(Token {
                 category: found,
                 value: TokenValue::Null,
                 position: self.position,
-            };
+            });
         }
-        let code_snippet = self.src.error_code_snippet();
-        panic!(
-            "Expected {}\nAt: {:?}\n{}\n",
-            char_to_search,
-            self.src.position(),
-            code_snippet
-        );
+        return Err(self.assign_lexer_error(format!("Expected {}", char_to_search)));
     }
 
     fn try_generating_string(&mut self) -> Option<Token> {
@@ -614,12 +615,12 @@ mod edge_case_tests {
     }
 
     #[test]
-    #[should_panic]
-    fn extend_to_next_or_panic() {
+    fn extend_to_next_or_error() {
         let text = "|";
         let mut lexer = create_lexer_with_skip(text);
 
-        let _ = lexer.generate_token();
+        let result = lexer.generate_token();
+        assert!(result.is_err());
     }
 
     #[test]
