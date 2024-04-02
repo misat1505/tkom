@@ -63,18 +63,18 @@ impl<T: BufRead> Lexer<T> {
             .or_else(|| self.try_generating_string())
             .or_else(|| self.try_generating_number())
             .or_else(|| self.try_creating_identifier_or_keyword());
+
+        if self.error.is_some() {
+            return Err(self.error.clone().unwrap().clone());
+        }
+
         match result {
-            Some(r) => {
-                match &self.error {
-                    Some(err) => Err(err.clone()),
-                    None => {
-                        self.current = Some(r.clone());
-                        Ok(r)
-                    }
-                }
+            Some(token) => {
+                self.current = Some(token.clone());
+                return Ok(token);
             },
             None => {
-                Err(self.assign_lexer_error("Unexpected character".to_owned()))
+                return Err(self.assign_lexer_error("Unexpected character".to_owned()))
             }
         }
     }
@@ -237,7 +237,12 @@ impl<T: BufRead> Lexer<T> {
         if !current_char.is_ascii_digit() {
             return None;
         }
-        let (decimal, _) = self.parse_integer();
+
+        let result1 = self.parse_integer();
+        if result1.is_err() {
+            return None;
+        }
+        let (decimal, _) = result1.unwrap();
         current_char = self.src.current();
         if *current_char != '.' {
             return Some(Token {
@@ -246,8 +251,13 @@ impl<T: BufRead> Lexer<T> {
                 position: self.position,
             });
         }
+
         let _ = self.src.next();
-        let (fraction, fraction_length) = self.parse_integer();
+        let result2 = self.parse_integer();
+        if result2.is_err() {
+            return None;
+        }
+        let (fraction, fraction_length) = result2.unwrap();
         let float_value = Self::merge_to_float(decimal, fraction, fraction_length);
         Some(Token {
             category: TokenCategory::F64Value,
@@ -256,7 +266,7 @@ impl<T: BufRead> Lexer<T> {
         })
     }
 
-    fn parse_integer(&mut self) -> (i64, i64) {
+    fn parse_integer(&mut self) -> Result<(i64, i64), LexerError> {
         let mut current_char = self.src.current();
         let mut length = 0;
         let mut total: i64 = 0;
@@ -265,8 +275,7 @@ impl<T: BufRead> Lexer<T> {
             match total.checked_mul(10) {
                 Some(result) => total = result,
                 None => {
-                    self.assign_lexer_error("Overflow occurred while parsing integer".to_owned());
-                    return (0, 0);
+                    return Err(self.assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
                 },
             }
             match total.checked_add(digit) {
@@ -276,12 +285,11 @@ impl<T: BufRead> Lexer<T> {
                     current_char = self.src.next().unwrap();
                 }
                 None => {
-                    self.assign_lexer_error("Overflow occurred while parsing integer".to_owned());
-                    return (0, 0);
+                    return Err(self.assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
                 }
             }
         }
-        (total, length)
+        Ok((total, length))
     }
 
     fn merge_to_float(decimal: i64, fraction: i64, fraction_length: i64) -> f64 {
