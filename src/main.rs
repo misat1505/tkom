@@ -59,9 +59,12 @@ fn main() -> Result<(), Error> {
         println!("{:?}", token);
     }
 
-    println!("warnings: {:?}", lexer.warning_manager.get_warnings());
+    println!("\nWarnings:");
+    for warning in lexer.warning_manager.get_warnings() {
+        println!("{}", warning.message);
+    }
 
-    println!("Time {:?}", finish - start);
+    println!("\nTime {:?}", finish - start);
 
     Ok(())
 }
