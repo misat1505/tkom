@@ -8,9 +8,10 @@ use std::{
 use lexer::{ILexer, Lexer};
 mod lazy_stream_reader;
 use lazy_stream_reader::LazyStreamReader;
+use lexer_utils::LexerIssue;
 use tokens::{Token, TokenCategory};
 
-use crate::lexer_utils::{LexerOptions, LexerWarningManager};
+use crate::lexer_utils::LexerOptions;
 mod lexer_utils;
 
 mod lexer;
@@ -24,6 +25,10 @@ fn parse_filename() -> String {
     panic!("Path to file not given.");
 }
 
+fn on_warning(warning: LexerIssue) {
+    println!("{}", warning.message);
+}
+
 fn main() -> Result<(), Error> {
     let path = parse_filename();
 
@@ -35,7 +40,9 @@ fn main() -> Result<(), Error> {
         max_comment_length: 100,
         max_identifier_length: 20,
     };
-    let mut lexer = Lexer::new(reader, lexer_options, LexerWarningManager::new());
+
+
+    let mut lexer = Lexer::new(reader, lexer_options, on_warning);
     let mut tokens: Vec<Token> = vec![];
 
     let start = Instant::now();
@@ -57,11 +64,6 @@ fn main() -> Result<(), Error> {
 
     for token in &tokens {
         println!("{:?}", token);
-    }
-
-    println!("\nWarnings:");
-    for warning in lexer.warning_manager.get_warnings() {
-        println!("{}", warning.message);
     }
 
     println!("\nTime {:?}", finish - start);

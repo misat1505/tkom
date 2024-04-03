@@ -16,25 +16,6 @@ impl LexerIssue {
     }
 }
 
-pub struct LexerWarningManager {
-    issues: Vec<LexerIssue>,
-}
-
-impl LexerWarningManager {
-    pub fn new() -> Self {
-        LexerWarningManager { issues: vec![] }
-    }
-
-    pub fn add(&mut self, message: String) {
-        self.issues
-            .push(LexerIssue::new(LexerIssueKind::WARNING, message));
-    }
-
-    pub fn get_warnings(&self) -> Vec<LexerIssue> {
-        self.issues.clone()
-    }
-}
-
 pub struct LexerOptions {
     pub max_comment_length: u32,
     pub max_identifier_length: u32,

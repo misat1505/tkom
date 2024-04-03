@@ -3,14 +3,14 @@ use std::io::BufRead;
 use phf::phf_map;
 
 use crate::lazy_stream_reader::{ILazyStreamReader, LazyStreamReader, Position, ETX};
-use crate::lexer_utils::{LexerIssue, LexerIssueKind, LexerOptions, LexerWarningManager};
+use crate::lexer_utils::{LexerIssue, LexerIssueKind, LexerOptions};
 use crate::tokens::{Token, TokenCategory, TokenValue};
 
 pub trait ILexer<T: BufRead> {
     fn new(
         src: LazyStreamReader<T>,
         options: LexerOptions,
-        warning_manager: LexerWarningManager,
+        warning_manager: fn(warning: LexerIssue),
     ) -> Self;
     fn current(&self) -> &Option<Token>;
 }
@@ -20,14 +20,14 @@ pub struct Lexer<T: BufRead> {
     current: Option<Token>,
     position: Position,
     options: LexerOptions,
-    pub warning_manager: LexerWarningManager,
+    pub on_warning: fn(warning: LexerIssue),
 }
 
 impl<T: BufRead> ILexer<T> for Lexer<T> {
     fn new(
         src: LazyStreamReader<T>,
         options: LexerOptions,
-        warning_manager: LexerWarningManager,
+        on_warning: fn(warning: LexerIssue),
     ) -> Self {
         let position = src.position().clone();
         Lexer {
@@ -35,7 +35,7 @@ impl<T: BufRead> ILexer<T> for Lexer<T> {
             current: None,
             position,
             options,
-            warning_manager,
+            on_warning,
         }
     }
 
@@ -204,8 +204,7 @@ impl<T: BufRead> Lexer<T> {
         if next_char == char_to_search {
             let _ = self.src.next();
         } else {
-            self.warning_manager
-                .add(self.prepare_warning_message(format!("Expected {}", char_to_search)));
+            (self.on_warning)(LexerIssue::new(LexerIssueKind::WARNING, self.prepare_warning_message(format!("Expected {}", char_to_search))));
         }
         return Token {
             category: found,
@@ -227,8 +226,7 @@ impl<T: BufRead> Lexer<T> {
                 return Err(self.create_lexer_issue("Unexpected newline in string".to_owned()));
             }
             if current_char == ETX {
-                self.warning_manager
-                    .add(self.prepare_warning_message("String not closed".to_owned()));
+                (self.on_warning)(LexerIssue::new(LexerIssueKind::WARNING, self.prepare_warning_message("String not closed".to_owned())));
                 return Ok(Some(Token {
                     category: TokenCategory::StringValue,
                     value: TokenValue::String(created_string),
@@ -395,6 +393,10 @@ mod tests {
 
     use super::*;
 
+    fn on_warning(warning: LexerIssue) {
+        println!("{}", warning.message);
+    }
+
     fn create_lexer(text: &str) -> Lexer<BufReader<&[u8]>> {
         let code = BufReader::new(text.as_bytes());
         let reader = LazyStreamReader::new(code);
@@ -404,7 +406,7 @@ mod tests {
             max_identifier_length: 20,
         };
 
-        let lexer = Lexer::new(reader, lexer_options, LexerWarningManager::new());
+        let lexer = Lexer::new(reader, lexer_options, on_warning);
 
         lexer
     }
@@ -581,6 +583,10 @@ mod edge_case_tests {
 
     use super::*;
 
+    fn on_warning(warning: LexerIssue) {
+        println!("{}", warning.message);
+    }
+
     fn create_lexer(text: &str) -> Lexer<BufReader<&[u8]>> {
         let code = BufReader::new(text.as_bytes());
         let reader = LazyStreamReader::new(code);
@@ -590,7 +596,7 @@ mod edge_case_tests {
             max_identifier_length: 20,
         };
 
-        let lexer = Lexer::new(reader, lexer_options, LexerWarningManager::new());
+        let lexer = Lexer::new(reader, lexer_options, on_warning);
 
         lexer
     }
@@ -628,7 +634,6 @@ mod edge_case_tests {
 
         let result = lexer.generate_token();
         assert!(result.unwrap().category == TokenCategory::Or);
-        assert!(lexer.warning_manager.get_warnings().len() > 0);
     }
 
     #[test]
@@ -648,7 +653,6 @@ mod edge_case_tests {
 
         let result = lexer.generate_token();
         assert!(result.unwrap().category == TokenCategory::StringValue);
-        assert!(lexer.warning_manager.get_warnings().len() > 0);
     }
 
     #[test]
