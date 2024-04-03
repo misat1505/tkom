@@ -120,10 +120,7 @@ impl<T: BufRead> Lexer<T> {
                 return Ok(token);
             }
             None => {
-                return Err(LexerIssue::new(
-                    LexerIssueKind::ERROR,
-                    "Unexpected token".to_owned(),
-                ))
+                return Err(self.create_lexer_issue("Unexpected token".to_owned()))
             }
         }
     }
@@ -144,13 +141,10 @@ impl<T: BufRead> Lexer<T> {
         let mut comment_length: u32 = 0;
         while let Ok(current) = self.src.next().cloned() {
             if comment_length > self.options.max_comment_length {
-                return Err(LexerIssue::new(
-                    LexerIssueKind::ERROR,
-                    format!(
-                        "Comment too long. Max comment length: {}",
-                        self.options.max_comment_length
-                    ),
-                ));
+                return Err(self.create_lexer_issue(format!(
+                    "Comment too long. Max comment length: {}",
+                    self.options.max_comment_length
+                )));
             }
             if current == '\n' || current == ETX {
                 break;
@@ -242,7 +236,7 @@ impl<T: BufRead> Lexer<T> {
             let _ = self.src.next();
         } else {
             self.warning_manager
-                .add(format!("Expected {}", char_to_search));
+                .add(self.prepare_warning_message(format!("Expected {}", char_to_search)));
         }
         return Token {
             category: found,
@@ -262,14 +256,11 @@ impl<T: BufRead> Lexer<T> {
             // escpaowanie
             if current_char == '\n' {
                 // error
-                return Err(LexerIssue::new(
-                    LexerIssueKind::ERROR,
-                    "Unexpected newline in string".to_owned(),
-                ));
+                return Err(self.create_lexer_issue("Unexpected newline in string".to_owned()));
             }
             if current_char == ETX {
                 // warning i zwrocic stringa
-                self.warning_manager.add("String not closed".to_owned());
+                self.warning_manager.add(self.prepare_warning_message("String not closed".to_owned()));
                 return Ok(Some(Token {
                     category: TokenCategory::StringValue,
                     value: TokenValue::String(created_string),
@@ -324,12 +315,7 @@ impl<T: BufRead> Lexer<T> {
             match total.checked_mul(10) {
                 Some(result) => total = result,
                 None => {
-                    // return Err(self
-                    //     .assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
-                    return Err(LexerIssue::new(
-                        LexerIssueKind::ERROR,
-                        "Overflow occurred while parsing integer".to_owned(),
-                    ));
+                    return Err(self.create_lexer_issue("Overflow occurred while parsing integer".to_owned()));
                 }
             }
             match total.checked_add(digit) {
@@ -339,12 +325,7 @@ impl<T: BufRead> Lexer<T> {
                     current_char = self.src.next().unwrap();
                 }
                 None => {
-                    // return Err(self
-                    //     .assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
-                    return Err(LexerIssue::new(
-                        LexerIssueKind::ERROR,
-                        "Overflow occurred while parsing integer".to_owned(),
-                    ));
+                    return Err(self.create_lexer_issue("Overflow occurred while parsing integer".to_owned()));
                 }
             }
         }
@@ -369,18 +350,10 @@ impl<T: BufRead> Lexer<T> {
             || current_char == '_'
         {
             if string_length == self.options.max_identifier_length {
-                // self.assign_lexer_error(format!(
-                //     "Identifier name too long. Max identifier length: {}",
-                //     self.options.max_identifier_length
-                // ));
-                // return None;
-                return Err(LexerIssue::new(
-                    LexerIssueKind::ERROR,
-                    format!(
-                        "Identifier name too long. Max identifier length: {}",
-                        self.options.max_identifier_length
-                    ),
-                ));
+                return Err(self.create_lexer_issue(format!(
+                    "Identifier name too long. Max identifier length: {}",
+                    self.options.max_identifier_length
+                )));
             }
             created_string.push(current_char);
             current_char = self.src.next().unwrap().clone();
@@ -400,18 +373,17 @@ impl<T: BufRead> Lexer<T> {
         }
     }
 
-    // fn create_lexer_error(&mut self, text: String) -> LexerError {
-    //     let position = self.src.position();
-    //     let code_snippet = self.src.error_code_snippet();
-    //     let message = format!("\n{}\nAt {:?}\n{}\n", text, position, code_snippet);
-    //     LexerError::new(message)
-    // }
+    fn create_lexer_issue(&mut self, text: String) -> LexerIssue {
+        let position = self.src.position();
+        let code_snippet = self.src.error_code_snippet();
+        let message = format!("\n{}\nAt {:?}\n{}\n", text, position, code_snippet);
+        LexerIssue::new(LexerIssueKind::ERROR, message)
+    }
 
-    // fn assign_lexer_error(&mut self, text: String) -> LexerError {
-    //     let error = self.create_lexer_error(text);
-    //     self.error = Some(error.clone());
-    //     error
-    // }
+    fn prepare_warning_message(&self, text: String) -> String {
+        let position = self.src.position();
+        format!("\n{}\nAt {:?}\n", text, position)
+    }
 }
 
 static SIGNS: phf::Map<char, TokenCategory> = phf_map! {
