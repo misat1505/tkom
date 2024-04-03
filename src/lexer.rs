@@ -3,48 +3,31 @@ use std::io::BufRead;
 use phf::phf_map;
 
 use crate::lazy_stream_reader::{ILazyStreamReader, LazyStreamReader, Position, ETX};
+use crate::lexer_utils::{LexerIssue, LexerIssueKind, LexerOptions, LexerWarningManager};
 use crate::tokens::{Token, TokenCategory, TokenValue};
 
-#[derive(Debug, Clone)]
-pub struct LexerError {
-    pub message: String,
-}
-
-impl LexerError {
-    pub fn new(message: String) -> Self {
-        LexerError { message }
-    }
-}
-
 pub trait ILexer<T: BufRead> {
-    fn new(src: LazyStreamReader<T>, options: LexerOptions) -> Self;
+    fn new(src: LazyStreamReader<T>, options: LexerOptions, warning_manager: LexerWarningManager) -> Self;
     fn current(&self) -> &Option<Token>;
 }
 
-pub struct LexerOptions {
-    pub max_comment_length: u32,
-    pub max_identifier_length: u32,
-}
-
 pub struct Lexer<T: BufRead> {
-    // warningi
-    // funckja onwarning
     pub src: LazyStreamReader<T>,
     current: Option<Token>,
     position: Position,
     options: LexerOptions,
-    error: Option<LexerError>,
+    pub warning_manager: LexerWarningManager
 }
 
 impl<T: BufRead> ILexer<T> for Lexer<T> {
-    fn new(src: LazyStreamReader<T>, options: LexerOptions) -> Self {
+    fn new(src: LazyStreamReader<T>, options: LexerOptions, warning_manager: LexerWarningManager) -> Self {
         let position = src.position().clone();
         Lexer {
             src,
             current: None,
             position,
             options,
-            error: None,
+            warning_manager
         }
     }
 
@@ -54,20 +37,85 @@ impl<T: BufRead> ILexer<T> for Lexer<T> {
 }
 
 impl<T: BufRead> Lexer<T> {
-    pub fn generate_token(&mut self) -> Result<Token, LexerError> {
+    #[allow(irrefutable_let_patterns)]
+    pub fn generate_token(&mut self) -> Result<Token, LexerIssue> {
         self.skip_whitespaces();
         self.position = self.src.position().clone();
 
-        let result = self
-            .try_generating_sign()
-            .or_else(|| self.try_generating_operand())
-            .or_else(|| self.try_generating_comment())
-            .or_else(|| self.try_generating_string())
-            .or_else(|| self.try_generating_number())
-            .or_else(|| self.try_creating_identifier_or_keyword());
+        // let result = self
+        //     .try_generating_sign()
+        //     .or_else(|| self.try_generating_operand())
+        //     .or_else(|| self.try_generating_comment())
+        //     .or_else(|| self.try_generating_string())
+        //     .or_else(|| self.try_generating_number())
+        //     .or_else(|| self.try_creating_identifier_or_keyword());
+        println!("{:?}", self.src.current());
 
-        if self.error.is_some() {
-            return Err(self.error.clone().unwrap().clone());
+        let mut result: Option<Token> = None;
+        if let Some(token) = self.try_generating_sign() {
+            if result.is_none() {
+                result = Some(token);
+            }
+        } if let Some(token) = self.try_generating_operand() {
+            if result.is_none() {
+                result = Some(token);
+            }
+        } if let op_result = self.try_generating_comment() {
+            if result.is_none() {
+                match op_result {
+                    Ok(token_option) => {
+                        match token_option {
+                            Some(token) => result = Some(token),
+                            None => {}
+                        }
+                    },
+                    Err(err) => {
+                        return Err(err);
+                    }
+                }
+            }
+        } if let op_result = self.try_generating_string() {
+            if result.is_none() {
+                match op_result {
+                    Ok(token_option) => {
+                        match token_option {
+                            Some(token) => result = Some(token),
+                            None => {}
+                        }
+                    },
+                    Err(err) => {
+                        return Err(err);
+                    }
+                }
+            }
+        } if let op_result = self.try_generating_number() {
+            if result.is_none() {
+                match op_result {
+                    Ok(token_option) => {
+                        match token_option {
+                            Some(token) => result = Some(token),
+                            None => {}
+                        }
+                    },
+                    Err(err) => {
+                        return Err(err);
+                    }
+                }
+            }
+        } if let op_result = self.try_creating_identifier_or_keyword() {
+            if result.is_none() {
+                match op_result {
+                    Ok(token_option) => {
+                        match token_option {
+                            Some(token) => result = Some(token),
+                            None => {}
+                        }
+                    },
+                    Err(err) => {
+                        return Err(err);
+                    }
+                }
+            }
         }
 
         match result {
@@ -75,7 +123,7 @@ impl<T: BufRead> Lexer<T> {
                 self.current = Some(token.clone());
                 return Ok(token);
             }
-            None => return Err(self.assign_lexer_error("Unexpected character".to_owned())),
+            None => return Err(LexerIssue::new(LexerIssueKind::ERROR, "Unexpected token".to_owned())),
         }
     }
 
@@ -85,21 +133,20 @@ impl<T: BufRead> Lexer<T> {
         }
     }
 
-    fn try_generating_comment(&mut self) -> Option<Token> {
+    fn try_generating_comment(&mut self) -> Result<Option<Token>, LexerIssue> {
         let current_char = self.src.current().clone();
         if current_char != '#' {
-            return None;
+            return Ok(None);
         }
 
         let mut comment = String::new();
         let mut comment_length: u32 = 0;
         while let Ok(current) = self.src.next().cloned() {
             if comment_length > self.options.max_comment_length {
-                self.assign_lexer_error(format!(
+                return Err(LexerIssue::new(LexerIssueKind::ERROR, format!(
                     "Comment too long. Max comment length: {}",
                     self.options.max_comment_length
-                ));
-                return None;
+                )));
             }
             if current == '\n' || current == ETX {
                 break;
@@ -108,11 +155,11 @@ impl<T: BufRead> Lexer<T> {
             comment_length += 1;
         }
 
-        Some(Token {
+        Ok(Some(Token {
             category: TokenCategory::Comment,
             value: TokenValue::String(comment),
             position: self.position,
-        })
+        }))
     }
 
     fn try_generating_sign(&mut self) -> Option<Token> {
@@ -148,14 +195,7 @@ impl<T: BufRead> Lexer<T> {
             '!' => Some(self.extend_to_next('=', TokenCategory::Negate, TokenCategory::NotEqual)),
             '=' => Some(self.extend_to_next('=', TokenCategory::Assign, TokenCategory::Equal)),
             '&' => Some(self.extend_to_next('&', TokenCategory::Reference, TokenCategory::And)),
-            '|' => {
-                // warning
-                let result = self.extend_to_next_or_error('|', TokenCategory::Or);
-                match result {
-                    Ok(token) => Some(token),
-                    Err(_) => None
-                }
-            }
+            '|' => Some(self.extend_to_next_or_warning('|', TokenCategory::Or)),
             _ => None,
         };
         token
@@ -192,86 +232,82 @@ impl<T: BufRead> Lexer<T> {
         };
     }
 
-    fn extend_to_next_or_error(&mut self, char_to_search: char, found: TokenCategory) -> Result<Token, LexerError> {
+    fn extend_to_next_or_warning(&mut self, char_to_search: char, found: TokenCategory) -> Token {
         let next_char = self.src.next().unwrap().clone();
         if next_char == char_to_search {
             let _ = self.src.next();
-            return Ok(Token {
-                category: found,
-                value: TokenValue::Null,
-                position: self.position,
-            });
+        } else {
+            self.warning_manager.add(format!("Expected {}", char_to_search));
         }
-        return Err(self.assign_lexer_error(format!("Expected {}", char_to_search)));
+        return Token {
+            category: found,
+            value: TokenValue::Null,
+            position: self.position,
+        };
     }
 
-    fn try_generating_string(&mut self) -> Option<Token> {
+    fn try_generating_string(&mut self) -> Result<Option<Token>, LexerIssue> {
         let mut current_char = self.src.current().clone();
         if current_char != '"' {
-            return None;
+            return Ok(None);
         }
         let mut created_string = String::new();
         current_char = self.src.next().unwrap().clone();
         while current_char != '"' {
             // escpaowanie
             if current_char == '\n' {
-                // warning
-                self.assign_lexer_error("Unexpected newline in string".to_owned());
-                return None;
+                // error
+                return Err(LexerIssue::new(LexerIssueKind::ERROR, "Unexpected newline in string".to_owned()));
             }
             if current_char == ETX {
                 // warning i zwrocic stringa
-                self.assign_lexer_error("String not closed".to_owned());
-                return None;
+                self.warning_manager.add("String not closed".to_owned());
+                return Ok(Some(Token {
+                    category: TokenCategory::StringValue,
+                    value: TokenValue::String(created_string),
+                    position: self.position,
+                }));
             }
             created_string.push(current_char);
             current_char = self.src.next().unwrap().clone();
         }
         // consume next "
         let _ = self.src.next();
-        Some(Token {
+        Ok(Some(Token {
             category: TokenCategory::StringValue,
             value: TokenValue::String(created_string),
             position: self.position,
-        })
+        }))
     }
 
-    fn try_generating_number(&mut self) -> Option<Token> {
+    fn try_generating_number(&mut self) -> Result<Option<Token>, LexerIssue> {
         // 007
         let mut current_char = self.src.current();
         if !current_char.is_ascii_digit() {
-            return None;
+            return Ok(None);
         }
 
-        let result1 = self.parse_integer();
-        if result1.is_err() {
-            return None;
-        }
-        let (decimal, _) = result1.unwrap();
+        let (decimal, _) = self.parse_integer()?;
         current_char = self.src.current();
         if *current_char != '.' {
-            return Some(Token {
+            return Ok(Some(Token {
                 category: TokenCategory::I64Value,
                 value: TokenValue::I64(decimal),
                 position: self.position,
-            });
+            }));
         }
 
         let _ = self.src.next();
-        let result2 = self.parse_integer();
-        if result2.is_err() {
-            return None;
-        }
-        let (fraction, fraction_length) = result2.unwrap();
+        let (fraction, fraction_length) = self.parse_integer()?;
         let float_value = Self::merge_to_float(decimal, fraction, fraction_length);
-        Some(Token {
+        Ok(Some(Token {
             category: TokenCategory::F64Value,
             value: TokenValue::F64(float_value),
             position: self.position,
-        })
+        }))
     }
 
-    fn parse_integer(&mut self) -> Result<(i64, i64), LexerError> {
+    fn parse_integer(&mut self) -> Result<(i64, i64), LexerIssue> {
         let mut current_char = self.src.current();
         let mut length = 0;
         let mut total: i64 = 0;
@@ -280,8 +316,9 @@ impl<T: BufRead> Lexer<T> {
             match total.checked_mul(10) {
                 Some(result) => total = result,
                 None => {
-                    return Err(self
-                        .assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
+                    // return Err(self
+                    //     .assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
+                    return Err(LexerIssue::new(LexerIssueKind::ERROR, "Overflow occurred while parsing integer".to_owned()));
                 }
             }
             match total.checked_add(digit) {
@@ -291,8 +328,9 @@ impl<T: BufRead> Lexer<T> {
                     current_char = self.src.next().unwrap();
                 }
                 None => {
-                    return Err(self
-                        .assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
+                    // return Err(self
+                    //     .assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
+                    return Err(LexerIssue::new(LexerIssueKind::ERROR, "Overflow occurred while parsing integer".to_owned()));
                 }
             }
         }
@@ -305,10 +343,10 @@ impl<T: BufRead> Lexer<T> {
         float_value
     }
 
-    fn try_creating_identifier_or_keyword(&mut self) -> Option<Token> {
+    fn try_creating_identifier_or_keyword(&mut self) -> Result<Option<Token>, LexerIssue> {
         let mut current_char = self.src.current().clone();
         if !current_char.is_ascii_alphabetic() {
-            return None;
+            return Ok(None);
         }
         let mut created_string = String::new();
         let mut string_length: u32 = 0;
@@ -317,42 +355,46 @@ impl<T: BufRead> Lexer<T> {
             || current_char == '_'
         {
             if string_length == self.options.max_identifier_length {
-                self.assign_lexer_error(format!(
+                // self.assign_lexer_error(format!(
+                //     "Identifier name too long. Max identifier length: {}",
+                //     self.options.max_identifier_length
+                // ));
+                // return None;
+                return Err(LexerIssue::new(LexerIssueKind::ERROR, format!(
                     "Identifier name too long. Max identifier length: {}",
                     self.options.max_identifier_length
-                ));
-                return None;
+                )));
             }
             created_string.push(current_char);
             current_char = self.src.next().unwrap().clone();
             string_length += 1;
         }
         match KEYWORDS.get(created_string.as_str()) {
-            Some(category) => Some(Token {
+            Some(category) => Ok(Some(Token {
                 category: category.clone(),
                 value: TokenValue::Null,
                 position: self.position,
-            }),
-            None => Some(Token {
+            })),
+            None => Ok(Some(Token {
                 category: TokenCategory::Identifier,
                 value: TokenValue::String(created_string),
                 position: self.position,
-            }),
+            })),
         }
     }
 
-    fn create_lexer_error(&mut self, text: String) -> LexerError {
-        let position = self.src.position();
-        let code_snippet = self.src.error_code_snippet();
-        let message = format!("\n{}\nAt {:?}\n{}\n", text, position, code_snippet);
-        LexerError::new(message)
-    }
+    // fn create_lexer_error(&mut self, text: String) -> LexerError {
+    //     let position = self.src.position();
+    //     let code_snippet = self.src.error_code_snippet();
+    //     let message = format!("\n{}\nAt {:?}\n{}\n", text, position, code_snippet);
+    //     LexerError::new(message)
+    // }
 
-    fn assign_lexer_error(&mut self, text: String) -> LexerError {
-        let error = self.create_lexer_error(text);
-        self.error = Some(error.clone());
-        error
-    }
+    // fn assign_lexer_error(&mut self, text: String) -> LexerError {
+    //     let error = self.create_lexer_error(text);
+    //     self.error = Some(error.clone());
+    //     error
+    // }
 }
 
 static SIGNS: phf::Map<char, TokenCategory> = phf_map! {
@@ -403,7 +445,7 @@ mod tests {
             max_identifier_length: 20,
         };
 
-        let lexer = Lexer::new(reader, lexer_options);
+        let lexer = Lexer::new(reader, lexer_options, LexerWarningManager::new());
 
         lexer
     }
@@ -589,7 +631,7 @@ mod edge_case_tests {
             max_identifier_length: 20,
         };
 
-        let lexer = Lexer::new(reader, lexer_options);
+        let lexer = Lexer::new(reader, lexer_options, LexerWarningManager::new());
 
         lexer
     }

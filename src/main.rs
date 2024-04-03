@@ -5,11 +5,13 @@ use std::{
     time::Instant,
 };
 
-use crate::lexer::LexerOptions;
 use lexer::{ILexer, Lexer};
 mod lazy_stream_reader;
 use lazy_stream_reader::LazyStreamReader;
 use tokens::{Token, TokenCategory};
+
+use crate::lexer_utils::{LexerOptions, LexerWarningManager};
+mod lexer_utils;
 
 mod lexer;
 mod tokens;
@@ -33,7 +35,7 @@ fn main() -> Result<(), Error> {
         max_comment_length: 100,
         max_identifier_length: 20,
     };
-    let mut lexer = Lexer::new(reader, lexer_options);
+    let mut lexer = Lexer::new(reader, lexer_options, LexerWarningManager::new());
     let mut tokens: Vec<Token> = vec![];
 
     let start = Instant::now();
@@ -56,6 +58,8 @@ fn main() -> Result<(), Error> {
     for token in &tokens {
         println!("{:?}", token);
     }
+
+    println!("warnings: {:?}", lexer.warning_manager.get_warnings());
 
     println!("Time {:?}", finish - start);
 
