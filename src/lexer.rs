@@ -27,6 +27,8 @@ pub struct LexerOptions {
 }
 
 pub struct Lexer<T: BufRead> {
+    // warningi
+    // funckja onwarning
     pub src: LazyStreamReader<T>,
     current: Option<Token>,
     position: Position,
@@ -147,6 +149,7 @@ impl<T: BufRead> Lexer<T> {
             '=' => Some(self.extend_to_next('=', TokenCategory::Assign, TokenCategory::Equal)),
             '&' => Some(self.extend_to_next('&', TokenCategory::Reference, TokenCategory::And)),
             '|' => {
+                // warning
                 let result = self.extend_to_next_or_error('|', TokenCategory::Or);
                 match result {
                     Ok(token) => Some(token),
@@ -210,11 +213,14 @@ impl<T: BufRead> Lexer<T> {
         let mut created_string = String::new();
         current_char = self.src.next().unwrap().clone();
         while current_char != '"' {
+            // escpaowanie
             if current_char == '\n' {
+                // warning
                 self.assign_lexer_error("Unexpected newline in string".to_owned());
                 return None;
             }
             if current_char == ETX {
+                // warning i zwrocic stringa
                 self.assign_lexer_error("String not closed".to_owned());
                 return None;
             }
@@ -231,6 +237,7 @@ impl<T: BufRead> Lexer<T> {
     }
 
     fn try_generating_number(&mut self) -> Option<Token> {
+        // 007
         let mut current_char = self.src.current();
         if !current_char.is_ascii_digit() {
             return None;
@@ -309,7 +316,7 @@ impl<T: BufRead> Lexer<T> {
             || current_char.is_ascii_alphabetic()
             || current_char == '_'
         {
-            if string_length > self.options.max_identifier_length {
+            if string_length == self.options.max_identifier_length {
                 self.assign_lexer_error(format!(
                     "Identifier name too long. Max identifier length: {}",
                     self.options.max_identifier_length

@@ -82,6 +82,7 @@ impl<R: BufRead> LazyStreamReader<R> {
     }
 
     fn try_handle_newline(&mut self) -> Result<Option<char>, Box<dyn Error>> {
+        // moze byc \n\n, zrobic same \n albo \n\r, buffer
         let buffer = self.src.fill_buf()?;
 
         if let Some(&first_char) = buffer.get(0) {
