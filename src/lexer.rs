@@ -662,4 +662,17 @@ mod edge_case_tests {
         let result = lexer.generate_token();
         assert!(result.is_err());
     }
+
+    #[test]
+    fn no_zeros_on_number_start() {
+        let text = "007 007.007";
+        let mut lexer = create_lexer_with_skip(text);
+
+        let mut result = lexer.generate_token().unwrap();
+        assert!(result.value == TokenValue::I64(7));
+
+        result = lexer.generate_token().unwrap();
+        assert!(result.value == TokenValue::F64(7.007));
+
+    }
 }
