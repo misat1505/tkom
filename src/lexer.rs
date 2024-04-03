@@ -52,10 +52,7 @@ impl<T: BufRead> Lexer<T> {
 
         let mut result: Option<Token> = None;
 
-        let non_result_methods = vec![
-            Self::try_generating_sign,
-            Self::try_generating_operand
-        ];
+        let non_result_methods = vec![Self::try_generating_sign, Self::try_generating_operand];
 
         for generator in &non_result_methods {
             if result.is_none() {
@@ -69,7 +66,7 @@ impl<T: BufRead> Lexer<T> {
             Self::try_generating_comment,
             Self::try_generating_string,
             Self::try_generating_number,
-            Self::try_creating_identifier_or_keyword
+            Self::try_creating_identifier_or_keyword,
         ];
 
         for generator in &result_methods {
@@ -93,9 +90,7 @@ impl<T: BufRead> Lexer<T> {
                 self.current = Some(token.clone());
                 return Ok(token);
             }
-            None => {
-                return Err(self.create_lexer_issue("Unexpected token".to_owned()))
-            }
+            None => return Err(self.create_lexer_issue("Unexpected token".to_owned())),
         }
     }
 
@@ -232,7 +227,8 @@ impl<T: BufRead> Lexer<T> {
                 return Err(self.create_lexer_issue("Unexpected newline in string".to_owned()));
             }
             if current_char == ETX {
-                self.warning_manager.add(self.prepare_warning_message("String not closed".to_owned()));
+                self.warning_manager
+                    .add(self.prepare_warning_message("String not closed".to_owned()));
                 return Ok(Some(Token {
                     category: TokenCategory::StringValue,
                     value: TokenValue::String(created_string),
@@ -287,7 +283,8 @@ impl<T: BufRead> Lexer<T> {
             match total.checked_mul(10) {
                 Some(result) => total = result,
                 None => {
-                    return Err(self.create_lexer_issue("Overflow occurred while parsing integer".to_owned()));
+                    return Err(self
+                        .create_lexer_issue("Overflow occurred while parsing integer".to_owned()));
                 }
             }
             match total.checked_add(digit) {
@@ -297,7 +294,8 @@ impl<T: BufRead> Lexer<T> {
                     current_char = self.src.next().unwrap();
                 }
                 None => {
-                    return Err(self.create_lexer_issue("Overflow occurred while parsing integer".to_owned()));
+                    return Err(self
+                        .create_lexer_issue("Overflow occurred while parsing integer".to_owned()));
                 }
             }
         }
@@ -673,6 +671,5 @@ mod edge_case_tests {
 
         result = lexer.generate_token().unwrap();
         assert!(result.value == TokenValue::F64(7.007));
-
     }
 }
