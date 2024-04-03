@@ -38,7 +38,6 @@ pub struct LazyStreamReader<R: BufRead> {
     src: R,
     current_line: String,
     current_char: char,
-    // char_len: usize,
     newline: Option<Vec<u8>>,
     current_position: Position,
 }
@@ -66,7 +65,6 @@ impl<R: BufRead> LazyStreamReader<R> {
             src,
             current_line: String::new(),
             current_char: STX,
-            // char_len: 0,
             newline: None,
             current_position: Position::new(0, 0, 0),
         }
@@ -82,20 +80,23 @@ impl<R: BufRead> LazyStreamReader<R> {
     }
 
     fn try_handle_newline(&mut self) -> Result<Option<char>, Box<dyn Error>> {
-        // moze byc \n\n, zrobic same \n albo \n\r, buffer
+        // moze byc \n\n, zrobic same \n albo \r\n, buffer
         let buffer = self.src.fill_buf()?;
 
         if let Some(&first_char) = buffer.get(0) {
             if let Some(&second_char) = buffer.get(1) {
-                let skippable = [b'\n', b'\r'];
-                if skippable.contains(&first_char) {
+                if first_char == b'\r' {
                     let mut newline_sequence = vec![first_char];
                     self.src.consume(1);
-                    if skippable.contains(&second_char) {
+                    if second_char == b'\n' {
                         newline_sequence.push(second_char);
                         self.src.consume(1);
                     }
                     self.newline = Some(newline_sequence.clone());
+                    return Ok(Some('\n'));
+                } else if first_char == b'\n' {
+                    self.src.consume(1);
+                    self.newline = Some(vec![first_char]);
                     return Ok(Some('\n'));
                 }
             }
