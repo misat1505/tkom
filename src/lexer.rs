@@ -51,64 +51,38 @@ impl<T: BufRead> Lexer<T> {
         self.position = self.src.position().clone();
 
         let mut result: Option<Token> = None;
-        if result.is_none() {
-            if let Some(token) = self.try_generating_sign() {
-                result = Some(token);
-            }
-        }
-        if result.is_none() {
-            if let Some(token) = self.try_generating_operand() {
-                result = Some(token);
-            }
-        }
-        if result.is_none() {
-            if let op_result = self.try_generating_comment() {
-                match op_result {
-                    Ok(token_option) => match token_option {
-                        Some(token) => result = Some(token),
-                        None => {}
-                    },
-                    Err(err) => {
-                        return Err(err);
-                    }
+
+        let non_result_methods = vec![
+            Self::try_generating_sign,
+            Self::try_generating_operand
+        ];
+
+        for generator in &non_result_methods {
+            if result.is_none() {
+                if let Some(token) = generator(self) {
+                    result = Some(token);
                 }
             }
         }
-        if result.is_none() {
-            if let op_result = self.try_generating_string() {
-                match op_result {
-                    Ok(token_option) => match token_option {
-                        Some(token) => result = Some(token),
-                        None => {}
-                    },
-                    Err(err) => {
-                        return Err(err);
-                    }
-                }
-            }
-        }
-        if result.is_none() {
-            if let op_result = self.try_generating_number() {
-                match op_result {
-                    Ok(token_option) => match token_option {
-                        Some(token) => result = Some(token),
-                        None => {}
-                    },
-                    Err(err) => {
-                        return Err(err);
-                    }
-                }
-            }
-        }
-        if result.is_none() {
-            if let op_result = self.try_creating_identifier_or_keyword() {
-                match op_result {
-                    Ok(token_option) => match token_option {
-                        Some(token) => result = Some(token),
-                        None => {}
-                    },
-                    Err(err) => {
-                        return Err(err);
+
+        let result_methods = [
+            Self::try_generating_comment,
+            Self::try_generating_string,
+            Self::try_generating_number,
+            Self::try_creating_identifier_or_keyword
+        ];
+
+        for generator in &result_methods {
+            if result.is_none() {
+                if let op_result = generator(self) {
+                    match op_result {
+                        Ok(token_option) => match token_option {
+                            Some(token) => result = Some(token),
+                            None => {}
+                        },
+                        Err(err) => {
+                            return Err(err);
+                        }
                     }
                 }
             }
@@ -255,11 +229,9 @@ impl<T: BufRead> Lexer<T> {
         while current_char != '"' {
             // escpaowanie
             if current_char == '\n' {
-                // error
                 return Err(self.create_lexer_issue("Unexpected newline in string".to_owned()));
             }
             if current_char == ETX {
-                // warning i zwrocic stringa
                 self.warning_manager.add(self.prepare_warning_message("String not closed".to_owned()));
                 return Ok(Some(Token {
                     category: TokenCategory::StringValue,
