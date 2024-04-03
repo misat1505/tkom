@@ -7,7 +7,11 @@ use crate::lexer_utils::{LexerIssue, LexerIssueKind, LexerOptions, LexerWarningM
 use crate::tokens::{Token, TokenCategory, TokenValue};
 
 pub trait ILexer<T: BufRead> {
-    fn new(src: LazyStreamReader<T>, options: LexerOptions, warning_manager: LexerWarningManager) -> Self;
+    fn new(
+        src: LazyStreamReader<T>,
+        options: LexerOptions,
+        warning_manager: LexerWarningManager,
+    ) -> Self;
     fn current(&self) -> &Option<Token>;
 }
 
@@ -16,18 +20,22 @@ pub struct Lexer<T: BufRead> {
     current: Option<Token>,
     position: Position,
     options: LexerOptions,
-    pub warning_manager: LexerWarningManager
+    pub warning_manager: LexerWarningManager,
 }
 
 impl<T: BufRead> ILexer<T> for Lexer<T> {
-    fn new(src: LazyStreamReader<T>, options: LexerOptions, warning_manager: LexerWarningManager) -> Self {
+    fn new(
+        src: LazyStreamReader<T>,
+        options: LexerOptions,
+        warning_manager: LexerWarningManager,
+    ) -> Self {
         let position = src.position().clone();
         Lexer {
             src,
             current: None,
             position,
             options,
-            warning_manager
+            warning_manager,
         }
     }
 
@@ -42,74 +50,62 @@ impl<T: BufRead> Lexer<T> {
         self.skip_whitespaces();
         self.position = self.src.position().clone();
 
-        // let result = self
-        //     .try_generating_sign()
-        //     .or_else(|| self.try_generating_operand())
-        //     .or_else(|| self.try_generating_comment())
-        //     .or_else(|| self.try_generating_string())
-        //     .or_else(|| self.try_generating_number())
-        //     .or_else(|| self.try_creating_identifier_or_keyword());
-        println!("{:?}", self.src.current());
-
         let mut result: Option<Token> = None;
-        if let Some(token) = self.try_generating_sign() {
-            if result.is_none() {
+        if result.is_none() {
+            if let Some(token) = self.try_generating_sign() {
                 result = Some(token);
             }
-        } if let Some(token) = self.try_generating_operand() {
-            if result.is_none() {
+        }
+        if result.is_none() {
+            if let Some(token) = self.try_generating_operand() {
                 result = Some(token);
             }
-        } if let op_result = self.try_generating_comment() {
-            if result.is_none() {
+        }
+        if result.is_none() {
+            if let op_result = self.try_generating_comment() {
                 match op_result {
-                    Ok(token_option) => {
-                        match token_option {
-                            Some(token) => result = Some(token),
-                            None => {}
-                        }
+                    Ok(token_option) => match token_option {
+                        Some(token) => result = Some(token),
+                        None => {}
                     },
                     Err(err) => {
                         return Err(err);
                     }
                 }
             }
-        } if let op_result = self.try_generating_string() {
-            if result.is_none() {
+        }
+        if result.is_none() {
+            if let op_result = self.try_generating_string() {
                 match op_result {
-                    Ok(token_option) => {
-                        match token_option {
-                            Some(token) => result = Some(token),
-                            None => {}
-                        }
+                    Ok(token_option) => match token_option {
+                        Some(token) => result = Some(token),
+                        None => {}
                     },
                     Err(err) => {
                         return Err(err);
                     }
                 }
             }
-        } if let op_result = self.try_generating_number() {
-            if result.is_none() {
+        }
+        if result.is_none() {
+            if let op_result = self.try_generating_number() {
                 match op_result {
-                    Ok(token_option) => {
-                        match token_option {
-                            Some(token) => result = Some(token),
-                            None => {}
-                        }
+                    Ok(token_option) => match token_option {
+                        Some(token) => result = Some(token),
+                        None => {}
                     },
                     Err(err) => {
                         return Err(err);
                     }
                 }
             }
-        } if let op_result = self.try_creating_identifier_or_keyword() {
-            if result.is_none() {
+        }
+        if result.is_none() {
+            if let op_result = self.try_creating_identifier_or_keyword() {
                 match op_result {
-                    Ok(token_option) => {
-                        match token_option {
-                            Some(token) => result = Some(token),
-                            None => {}
-                        }
+                    Ok(token_option) => match token_option {
+                        Some(token) => result = Some(token),
+                        None => {}
                     },
                     Err(err) => {
                         return Err(err);
@@ -123,7 +119,12 @@ impl<T: BufRead> Lexer<T> {
                 self.current = Some(token.clone());
                 return Ok(token);
             }
-            None => return Err(LexerIssue::new(LexerIssueKind::ERROR, "Unexpected token".to_owned())),
+            None => {
+                return Err(LexerIssue::new(
+                    LexerIssueKind::ERROR,
+                    "Unexpected token".to_owned(),
+                ))
+            }
         }
     }
 
@@ -143,10 +144,13 @@ impl<T: BufRead> Lexer<T> {
         let mut comment_length: u32 = 0;
         while let Ok(current) = self.src.next().cloned() {
             if comment_length > self.options.max_comment_length {
-                return Err(LexerIssue::new(LexerIssueKind::ERROR, format!(
-                    "Comment too long. Max comment length: {}",
-                    self.options.max_comment_length
-                )));
+                return Err(LexerIssue::new(
+                    LexerIssueKind::ERROR,
+                    format!(
+                        "Comment too long. Max comment length: {}",
+                        self.options.max_comment_length
+                    ),
+                ));
             }
             if current == '\n' || current == ETX {
                 break;
@@ -237,7 +241,8 @@ impl<T: BufRead> Lexer<T> {
         if next_char == char_to_search {
             let _ = self.src.next();
         } else {
-            self.warning_manager.add(format!("Expected {}", char_to_search));
+            self.warning_manager
+                .add(format!("Expected {}", char_to_search));
         }
         return Token {
             category: found,
@@ -257,7 +262,10 @@ impl<T: BufRead> Lexer<T> {
             // escpaowanie
             if current_char == '\n' {
                 // error
-                return Err(LexerIssue::new(LexerIssueKind::ERROR, "Unexpected newline in string".to_owned()));
+                return Err(LexerIssue::new(
+                    LexerIssueKind::ERROR,
+                    "Unexpected newline in string".to_owned(),
+                ));
             }
             if current_char == ETX {
                 // warning i zwrocic stringa
@@ -318,7 +326,10 @@ impl<T: BufRead> Lexer<T> {
                 None => {
                     // return Err(self
                     //     .assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
-                    return Err(LexerIssue::new(LexerIssueKind::ERROR, "Overflow occurred while parsing integer".to_owned()));
+                    return Err(LexerIssue::new(
+                        LexerIssueKind::ERROR,
+                        "Overflow occurred while parsing integer".to_owned(),
+                    ));
                 }
             }
             match total.checked_add(digit) {
@@ -330,7 +341,10 @@ impl<T: BufRead> Lexer<T> {
                 None => {
                     // return Err(self
                     //     .assign_lexer_error("Overflow occurred while parsing integer".to_owned()));
-                    return Err(LexerIssue::new(LexerIssueKind::ERROR, "Overflow occurred while parsing integer".to_owned()));
+                    return Err(LexerIssue::new(
+                        LexerIssueKind::ERROR,
+                        "Overflow occurred while parsing integer".to_owned(),
+                    ));
                 }
             }
         }
@@ -360,10 +374,13 @@ impl<T: BufRead> Lexer<T> {
                 //     self.options.max_identifier_length
                 // ));
                 // return None;
-                return Err(LexerIssue::new(LexerIssueKind::ERROR, format!(
-                    "Identifier name too long. Max identifier length: {}",
-                    self.options.max_identifier_length
-                )));
+                return Err(LexerIssue::new(
+                    LexerIssueKind::ERROR,
+                    format!(
+                        "Identifier name too long. Max identifier length: {}",
+                        self.options.max_identifier_length
+                    ),
+                ));
             }
             created_string.push(current_char);
             current_char = self.src.next().unwrap().clone();
@@ -663,12 +680,13 @@ mod edge_case_tests {
     }
 
     #[test]
-    fn extend_to_next_or_error() {
+    fn extend_to_next_or_warning() {
         let text = "|";
         let mut lexer = create_lexer_with_skip(text);
 
         let result = lexer.generate_token();
-        assert!(result.is_err());
+        assert!(result.unwrap().category == TokenCategory::Or);
+        assert!(lexer.warning_manager.get_warnings().len() > 0);
     }
 
     #[test]
@@ -687,7 +705,8 @@ mod edge_case_tests {
         let mut lexer = create_lexer_with_skip(text);
 
         let result = lexer.generate_token();
-        assert!(result.is_err());
+        assert!(result.unwrap().category == TokenCategory::StringValue);
+        assert!(lexer.warning_manager.get_warnings().len() > 0);
     }
 
     #[test]
