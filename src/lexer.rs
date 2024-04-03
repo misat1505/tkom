@@ -221,7 +221,23 @@ impl<T: BufRead> Lexer<T> {
         let mut created_string = String::new();
         current_char = self.src.next().unwrap().clone();
         while current_char != '"' {
-            // escpaowanie
+            // escaping
+            if current_char == '\\' {
+                let next_char = self.src.next().unwrap();
+                match ESCAPES.get(next_char) {
+                    Some(char) => {
+                        created_string.push(*char);
+                        current_char = *self.src.next().unwrap();
+                        continue;
+                    },
+                    None => {
+                        let default_escape = '\\';
+                        created_string.push(default_escape);
+                        current_char = *next_char;
+                        continue;
+                    }
+                }
+            }
             if current_char == '\n' {
                 return Err(self.create_lexer_issue("Unexpected newline in string".to_owned()));
             }
@@ -238,6 +254,7 @@ impl<T: BufRead> Lexer<T> {
         }
         // consume next "
         let _ = self.src.next();
+        println!("{}", created_string);
         Ok(Some(Token {
             category: TokenCategory::StringValue,
             value: TokenValue::String(created_string),
@@ -387,6 +404,15 @@ static KEYWORDS: phf::Map<&'static str, TokenCategory> = phf_map! {
     "break" => TokenCategory::Break
 };
 
+static ESCAPES: phf::Map<char, char> = phf_map! {
+    'n'  => '\n',
+    'r'  => '\r',
+    't'  => '\t',
+    '"'  => '"',
+    '\\' => '\\',
+};
+
+
 #[cfg(test)]
 mod tests {
     use std::io::BufReader;
@@ -518,6 +544,18 @@ mod tests {
         token = lexer.generate_token().unwrap();
         assert!(token.category == TokenCategory::StringValue);
         assert!(token.value == TokenValue::String("string3".to_owned()));
+    }
+
+    #[test]
+    fn escapes() {
+        let text = r#""ala\"ma\nkota\tjana\\i\szympansa""#;
+        let mut lexer = create_lexer_with_skip(text);
+
+        let expected = "ala\"ma\nkota\tjana\\i\\szympansa";
+        
+        let token = lexer.generate_token().unwrap();
+        assert!(token.category == TokenCategory::StringValue);
+        assert!(token.value == TokenValue::String(expected.to_owned()));
     }
 
     #[test]

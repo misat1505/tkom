@@ -41,7 +41,6 @@ fn main() -> Result<(), Error> {
         max_identifier_length: 20,
     };
 
-
     let mut lexer = Lexer::new(reader, lexer_options, on_warning);
     let mut tokens: Vec<Token> = vec![];
 
