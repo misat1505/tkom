@@ -204,7 +204,10 @@ impl<T: BufRead> Lexer<T> {
         if next_char == char_to_search {
             let _ = self.src.next();
         } else {
-            (self.on_warning)(LexerIssue::new(LexerIssueKind::WARNING, self.prepare_warning_message(format!("Expected {}", char_to_search))));
+            (self.on_warning)(LexerIssue::new(
+                LexerIssueKind::WARNING,
+                self.prepare_warning_message(format!("Expected {}", char_to_search)),
+            ));
         }
         return Token {
             category: found,
@@ -229,7 +232,7 @@ impl<T: BufRead> Lexer<T> {
                         created_string.push(*char);
                         current_char = *self.src.next().unwrap();
                         continue;
-                    },
+                    }
                     None => {
                         let default_escape = '\\';
                         created_string.push(default_escape);
@@ -242,7 +245,10 @@ impl<T: BufRead> Lexer<T> {
                 return Err(self.create_lexer_issue("Unexpected newline in string".to_owned()));
             }
             if current_char == ETX {
-                (self.on_warning)(LexerIssue::new(LexerIssueKind::WARNING, self.prepare_warning_message("String not closed".to_owned())));
+                (self.on_warning)(LexerIssue::new(
+                    LexerIssueKind::WARNING,
+                    self.prepare_warning_message("String not closed".to_owned()),
+                ));
                 return Ok(Some(Token {
                     category: TokenCategory::StringValue,
                     value: TokenValue::String(created_string),
@@ -254,7 +260,6 @@ impl<T: BufRead> Lexer<T> {
         }
         // consume next "
         let _ = self.src.next();
-        println!("{}", created_string);
         Ok(Some(Token {
             category: TokenCategory::StringValue,
             value: TokenValue::String(created_string),
@@ -263,7 +268,6 @@ impl<T: BufRead> Lexer<T> {
     }
 
     fn try_generating_number(&mut self) -> Result<Option<Token>, LexerIssue> {
-        // 007
         let mut current_char = self.src.current();
         if !current_char.is_ascii_digit() {
             return Ok(None);
@@ -412,7 +416,6 @@ static ESCAPES: phf::Map<char, char> = phf_map! {
     '\\' => '\\',
 };
 
-
 #[cfg(test)]
 mod tests {
     use std::io::BufReader;
@@ -552,7 +555,7 @@ mod tests {
         let mut lexer = create_lexer_with_skip(text);
 
         let expected = "ala\"ma\nkota\tjana\\i\\szympansa";
-        
+
         let token = lexer.generate_token().unwrap();
         assert!(token.category == TokenCategory::StringValue);
         assert!(token.value == TokenValue::String(expected.to_owned()));
