@@ -10,7 +10,7 @@ pub trait ILexer<T: BufRead> {
     fn new(
         src: LazyStreamReader<T>,
         options: LexerOptions,
-        warning_manager: fn(warning: LexerIssue),
+        on_warning: fn(warning: LexerIssue),
     ) -> Self;
     fn current(&self) -> &Option<Token>;
 }
@@ -20,7 +20,7 @@ pub struct Lexer<T: BufRead> {
     current: Option<Token>,
     position: Position,
     options: LexerOptions,
-    pub on_warning: fn(warning: LexerIssue),
+    on_warning: fn(warning: LexerIssue),
 }
 
 impl<T: BufRead> ILexer<T> for Lexer<T> {
