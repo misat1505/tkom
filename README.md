@@ -144,7 +144,7 @@ x == y
 “a” as bool             # true
 ```
 
-**factor** ::= literal | ("(", expr, ")") | id | funcCall;
+**factor** ::= ["-"], literal | ("(", expr, ")") | id | funcCall;
 
 ```
 (2.2 + 3 as f64)
@@ -190,7 +190,7 @@ switch (x as temp1, y as temp2) {
 
 **nonZeroDigit** ::= "1" - "9";
 
-**integerValue** ::= ([“-”], nonZeroDigit, {digit} | “0”);
+**integerValue** ::= (nonZeroDigit, {digit}) | “0”;
 
 ```
 1, 12, 10, 0
@@ -320,6 +320,7 @@ i64 x = 2;
 f64 y = 3.0;
 bool is_true = false;
 str my_string = “hello world”;
+str string_with_escapes = "hello \"world"       # hello "world
 ```
 
 **Wyrażenia**
