@@ -52,17 +52,9 @@ impl<T: BufRead> Lexer<T> {
 
         let mut result: Option<Token> = None;
 
-        let non_result_methods = vec![Self::try_generating_sign, Self::try_generating_operand];
-
-        for generator in &non_result_methods {
-            if result.is_none() {
-                if let Some(token) = generator(self) {
-                    result = Some(token);
-                }
-            }
-        }
-
         let result_methods = [
+            Self::try_generating_sign,
+            Self::try_generating_operand,
             Self::try_generating_comment,
             Self::try_generating_string,
             Self::try_generating_number,
@@ -70,16 +62,17 @@ impl<T: BufRead> Lexer<T> {
         ];
 
         for generator in &result_methods {
-            if result.is_none() {
-                if let op_result = generator(self) {
-                    match op_result {
-                        Ok(token_option) => match token_option {
-                            Some(token) => result = Some(token),
-                            None => {}
-                        },
-                        Err(err) => {
-                            return Err(err);
+            if let op_result = generator(self) {
+                match op_result {
+                    Ok(token_option) => match token_option {
+                        Some(token) => {
+                            result = Some(token);
+                            break;
                         }
+                        None => {}
+                    },
+                    Err(err) => {
+                        return Err(err);
                     }
                 }
             }
@@ -129,11 +122,11 @@ impl<T: BufRead> Lexer<T> {
         }))
     }
 
-    fn try_generating_sign(&mut self) -> Option<Token> {
+    fn try_generating_sign(&mut self) -> Result<Option<Token>, LexerIssue> {
         let current_char = self.src.current();
         let token_category_result = SIGNS.get(current_char);
         match token_category_result {
-            None => None,
+            None => Ok(None),
             Some(token_category) => {
                 let token = Token {
                     category: token_category.clone(),
@@ -141,12 +134,12 @@ impl<T: BufRead> Lexer<T> {
                     position: self.position,
                 };
                 let _ = self.src.next();
-                Some(token)
+                Ok(Some(token))
             }
         }
     }
 
-    fn try_generating_operand(&mut self) -> Option<Token> {
+    fn try_generating_operand(&mut self) -> Result<Option<Token>, LexerIssue> {
         let current_char = self.src.current();
         let token = match current_char {
             '+' => Some(self.single_char(TokenCategory::Plus)),
@@ -165,7 +158,7 @@ impl<T: BufRead> Lexer<T> {
             '|' => Some(self.extend_to_next_or_warning('|', TokenCategory::Or)),
             _ => None,
         };
-        token
+        Ok(token)
     }
 
     fn single_char(&mut self, category: TokenCategory) -> Token {
