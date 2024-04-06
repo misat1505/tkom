@@ -17,6 +17,8 @@ mod lexer_utils;
 mod lexer;
 mod tokens;
 
+mod tests;
+
 fn parse_filename() -> String {
     let args: Vec<String> = args().collect();
     if args.len() >= 2 {
