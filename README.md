@@ -1,93 +1,459 @@
-# tkom
+## Funkcjonalność
 
+Język silnie i statycznie typowany. Wszystkie zmienne są mutowalne. Argumenty do funkcji mogą być przekazywane przez wartość albo przez referencję. Z funkcji można zwrócić tylko wartość albo nic.
 
+1. Funkcje:
+   - Język obsługuje definicje funkcji.
+   - Funkcje mogą przyjmować parametry i zwracać wartości określonego typu.
+2. Typy Danych:
+3. Obsługiwane typy danych:
+   - i64 (liczby całkowite), f64 (liczby zmiennoprzecinkowe), str (łańcuchy znaków), bool (prawda / fałsz).
+   - void (brak zwracanej wartości z funkcji)
+4. Instrukcje Warunkowe:
+   - Instrukcje warunkowe if używane są do kontrolowania przebiegu programu w zależności od spełnienia warunków logicznych.
+5. Pętle:
+   - Pętla for jest dostępna dla iteracji przez zakres wartości.
+6. Instrukcje Kontroli Przepływu:
+   - Instrukcje takie jak break są używane do przerwania wykonania pętli lub bloku instrukcji.
+7. Instrukcje Wyboru:
+   - Instrukcje switch pozwalają na wielokrotne rozgałęzianie programu w zależności od różnych warunków.
+   - Wykonywany jest każdy blok instrukcji pod spełnionym warunkiem, chyba że w którymś poprzednim był break
+8. Rekurencja: Język wspiera rekurencję.
+9. Operacje na Zmiennych:
+   - Dostępne są operacje przypisania (=), operatory arytmetyczne (+, -, \*, /), porównania (==, <, <=, >, >=, !=), oraz operatory logiczne (!=).
+10. Operacje na Tekście:
+    - Wprowadzenie tekstu i wyświetlenie go na konsoli.
+11. Castowanie:
+    - i64 i f64 mogą być castowane na siebie nawzajem, na stringa i na boolean (jeżeli są <= 0 to będzie false inaczej prawda)
+    - string może być castowany na i64 i na f64, ze zgłoszeniem błędów, oraz na boolean (pusty oznacza false inaczej true)
+12. Funkcje wbudowane:
+    - print: przyjmuje string i wyświetla go na konsoli
 
-## Getting started
+## Gramatyka
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+### Część składniowa
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+**program** ::= {funcDecl | declaration, ";"};
 
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+**comment** ::= "#" , {unicode_character - "\n"}, "\n";
 
 ```
-cd existing_repo
-git remote add origin https://gitlab-stud.elka.pw.edu.pl/TKOM_24L_PG/Michal_Satala/tkom.git
-git branch -M main
-git push -uf origin main
+# some 1 line comment
 ```
 
-## Integrate with your tools
+**refDeclaration** ::= [“&”], declaration
 
-- [ ] [Set up project integrations](https://gitlab-stud.elka.pw.edu.pl/TKOM_24L_PG/Michal_Satala/tkom/-/settings/integrations)
+**funcDecl** ::= “fn”, id, "(", [refDeclaration, {",", refDeclaration}], ")", “:”, type | “void”, stmtBlock;
 
-## Collaborate with your team
+```
+fn do_sth(&i64 x, i64 y=0): void {}
+```
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+**stmtBlock** ::= "{", {stmt}, "}";
 
-## Test and Deploy
+**stmt** ::= funcCall, ";" | ifStmt | forStmt | switch_statement | declaration, ";" | assign, ";" | returnStmt, ";" | stmtBlock | “break”, “;”;
 
-Use the built-in continuous integration in GitLab.
+**declaration** ::= type, id, ["=", expr];
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+```
+bool is_valid = true
+```
 
-***
+**ifStmt** ::= "if", "(", expr, ")", stmtBlock, ["else", stmtBlock];
 
-# Editing this README
+```
+if (x == 5) {} else {}
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+**forStmt** ::= "for", "(", [declaration], “;”, expr, “;”, [assign], ")", stmtBlock;
 
-## Suggestions for a good README
+```
+for (i64 x = a - 1; i < a + 1; i = i + 1) {}
+```
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+**returnStmt** ::= "return", [expr];
 
-## Name
-Choose a self-explaining name for your project.
+```
+return a + 2 * b
+```
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+**funcCall** ::= id, "(", [callArgList], ")";
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```
+do_sth(a + 2)
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+**refExpr** ::= [“&”], expr
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+**callArgList** ::= refExpr, {",", refExpr};
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+```
+a + 2, &b, c
+```
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+**assign** ::= id, "=", expr;
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+```
+a = 5
+```
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+**expr** ::= [“!”], alternative_term;
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+**alternative_term**= concatenation_term {“||”, concatenation_term};
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+```
+a == b && b || c
+```
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+**concatenation_term**= relation_term, {“&&”, relation_term};
 
-## License
-For open source projects, say how it is licensed.
+```
+a == b && b
+```
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+**relation_term** ::= additive_term, [relation_operands, additive_term];
+
+```
+x == y
+```
+
+**additive_term** ::= multiplicative_term , {("+" | "-"), multiplicative_term };
+
+```
+1 + (1 + 2) / (2 + 3)
+```
+
+**multiplicative_term**::= casted_term, {("\*" | "/"), casted_term};
+
+```
+(1 + 2) / (2 + 3)
+```
+
+**casted_term** ::= factor, [“as”, type];
+
+```
+(x + add(2, 2)) as f64
+2 as i64                # 2
+2 as f64                # 2.0
+2 as str                # “2”
+2 as bool               # true
+0 as bool               # false
+“123” as i64            # 123
+“fdsfs” as i64          # błąd
+“” as bool              # false
+“a” as bool             # true
+```
+
+**factor** ::= ["-"], literal | ("(", expr, ")") | id | funcCall;
+
+```
+(2.2 + 3 as f64)
+```
+
+**literal** ::= integerValue | floatValue | booleanValue | stringValue;
+
+**id** ::= letter, {character};
+
+```
+super_variable_123
+```
+
+**switch_statement**::= "switch", "(", switch_expressions, ")", "{", {switch_case}, "}";
+
+**switch_expression**= expr, ["as", identifier];
+
+**switch_expressions**::= switch_expression, {“,”, switch_expression};
+
+**switch_case** ::= "(", expr, ")", "->", stmtBlock;
+
+```
+switch (x as temp1, y as temp2) {
+    (x < 5 && temp2 < 5) -> {
+      print("Less than 5.");
+    },
+    (temp1 < 10 && y < 10) -> {
+      print("Less than 10.");
+      break;
+    }
+}
+```
+
+### Część leksykalna
+
+**letter** ::= "a" - "z" | "A" - "Z";
+
+**type** ::= “i64“| “f64” | “bool” | “str”;
+
+**relation_operands** ::= "==" | "<" | "<=" | ">" | ">=" | "!=";
+
+**digit** ::= "0" - “9”;
+
+**nonZeroDigit** ::= "1" - "9";
+
+**integerValue** ::= (nonZeroDigit, {digit}) | “0”;
+
+```
+1, 12, 10, 0
+```
+
+**floatValue** ::= integer, ".", {digit}
+
+```
+1.0, 1.2, 10.0, 0.0, 0.00001;
+```
+
+**stringValue** ::= “””, {unicode_character - “”””}, “””;
+
+**booleanValue** ::= “true” | “false”;
+
+**character** ::= "a" - "z" | "A" - "Z" | "0" - "9" | "\_";
+
+**unicode_character** ::= (wszystkie znaki unicode)
+
+## Priorytety operatorów
+
+<table>
+  <tr>
+   <td>operator
+   </td>
+   <td>priorytet
+   </td>
+  </tr>
+  <tr>
+   <td>- (negacja liczby)
+   </td>
+   <td>8
+   </td>
+  </tr>
+  <tr>
+   <td>as
+   </td>
+   <td>7
+   </td>
+  </tr>
+  <tr>
+   <td>+
+   </td>
+   <td>6
+   </td>
+  </tr>
+  <tr>
+   <td>- (odejmowanie)
+   </td>
+   <td>6
+   </td>
+  </tr>
+  <tr>
+   <td>*
+   </td>
+   <td>5
+   </td>
+  </tr>
+  <tr>
+   <td>/
+   </td>
+   <td>5
+   </td>
+  </tr>
+  <tr>
+   <td>>
+   </td>
+   <td>4
+   </td>
+  </tr>
+  <tr>
+   <td>>=
+   </td>
+   <td>4
+   </td>
+  </tr>
+  <tr>
+   <td><
+   </td>
+   <td>4
+   </td>
+  </tr>
+  <tr>
+   <td><=
+   </td>
+   <td>4
+   </td>
+  </tr>
+  <tr>
+   <td>==
+   </td>
+   <td>4
+   </td>
+  </tr>
+  <tr>
+   <td>!=
+   </td>
+   <td>4
+   </td>
+  </tr>
+  <tr>
+   <td>&&
+   </td>
+   <td>3
+   </td>
+  </tr>
+  <tr>
+   <td>||
+   </td>
+   <td>2
+   </td>
+  </tr>
+  <tr>
+   <td>! (negacja wyrażenia)
+   </td>
+   <td>1
+   </td>
+  </tr>
+</table>
+
+## Przykłady kodu
+
+**Tworzenie zmiennych**
+
+```
+i64 x = 2;
+f64 y = 3.0;
+bool is_true = false;
+str my_string = “hello world”;
+str string_with_escapes = "hello \"world"       # hello "world
+```
+
+**Wyrażenia**
+
+```
+i64 x = 2+2\*2                      # 6
+i64 y = (2+2)\*2                    # 8
+i64 a = 2 + 2.1 as i64              # 4
+f64 b = (2 + 2.1 as i64) as f64     # 4.0
+```
+
+**Instrukcje warunkowe**
+
+```
+i64 x = 2;
+i64 y = 2;
+if (x == y) {
+    print(“equal”);
+} else {
+    print(“not equal”);
+}
+```
+
+**Pętle**
+
+```
+for (i64 i = 0; i < 5; i=i+1) {}
+
+i64 j = 0;
+for (; j < 5;) {
+    j=j+1;
+}
+
+for (i64 i = 0; i < 5; i=i+1) {
+    if (i == 2) {break;}
+}
+```
+
+**Funkcje**
+
+```
+fn add(i64 x, i64 y): i64 {
+    return x + y;
+}
+add(2, 2);
+
+fn print_int(&i64 x): void {
+    print(x as str);
+}
+print_int(&2);
+
+fn sum_up_to(i64 x): i64 {
+    if (x == 0) {return 0;}			# rekurencja
+    return x + sum_up_to(x - 1);
+}
+```
+
+**Pattern matching**
+
+```
+switch (x as temp1, y as temp2) {
+    (x < 5 && temp2 < 5) -> {
+      print("Less than 5.");
+    },
+    (temp1 < 10 && y < 10) -> {
+      print("Less than 10.");
+      break;
+    }
+}
+```
+
+## Obsługa błędów
+
+Podział na errory i warningi:
+
+1. errory: zgłaszają błąd komponentowi wyżej, oznaczają brak możliwości kontynuacji działania
+2. warningi: komponent wyższego poziomu tworzy funkcję który ma być uruchomiona w razie wystąpienia warninga, działanie nie musi być zatrzymywane
+
+Przykładowe errory:
+
+```
+Can’t assign type ‘string’ to type ‘i64’
+at line: 5, column: 10
+i64 x = “hello world”;
+      ^
+```
+
+```
+Can’t add value of type ‘i64’ to value of type ‘f64’
+at line: 10, column: 6
+2.1 + 2;
+    ^
+```
+
+```
+Not enough arguments passed - expected 2 given 1
+at line: 6, column: 5
+add(2);
+     ^
+```
+
+```
+An overflow occurred during integer creation
+at line: 10, column: 21
+i64 x = 864736473267463264732647326476324;
+                                ^
+```
+
+Przykładowe warningi:
+
+```
+Expected ‘|’
+at line: 5, column: 11
+```
+
+```
+String not closed
+at line: 21, column: 37
+```
+
+## Sposób uruchomienia
+
+```
+cargo run ścieżka_do_pliku
+./tkom.exe ścieżka_do_pliku (po zbudowaniu projektu)
+```
+
+**Analiza wymagań funkcjonalnych i niefunkcjonalnych**
+
+## Sposób realizacji
+
+Program będzie się składać z analizatora leksykalnego, składniowego i interpretera.
+
+## Opis sposobu testowania
+
+Moduły wymienione w punktach wyżej będą przetestowane testami jednostkowymi, testy integracyjne na całość projektu

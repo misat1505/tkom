@@ -1,0 +1,12 @@
+[package]
+name = "tkom"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+regex = "1"
+read_char = "0.1.1"
+thiserror = "1.0.39"
+phf = {version = "0.11.1", features = ["macros"]}
