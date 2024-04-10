@@ -261,14 +261,38 @@ impl<T: BufRead> Lexer<T> {
     }
 
     fn try_generating_number(&mut self) -> Result<Option<Token>, LexerIssue> {
-        let mut current_char = self.src.current();
+        let mut current_char = self.src.current().clone();
         if !current_char.is_ascii_digit() {
             return Ok(None);
         }
 
+        if current_char == '0' {
+            let next_char = self.src.next().unwrap();
+            if *next_char == '.' {
+                let _ = self.src.next();
+                let (fraction, length) = self.parse_integer()?;
+                let float_value = Self::merge_to_float(0, fraction, length);
+                return Ok(Some(Token {
+                    category: TokenCategory::F64Value,
+                    value: TokenValue::F64(float_value),
+                    position: self.position,
+                }));
+            } else if next_char.is_ascii_digit() {
+                // error
+                return Err(self.create_lexer_issue("Cannot prefix number with 0's.".to_owned()));
+            } else {
+                // just 0
+                return Ok(Some(Token {
+                    category: TokenCategory::I64Value,
+                    value: TokenValue::I64(0),
+                    position: self.position,
+                }));
+            }
+        }
+
         let (decimal, _) = self.parse_integer()?;
-        current_char = self.src.current();
-        if *current_char != '.' {
+        current_char = self.src.current().clone();
+        if current_char != '.' {
             return Ok(Some(Token {
                 category: TokenCategory::I64Value,
                 value: TokenValue::I64(decimal),

@@ -213,7 +213,7 @@ mod edge_case_tests {
         lazy_stream_reader::LazyStreamReader,
         lexer::{ILexer, Lexer},
         lexer_utils::{LexerIssue, LexerOptions},
-        tokens::{TokenCategory, TokenValue},
+        tokens::TokenCategory,
     };
 
     fn on_warning(warning: LexerIssue) {
@@ -299,14 +299,11 @@ mod edge_case_tests {
     }
 
     #[test]
-    fn no_zeros_on_number_start() {
-        let text = "007 007.007";
+    fn disallow_zero_prefix() {
+        let text = "007";
         let mut lexer = create_lexer_with_skip(text);
 
-        let mut result = lexer.generate_token().unwrap();
-        assert!(result.value == TokenValue::I64(7));
-
-        result = lexer.generate_token().unwrap();
-        assert!(result.value == TokenValue::F64(7.007));
+        let result = lexer.generate_token();
+        assert!(result.is_err());
     }
 }
