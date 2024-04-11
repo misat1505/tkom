@@ -100,19 +100,17 @@ impl<T: BufRead> Lexer<T> {
         }
 
         let mut comment = String::new();
-        let mut comment_length: u32 = 0;
         while let Ok(current) = self.src.next().cloned() {
-            if comment_length > self.options.max_comment_length {
+            if current == '\n' || current == ETX {
+                break;
+            }
+            if (comment.len() as u32) == self.options.max_comment_length {
                 return Err(self.create_lexer_issue(format!(
                     "Comment too long. Max comment length: {}",
                     self.options.max_comment_length
                 )));
             }
-            if current == '\n' || current == ETX {
-                break;
-            }
             comment.push(current);
-            comment_length += 1;
         }
 
         Ok(Some(Token {
@@ -139,6 +137,7 @@ impl<T: BufRead> Lexer<T> {
         }
     }
 
+    // operator
     fn try_generating_operand(&mut self) -> Result<Option<Token>, LexerIssue> {
         let current_char = self.src.current();
         let token = match current_char {
@@ -210,6 +209,7 @@ impl<T: BufRead> Lexer<T> {
     }
 
     fn try_generating_string(&mut self) -> Result<Option<Token>, LexerIssue> {
+        // current_char do lexera
         let mut current_char = self.src.current().clone();
         if current_char != '"' {
             return Ok(None);
@@ -219,17 +219,23 @@ impl<T: BufRead> Lexer<T> {
         while current_char != '"' {
             // escaping
             if current_char == '\\' {
-                let next_char = self.src.next().unwrap();
-                match ESCAPES.get(next_char) {
+                let next_char = self.src.next().unwrap().clone();
+                match ESCAPES.get(&next_char) {
                     Some(char) => {
                         created_string.push(*char);
                         current_char = *self.src.next().unwrap();
                         continue;
                     }
                     None => {
+                        (self.on_warning)(LexerIssue::new(
+                            LexerIssueKind::WARNING,
+                            self.prepare_warning_message(
+                                format!("Invalid escape symbol detected '\\{}'", next_char),
+                            ),
+                        ));
                         let default_escape = '\\';
                         created_string.push(default_escape);
-                        current_char = *next_char;
+                        current_char = next_char;
                         continue;
                     }
                 }
@@ -266,31 +272,16 @@ impl<T: BufRead> Lexer<T> {
             return Ok(None);
         }
 
-        if current_char == '0' {
+        let mut decimal = 0;
+        if current_char != '0' {
+            (decimal, _) = self.parse_integer()?;
+        } else {
             let next_char = self.src.next().unwrap();
-            if *next_char == '.' {
-                let _ = self.src.next();
-                let (fraction, length) = self.parse_integer()?;
-                let float_value = Self::merge_to_float(0, fraction, length);
-                return Ok(Some(Token {
-                    category: TokenCategory::F64Value,
-                    value: TokenValue::F64(float_value),
-                    position: self.position,
-                }));
-            } else if next_char.is_ascii_digit() {
-                // error
+            if next_char.is_ascii_digit() {
                 return Err(self.create_lexer_issue("Cannot prefix number with 0's.".to_owned()));
-            } else {
-                // just 0
-                return Ok(Some(Token {
-                    category: TokenCategory::I64Value,
-                    value: TokenValue::I64(0),
-                    position: self.position,
-                }));
             }
         }
 
-        let (decimal, _) = self.parse_integer()?;
         current_char = self.src.current().clone();
         if current_char != '.' {
             return Ok(Some(Token {
@@ -350,12 +341,11 @@ impl<T: BufRead> Lexer<T> {
             return Ok(None);
         }
         let mut created_string = String::new();
-        let mut string_length: u32 = 0;
         while current_char.is_ascii_digit()
             || current_char.is_ascii_alphabetic()
             || current_char == '_'
         {
-            if string_length == self.options.max_identifier_length {
+            if (created_string.len() as u32) == self.options.max_identifier_length {
                 return Err(self.create_lexer_issue(format!(
                     "Identifier name too long. Max identifier length: {}",
                     self.options.max_identifier_length
@@ -363,7 +353,6 @@ impl<T: BufRead> Lexer<T> {
             }
             created_string.push(current_char);
             current_char = self.src.next().unwrap().clone();
-            string_length += 1;
         }
         match KEYWORDS.get(created_string.as_str()) {
             Some(category) => Ok(Some(Token {
@@ -388,7 +377,7 @@ impl<T: BufRead> Lexer<T> {
 
     fn prepare_warning_message(&self, text: String) -> String {
         let position = self.src.position();
-        format!("\n{}\nAt {:?}\n", text, position)
+        format!("\nWarning:\n{}\nAt {:?}\n", text, position)
     }
 }
 

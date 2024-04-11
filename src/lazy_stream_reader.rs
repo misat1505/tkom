@@ -80,6 +80,7 @@ impl<R: BufRead> LazyStreamReader<R> {
     }
 
     fn try_handle_newline(&mut self) -> Result<Option<char>, Box<dyn Error>> {
+        // get_char ktora czyta pojedynczy byte
         let buffer = self.src.fill_buf()?;
 
         if let Some(&first_char) = buffer.get(0) {
