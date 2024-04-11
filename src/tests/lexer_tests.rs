@@ -75,7 +75,7 @@ mod tests {
     }
 
     #[test]
-    fn operands() {
+    fn operators() {
         let text = "+* / --> <<= > >= ! != = == & && || ";
         let mut lexer = create_lexer_with_skip(text);
         let expected_tokens: Vec<TokenCategory> = vec![

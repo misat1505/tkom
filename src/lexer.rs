@@ -54,7 +54,7 @@ impl<T: BufRead> Lexer<T> {
 
         let result_methods = [
             Self::try_generating_sign,
-            Self::try_generating_operand,
+            Self::try_generating_operator,
             Self::try_generating_comment,
             Self::try_generating_string,
             Self::try_generating_number,
@@ -137,8 +137,7 @@ impl<T: BufRead> Lexer<T> {
         }
     }
 
-    // operator
-    fn try_generating_operand(&mut self) -> Result<Option<Token>, LexerIssue> {
+    fn try_generating_operator(&mut self) -> Result<Option<Token>, LexerIssue> {
         let current_char = self.src.current();
         let token = match current_char {
             '+' => Some(self.single_char(TokenCategory::Plus)),
