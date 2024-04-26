@@ -1,7 +1,7 @@
 use std::{
     env::args,
     fs::File,
-    io::{BufReader, Error},
+    io::{BufRead, BufReader, Error},
     time::Instant,
 };
 
@@ -31,6 +31,17 @@ fn on_warning(warning: LexerIssue) {
     println!("{}", warning.message);
 }
 
+fn get_next_token(lexer: &mut Lexer<BufReader<File>>) -> Result<Token, LexerIssue> {
+    let mut current_token = lexer.generate_token();
+    while let Some(token) = lexer.current() {
+        if token.category != TokenCategory::Comment {
+            break;
+        }
+        current_token = lexer.generate_token();
+    }
+    current_token
+}
+
 fn main() -> Result<(), Error> {
     let path = parse_filename();
 
@@ -48,7 +59,7 @@ fn main() -> Result<(), Error> {
 
     let start = Instant::now();
     loop {
-        match lexer.generate_token() {
+        match get_next_token(&mut lexer) {
             Ok(token) => {
                 tokens.push(token.clone());
                 if token.category == TokenCategory::ETX {
