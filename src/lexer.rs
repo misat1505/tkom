@@ -228,9 +228,10 @@ impl<T: BufRead> Lexer<T> {
                     None => {
                         (self.on_warning)(LexerIssue::new(
                             LexerIssueKind::WARNING,
-                            self.prepare_warning_message(
-                                format!("Invalid escape symbol detected '\\{}'", next_char),
-                            ),
+                            self.prepare_warning_message(format!(
+                                "Invalid escape symbol detected '\\{}'",
+                                next_char
+                            )),
                         ));
                         let default_escape = '\\';
                         created_string.push(default_escape);

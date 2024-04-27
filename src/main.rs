@@ -1,7 +1,7 @@
 use std::{
     env::args,
     fs::File,
-    io::{BufReader, Error}
+    io::{BufReader, Error},
 };
 
 use lexer::Lexer;
@@ -9,13 +9,16 @@ mod lazy_stream_reader;
 use lazy_stream_reader::LazyStreamReader;
 use lexer_utils::LexerIssue;
 
-use crate::{lexer_utils::LexerOptions, parser::{IParser, Parser}};
+use crate::{
+    lexer_utils::LexerOptions,
+    parser::{IParser, Parser},
+};
 mod lexer_utils;
 
-mod lexer;
-mod tokens;
 mod ast;
+mod lexer;
 mod parser;
+mod tokens;
 
 mod tests;
 
