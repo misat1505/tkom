@@ -5,137 +5,132 @@ Język silnie i statycznie typowany. Wszystkie zmienne są mutowalne. Argumenty 
 1. Funkcje:
    - Język obsługuje definicje funkcji.
    - Funkcje mogą przyjmować parametry i zwracać wartości określonego typu.
-2. Typy Danych:
-3. Obsługiwane typy danych:
+2. Obsługiwane typy danych:
    - i64 (liczby całkowite), f64 (liczby zmiennoprzecinkowe), str (łańcuchy znaków), bool (prawda / fałsz).
    - void (brak zwracanej wartości z funkcji)
-4. Instrukcje Warunkowe:
-   - Instrukcje warunkowe if używane są do kontrolowania przebiegu programu w zależności od spełnienia warunków logicznych.
-5. Pętle:
-   - Pętla for jest dostępna dla iteracji przez zakres wartości.
-6. Instrukcje Kontroli Przepływu:
-   - Instrukcje takie jak break są używane do przerwania wykonania pętli lub bloku instrukcji.
-7. Instrukcje Wyboru:
+3. Instrukcje Warunkowe:
+   - Instrukcje warunkowe if wraz z opcjonalnym else.
+4. Pętle:
+   - Pętla for, w której iterator nie musi być definiowany ani aktualizowany.
+5. Instrukcje Kontroli Przepływu:
+   - Instrukcja break są używane do przerwania wykonania pętli lub bloku instrukcji.
+6. Instrukcje Wyboru:
    - Instrukcje switch pozwalają na wielokrotne rozgałęzianie programu w zależności od różnych warunków.
    - Wykonywany jest każdy blok instrukcji pod spełnionym warunkiem, chyba że w którymś poprzednim był break
-8. Rekurencja: Język wspiera rekurencję.
-9. Operacje na Zmiennych:
-   - Dostępne są operacje przypisania (=), operatory arytmetyczne (+, -, \*, /), porównania (==, <, <=, >, >=, !=), oraz operatory logiczne (!=).
-10. Operacje na Tekście:
-    - Wprowadzenie tekstu i wyświetlenie go na konsoli.
-11. Castowanie:
+7. Rekurencja: Język wspiera rekurencję.
+8. Operacje na Zmiennych:
+   - Dostępne są operacje przypisania (=), operatory arytmetyczne (+, -, \*, /), porównania (==, <, <=, >, >=, !=), oraz operatory logiczne (np. !=).
+9. Operacje na Tekście:
+   - Wprowadzenie tekstu i wyświetlenie go na konsoli.
+10. Castowanie:
     - i64 i f64 mogą być castowane na siebie nawzajem, na stringa i na boolean (jeżeli są <= 0 to będzie false inaczej prawda)
-    - string może być castowany na i64 i na f64, ze zgłoszeniem błędów, oraz na boolean (pusty oznacza false inaczej true)
-12. Funkcje wbudowane:
-    - print: przyjmuje string i wyświetla go na konsoli
+    - string może być castowany na i64 i na f64, ze zgłoszeniem błędów, oraz na boolean (pusty string oznacza false inaczej true)
+11. Funkcje wbudowane:
+    - print(...): wypisuje argumenty na standardowe wyjście wraz ze znakiem końca linii
 
 ## Gramatyka
 
 ### Część składniowa
 
-**program** ::= {funcDecl | declaration, ";"};
+**program** = { function_declaration | assign_or_call | if_statement | for_statement | switch_statement | declaration, ";" };
 
-**comment** ::= "#" , {unicode_character - "\n"}, "\n";
+**comment** = "#" , {unicode_character - "\n"}, "\n";
 
 ```
 # some 1 line comment
 ```
 
-**refDeclaration** ::= [“&”], declaration
-
-**funcDecl** ::= “fn”, id, "(", [refDeclaration, {",", refDeclaration}], ")", “:”, type | “void”, stmtBlock;
+**function_declaration** = “fn”, identifier, "(", parameters, ")", “:”, type | “void”, statement_block;
 
 ```
 fn do_sth(&i64 x, i64 y=0): void {}
 ```
 
-**stmtBlock** ::= "{", {stmt}, "}";
+**parameters** = [ parameter, { ",", parameter } ];
 
-**stmt** ::= funcCall, ";" | ifStmt | forStmt | switch_statement | declaration, ";" | assign, ";" | returnStmt, ";" | stmtBlock | “break”, “;”;
+**parameter** = [“&”], type, identifier, [ "=", expression ];
 
-**declaration** ::= type, id, ["=", expr];
+**statement_block** = "{", {statement}, "}";
+
+**statement** = assign_or_call | if_statement | for_statement | switch_statement | declaration, ";" | return_statement | statement_block | “break”, “;”;
+
+**assign_or_call** = identifier, ("=", expression | "(", arguments, ")"), ";";
 
 ```
-bool is_valid = true
+x = 5;
+my_fun(5, 2);
 ```
 
-**ifStmt** ::= "if", "(", expr, ")", stmtBlock, ["else", stmtBlock];
+**declaration** = type, identifier, [ "=", expression ];
+
+```
+bool is_valid = true;
+```
+
+**if_statement** = "if", "(", expression, ")", statement_block, [ "else", statement_block ];
 
 ```
 if (x == 5) {} else {}
 ```
 
-**forStmt** ::= "for", "(", [declaration], “;”, expr, “;”, [assign], ")", stmtBlock;
+**for_statement** = "for", "(", [ declaration ], “;”, expression, “;”, [ identifier, "=", expression ], ")", statement_block;
 
 ```
 for (i64 x = a - 1; i < a + 1; i = i + 1) {}
 ```
 
-**returnStmt** ::= "return", [expr];
+**return_statement** = "return", [ expression ], ";";
 
 ```
-return a + 2 * b
+return a + 2 * b;
 ```
 
-**funcCall** ::= id, "(", [callArgList], ")";
+**argument** = [“&”], expression;
 
-```
-do_sth(a + 2)
-```
-
-**refExpr** ::= [“&”], expr
-
-**callArgList** ::= refExpr, {",", refExpr};
+**arguments** = [ argument, {",", argument} ];
 
 ```
 a + 2, &b, c
 ```
 
-**assign** ::= id, "=", expr;
-
-```
-a = 5
-```
-
-**expr** ::= [“!”], alternative_term;
-
-**alternative_term**= concatenation_term {“||”, concatenation_term};
+**expression** = concatenation_term { “||”, concatenation_term };
 
 ```
 a == b && b || c
 ```
 
-**concatenation_term**= relation_term, {“&&”, relation_term};
+**concatenation_term** = relation_term, { “&&”, relation_term };
 
 ```
 a == b && b
 ```
 
-**relation_term** ::= additive_term, [relation_operands, additive_term];
+**relation_term** = additive_term, [ relation_operands, additive_term ];
 
 ```
 x == y
 ```
 
-**additive_term** ::= multiplicative_term , {("+" | "-"), multiplicative_term };
+**additive_term** = multiplicative_term , { ("+" | "-"), multiplicative_term };
 
 ```
 1 + (1 + 2) / (2 + 3)
 ```
 
-**multiplicative_term**::= casted_term, {("\*" | "/"), casted_term};
+**multiplicative_term** = unary_term, { ("\*" | "/"), unary_term };
 
 ```
 (1 + 2) / (2 + 3)
 ```
 
-**casted_term** ::= factor, [“as”, type];
+**casted_term** = unary_term, [ “as”, type ];
 
 ```
 (x + add(2, 2)) as f64
 2 as i64                # 2
 2 as f64                # 2.0
 2 as str                # “2”
+-2 as str               # "-2"
 2 as bool               # true
 0 as bool               # false
 “123” as i64            # 123
@@ -144,33 +139,51 @@ x == y
 “a” as bool             # true
 ```
 
-**factor** ::= ["-"], literal | ("(", expr, ")") | id | funcCall;
+**unary_term** = [ ("-", "!") ], factor;
 
 ```
+-2
+-(x + 5)
+!true
+```
+
+**factor** = literal | ( "(", expression, ")" ) | identifier_or_call;
+
+```
+5
 (2.2 + 3 as f64)
+x
+fun(5)
 ```
 
-**literal** ::= integerValue | floatValue | booleanValue | stringValue;
+**identifier_or_call** = identifier, [ "(", arguments, ")" ];
 
-**id** ::= letter, {character};
+```
+x
+fun(5)
+```
+
+**literal** = integer_literal | float_literal | boolean_literal | string_literal;
+
+**identifier** = letter, {character};
 
 ```
 super_variable_123
 ```
 
-**switch_statement**::= "switch", "(", switch_expressions, ")", "{", {switch_case}, "}";
+**switch_statement** = "switch", "(", switch_expressions, ")", "{", {switch_case}, "}";
 
-**switch_expression**= expr, ["as", identifier];
+**switch_expression** = expression, [ "as", identifier ];
 
-**switch_expressions**::= switch_expression, {“,”, switch_expression};
+**switch_expressions** = switch_expression, { “,”, switch_expression };
 
-**switch_case** ::= "(", expr, ")", "->", stmtBlock;
+**switch_case** = "(", expression, ")", "->", statement_block;
 
 ```
 switch (x as temp1, y as temp2) {
     (x < 5 && temp2 < 5) -> {
       print("Less than 5.");
-    },
+    }
     (temp1 < 10 && y < 10) -> {
       print("Less than 10.");
       break;
@@ -180,35 +193,35 @@ switch (x as temp1, y as temp2) {
 
 ### Część leksykalna
 
-**letter** ::= "a" - "z" | "A" - "Z";
+**letter** = "a" - "z" | "A" - "Z";
 
-**type** ::= “i64“| “f64” | “bool” | “str”;
+**type** = “i64“| “f64” | “bool” | “str”;
 
-**relation_operands** ::= "==" | "<" | "<=" | ">" | ">=" | "!=";
+**relation_operands** = "==" | "<" | "<=" | ">" | ">=" | "!=";
 
-**digit** ::= "0" - “9”;
+**digit** = "0" - “9”;
 
-**nonZeroDigit** ::= "1" - "9";
+**non_zero_digit** = "1" - "9";
 
-**integerValue** ::= (nonZeroDigit, {digit}) | “0”;
+**integer_literal** = ( non_zero_digit, {digit} ) | “0”;
 
 ```
 1, 12, 10, 0
 ```
 
-**floatValue** ::= integer, ".", {digit}
+**float_literal** = integer_literal, ".", {digit}
 
 ```
 1.0, 1.2, 10.0, 0.0, 0.00001;
 ```
 
-**stringValue** ::= “””, {unicode_character - “”””}, “””;
+**string_literal** = “\””, {unicode_character - “\””}, “\””;
 
-**booleanValue** ::= “true” | “false”;
+**boolean_literal** = “true” | “false”;
 
-**character** ::= "a" - "z" | "A" - "Z" | "0" - "9" | "\_";
+**character** = "a" - "z" | "A" - "Z" | "0" - "9" | "\_";
 
-**unicode_character** ::= (wszystkie znaki unicode)
+**unicode_character** = (wszystkie znaki unicode)
 
 ## Priorytety operatorów
 
@@ -222,23 +235,17 @@ switch (x as temp1, y as temp2) {
   <tr>
    <td>- (negacja liczby)
    </td>
-   <td>8
+   <td>7
    </td>
   </tr>
   <tr>
-   <td>as
+   <td>!
    </td>
    <td>7
    </td>
   </tr>
   <tr>
-   <td>+
-   </td>
-   <td>6
-   </td>
-  </tr>
-  <tr>
-   <td>- (odejmowanie)
+   <td>as
    </td>
    <td>6
    </td>
@@ -256,55 +263,61 @@ switch (x as temp1, y as temp2) {
    </td>
   </tr>
   <tr>
+   <td>+
+   </td>
+   <td>4
+   </td>
+  </tr>
+  <tr>
+   <td>- (odejmowanie)
+   </td>
+   <td>4
+   </td>
+  </tr>
+  <tr>
    <td>>
-   </td>
-   <td>4
-   </td>
-  </tr>
-  <tr>
-   <td>>=
-   </td>
-   <td>4
-   </td>
-  </tr>
-  <tr>
-   <td><
-   </td>
-   <td>4
-   </td>
-  </tr>
-  <tr>
-   <td><=
-   </td>
-   <td>4
-   </td>
-  </tr>
-  <tr>
-   <td>==
-   </td>
-   <td>4
-   </td>
-  </tr>
-  <tr>
-   <td>!=
-   </td>
-   <td>4
-   </td>
-  </tr>
-  <tr>
-   <td>&&
    </td>
    <td>3
    </td>
   </tr>
   <tr>
-   <td>||
+   <td>>=
+   </td>
+   <td>3
+   </td>
+  </tr>
+  <tr>
+   <td><
+   </td>
+   <td>3
+   </td>
+  </tr>
+  <tr>
+   <td><=
+   </td>
+   <td>3
+   </td>
+  </tr>
+  <tr>
+   <td>==
+   </td>
+   <td>3
+   </td>
+  </tr>
+  <tr>
+   <td>!=
+   </td>
+   <td>3
+   </td>
+  </tr>
+  <tr>
+   <td>&&
    </td>
    <td>2
    </td>
   </tr>
   <tr>
-   <td>! (negacja wyrażenia)
+   <td>||
    </td>
    <td>1
    </td>
@@ -391,6 +404,10 @@ switch (x as temp1, y as temp2) {
     }
 }
 ```
+
+## Funkcje wbudowane
+
+1. print(...) - wyświetla argumenty na standardowe wyjście wraz ze znakiem końca linii
 
 ## Obsługa błędów
 

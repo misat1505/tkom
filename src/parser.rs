@@ -15,7 +15,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
   }
 
   fn parse(&mut self) {
-      self.lexer.next();
+      let _ = self.lexer.next();    // skip STX
       loop {
         match self.lexer.next() {
             Ok(token) => {
