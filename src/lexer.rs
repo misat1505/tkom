@@ -6,13 +6,9 @@ use crate::lazy_stream_reader::{ILazyStreamReader, LazyStreamReader, Position, E
 use crate::lexer_utils::{LexerIssue, LexerIssueKind, LexerOptions};
 use crate::tokens::{Token, TokenCategory, TokenValue};
 
-pub trait ILexer<T: BufRead> {
-    fn new(
-        src: LazyStreamReader<T>,
-        options: LexerOptions,
-        on_warning: fn(warning: LexerIssue),
-    ) -> Self;
+pub trait ILexer {
     fn current(&self) -> &Option<Token>;
+    fn next(&mut self) -> Result<Token, LexerIssue>;
 }
 
 pub struct Lexer<T: BufRead> {
@@ -23,8 +19,18 @@ pub struct Lexer<T: BufRead> {
     on_warning: fn(warning: LexerIssue),
 }
 
-impl<T: BufRead> ILexer<T> for Lexer<T> {
-    fn new(
+impl<T: BufRead> ILexer for Lexer<T> {
+    fn current(&self) -> &Option<Token> {
+        &self.current
+    }
+
+    fn next(&mut self) -> Result<Token, LexerIssue> {
+        self.generate_token()
+    }
+}
+
+impl<T: BufRead> Lexer<T> {
+    pub fn new(
         src: LazyStreamReader<T>,
         options: LexerOptions,
         on_warning: fn(warning: LexerIssue),
@@ -39,12 +45,6 @@ impl<T: BufRead> ILexer<T> for Lexer<T> {
         }
     }
 
-    fn current(&self) -> &Option<Token> {
-        &self.current
-    }
-}
-
-impl<T: BufRead> Lexer<T> {
     #[allow(irrefutable_let_patterns)]
     pub fn generate_token(&mut self) -> Result<Token, LexerIssue> {
         self.skip_whitespaces();

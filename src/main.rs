@@ -1,21 +1,21 @@
 use std::{
     env::args,
     fs::File,
-    io::{BufRead, BufReader, Error},
-    time::Instant,
+    io::{BufReader, Error}
 };
 
-use lexer::{ILexer, Lexer};
+use lexer::Lexer;
 mod lazy_stream_reader;
 use lazy_stream_reader::LazyStreamReader;
 use lexer_utils::LexerIssue;
-use tokens::{Token, TokenCategory};
 
-use crate::lexer_utils::LexerOptions;
+use crate::{lexer_utils::LexerOptions, parser::{IParser, Parser}};
 mod lexer_utils;
 
 mod lexer;
 mod tokens;
+mod ast;
+mod parser;
 
 mod tests;
 
@@ -31,17 +31,6 @@ fn on_warning(warning: LexerIssue) {
     println!("{}", warning.message);
 }
 
-fn get_next_token(lexer: &mut Lexer<BufReader<File>>) -> Result<Token, LexerIssue> {
-    let mut current_token = lexer.generate_token();
-    while let Some(token) = lexer.current() {
-        if token.category != TokenCategory::Comment {
-            break;
-        }
-        current_token = lexer.generate_token();
-    }
-    current_token
-}
-
 fn main() -> Result<(), Error> {
     let path = parse_filename();
 
@@ -54,31 +43,33 @@ fn main() -> Result<(), Error> {
         max_identifier_length: 20,
     };
 
-    let mut lexer = Lexer::new(reader, lexer_options, on_warning);
-    let mut tokens: Vec<Token> = vec![];
+    let lexer = Lexer::new(reader, lexer_options, on_warning);
+    let mut parser = Parser::new(lexer);
+    parser.parse();
+    // let mut tokens: Vec<Token> = vec![];
 
-    let start = Instant::now();
-    loop {
-        match get_next_token(&mut lexer) {
-            Ok(token) => {
-                tokens.push(token.clone());
-                if token.category == TokenCategory::ETX {
-                    break;
-                }
-            }
-            Err(err) => {
-                println!("{}", err.message);
-                return Ok(());
-            }
-        }
-    }
-    let finish = Instant::now();
+    // let start = Instant::now();
+    // loop {
+    //     match get_next_token(&mut lexer) {
+    //         Ok(token) => {
+    //             tokens.push(token.clone());
+    //             if token.category == TokenCategory::ETX {
+    //                 break;
+    //             }
+    //         }
+    //         Err(err) => {
+    //             println!("{}", err.message);
+    //             return Ok(());
+    //         }
+    //     }
+    // }
+    // let finish = Instant::now();
 
-    for token in &tokens {
-        println!("{:?}", token);
-    }
+    // for token in &tokens {
+    //     println!("{:?}", token);
+    // }
 
-    println!("\nTime {:?}", finish - start);
+    // println!("\nTime {:?}", finish - start);
 
     Ok(())
 }
