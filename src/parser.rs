@@ -38,7 +38,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_assign_or_call() {
+            match self.parse_statement() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -60,26 +60,50 @@ impl<L: ILexer> Parser<L> {
         Some(current_token)
     }
 
+    fn parse_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+        // TODO add more
+        let node = self
+            .parse_assign_or_call()
+            .or_else(|_| self.parse_declaration())
+            .or_else(|_| self.parse_return_statement())?;
+
+        Ok(node)
+    }
+
     fn parse_assign_or_call(&mut self) -> Result<Node<Statement>, ParserIssue> {
         let identifier = self.parse_identifier()?;
         let position = identifier.position;
-        
+
         if self.consume_if(TokenCategory::Assign).is_some() {
             let expr = self.parse_expression()?;
-            let node = Node { value: Statement::Assignment { identifier, value: expr }, position };
+            let node = Node {
+                value: Statement::Assignment {
+                    identifier,
+                    value: expr,
+                },
+                position,
+            };
             self.consume_must(TokenCategory::Semicolon)?;
             return Ok(node);
         }
 
         if self.consume_if(TokenCategory::ParenOpen).is_some() {
             let arguments = self.parse_arguments()?.into_iter().map(Box::new).collect();
-            let node = Node { value: Statement::FunctionCall { identifier, arguments }, position };
+            let node = Node {
+                value: Statement::FunctionCall {
+                    identifier,
+                    arguments,
+                },
+                position,
+            };
             self.consume_must(TokenCategory::ParenClose)?;
             self.consume_must(TokenCategory::Semicolon)?;
             return Ok(node);
         }
 
-        Err(Self::create_parser_error(format!("Could not create assignment or call.")))
+        Err(Self::create_parser_error(format!(
+            "Could not create assignment or call."
+        )))
     }
 
     fn parse_declaration(&mut self) -> Result<Node<Statement>, ParserIssue> {
@@ -93,8 +117,8 @@ impl<L: ILexer> Parser<L> {
         let node = Node {
             value: Statement::Declaration {
                 var_type: declaration_type,
-                identifier: identifier,
-                value: value,
+                identifier,
+                value,
             },
             position: position,
         };
