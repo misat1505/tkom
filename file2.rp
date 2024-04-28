@@ -1,4 +1,5 @@
-{x = add(2, 3);
-fun(5);
+x = add(2, 3);
+{fun(5);}
 return x;
-i64 x = 5;}
+break;
+i64 x = 5;

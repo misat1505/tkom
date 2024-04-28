@@ -38,7 +38,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_statement_block() {
+            match self.parse_statement() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -75,12 +75,14 @@ impl<L: ILexer> Parser<L> {
         // TODO better error handling
         let node = self
             .parse_assign_or_call()
+            .or_else(|_| self.parse_statement_block())
             .or_else(|_| {
                 let decl = self.parse_declaration()?;
                 self.consume_must(TokenCategory::Semicolon)?;
                 Ok(decl)
             })
-            .or_else(|_: ParserIssue| self.parse_return_statement())?;
+            .or_else(|_: ParserIssue| self.parse_return_statement())
+            .or_else(|_| self.parse_break_statement())?;
 
         Ok(node)
     }
@@ -151,6 +153,13 @@ impl<L: ILexer> Parser<L> {
             value: Statement::Return(returned_value),
             position: token.position,
         };
+        Ok(node)
+    }
+
+    fn parse_break_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+        let token = self.consume_must(TokenCategory::Break)?;
+        let _ = self.consume_must(TokenCategory::Semicolon)?;
+        let node = Node { value: Statement::Break, position: token.position };
         Ok(node)
     }
 
