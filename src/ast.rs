@@ -76,14 +76,18 @@ pub struct Argument {
 
 #[derive(Debug, Clone)]
 pub enum Statement {
-    // switch
+    // TODO switch
+    FunctionCall {
+        identifier: Node<Identifier>,
+        arguments: Vec<BNode<Argument>>,
+    },
     Declaration {
         var_type: Node<Type>,
-        identifier: Identifier,
+        identifier: Node<Identifier>,
         value: Option<Node<Expression>>,
     },
     Assignment {
-        identifier: Identifier,
+        identifier: Node<Identifier>,
         value: Node<Expression>,
     },
     Conditional {
