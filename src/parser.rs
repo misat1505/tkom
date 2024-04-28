@@ -61,10 +61,11 @@ impl<L: ILexer> Parser<L> {
     }
 
     fn parse_arguments(&mut self) -> Result<Vec<Node<Argument>>, ParserIssue> {
-        // TODO pierwsza referncja sie psuje
-        let Ok(expression) = self.parse_argument() else {
+        if self.consume_if(TokenCategory::ParenClose).is_some() {
             return Ok(Vec::new());
-        };
+        }
+        
+        let expression = self.parse_argument()?;
 
         let mut arguments = vec![expression];
         while let Some(_) = self.consume_if(TokenCategory::Comma) {
