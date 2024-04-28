@@ -1,5 +1,5 @@
 use crate::{
-    ast::{Identifier, Literal, Node},
+    ast::{Expression, Identifier, Literal, Node},
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
 };
@@ -35,7 +35,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
         let _ = self.lexer.next(); // skip STX
 
         loop {
-            match self.parse_literal() {
+            match self.parse_identifier_or_call() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -59,6 +59,29 @@ impl<L: ILexer> Parser<L> {
             return Ok(node);
         }
         Err(Self::create_parser_error("".to_owned()))
+    }
+
+    fn parse_arguments(&mut self) -> Vec<Node<Expression>> {
+        vec![]
+    }
+
+    fn parse_identifier_or_call(&mut self) -> Result<Node<Expression>, ParserIssue> {
+        let identifier = self.parse_identifier()?;
+        let position = identifier.position;
+
+        let result = match self.consume_if(TokenCategory::ParenOpen) {
+            Some(_) => {
+                let args = self.parse_arguments().into_iter().map(Box::new).collect();
+                let _ = self.consume_match(TokenCategory::ParenClose)?;
+                Expression::FunctionCall {
+                    identifier: identifier.value,
+                    arguments: args
+                }
+            },
+            None => Expression::Variable(identifier.value)
+        };
+
+        Ok(Node { value: result, position: position })
     }
 
     fn parse_literal(&mut self) -> Result<Node<Literal>, ParserIssue> {

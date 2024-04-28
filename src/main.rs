@@ -49,30 +49,6 @@ fn main() -> Result<(), Error> {
     let lexer = Lexer::new(reader, lexer_options, on_warning);
     let mut parser = Parser::new(lexer);
     parser.parse();
-    // let mut tokens: Vec<Token> = vec![];
-
-    // let start = Instant::now();
-    // loop {
-    //     match get_next_token(&mut lexer) {
-    //         Ok(token) => {
-    //             tokens.push(token.clone());
-    //             if token.category == TokenCategory::ETX {
-    //                 break;
-    //             }
-    //         }
-    //         Err(err) => {
-    //             println!("{}", err.message);
-    //             return Ok(());
-    //         }
-    //     }
-    // }
-    // let finish = Instant::now();
-
-    // for token in &tokens {
-    //     println!("{:?}", token);
-    // }
-
-    // println!("\nTime {:?}", finish - start);
 
     Ok(())
 }
