@@ -75,3 +75,41 @@ pub struct Argument {
     pub value: Expression,
     pub passed_by: ArgumentPassedBy
 }
+
+#[derive(Debug, Clone)]
+pub enum Statement {
+    // switch
+    Declaration {
+        var_type: Type,
+        identifier: Identifier,
+        value: Option<Node<Expression>>,
+    },
+    Assignment {
+        identifier: Identifier,
+        value: Node<Expression>,
+    },
+    Conditional {
+        if_block: Node<ConditionalBlock>,
+        else_block: Option<Node<Block>>,
+    },
+    ForLoop {
+        declaration: Option<Node<Box<Statement>>>,
+        condition: Node<Expression>,
+        assignment: Option<Node<Box<Statement>>>,
+        block: Node<Block>
+    },
+    Return(Option<Node<Expression>>),
+    Block(Node<Block>),
+    Break
+}
+
+#[derive(Debug, Clone)]
+pub struct ConditionalBlock {
+    pub condition: Node<Expression>,
+    pub block: Node<Block>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Block(pub Vec<Node<Statement>>);
+
+

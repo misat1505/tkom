@@ -1,5 +1,5 @@
 use crate::{
-    ast::{Argument, ArgumentPassedBy, Expression, Identifier, Literal, Node, Type},
+    ast::{Argument, ArgumentPassedBy, Expression, Identifier, Literal, Node, Statement, Type},
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
 };
@@ -38,7 +38,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_expression() {
+            match self.parse_return_statement() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -59,6 +59,19 @@ impl<L: ILexer> Parser<L> {
         }
         Some(current_token)
     }
+
+    fn parse_return_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+        let token = self.consume_must(TokenCategory::Return)?;
+        let returned_value = match self.parse_expression() {
+            Ok(expr) => {
+                Some(expr)
+            },
+            Err(_) => None
+        };
+        self.consume_must(TokenCategory::Semicolon)?;
+        let node = Node { value: Statement::Return(returned_value), position: token.position };
+        Ok(node)
+    }   
 
     fn parse_arguments(&mut self) -> Result<Vec<Node<Argument>>, ParserIssue> {
         if self.consume_if(TokenCategory::ParenClose).is_some() {
