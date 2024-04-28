@@ -38,7 +38,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_factor() {
+            match self.parse_unary_term() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -66,6 +66,19 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_arguments(&mut self) -> Vec<Node<Expression>> {
         vec![]
+    }
+
+    fn parse_unary_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
+        if let Some(token) = self.consume_if(TokenCategory::Negate) {
+            let factor = self.parse_factor()?;
+            return Ok(Node { value: Expression::BooleanNegation(Box::new(factor)), position: token.position });
+        }
+        if let Some(token) = self.consume_if(TokenCategory::Minus) {
+            let factor = self.parse_factor()?;
+            return Ok(Node { value: Expression::ArithmeticNegation(Box::new(factor)), position: token.position });
+        }
+        let factor = self.parse_factor()?;
+        Ok(factor)
     }
 
     fn parse_factor(&mut self) -> Result<Node<Expression>, ParserIssue> {
