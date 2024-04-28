@@ -8,6 +8,8 @@ pub struct Node<T> {
 
 type BNode<T> = Box<Node<T>>;
 
+
+
 #[derive(Debug, Clone)]
 pub enum Expression {
     // Boolean operations (non-unary)
@@ -38,7 +40,7 @@ pub enum Expression {
     Variable(Identifier),
     FunctionCall {
         identifier: Identifier,
-        arguments: Vec<BNode<Expression>>,
+        arguments: Vec<BNode<Argument>>,
     },
 }
 
@@ -61,3 +63,15 @@ pub enum Type {
 
 #[derive(Debug, Clone)]
 pub struct Identifier(pub String);
+
+#[derive(Debug, Clone)]
+pub enum ArgumentPassedBy {
+    Reference,
+    Value
+}
+
+#[derive(Debug, Clone)]
+pub struct Argument {
+    pub value: Expression,
+    pub passed_by: ArgumentPassedBy
+}

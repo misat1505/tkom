@@ -1,5 +1,5 @@
 use crate::{
-    ast::{Expression, Identifier, Literal, Node, Type},
+    ast::{Argument, ArgumentPassedBy, Expression, Identifier, Literal, Node, Type},
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
 };
@@ -60,8 +60,28 @@ impl<L: ILexer> Parser<L> {
         Some(current_token)
     }
 
-    fn parse_arguments(&mut self) -> Vec<Node<Expression>> {
-        vec![]
+    fn parse_arguments(&mut self) -> Result<Vec<Node<Argument>>, ParserIssue> {
+        // TODO pierwsza referncja sie psuje
+        let Ok(expression) = self.parse_argument() else {
+            return Ok(Vec::new());
+        };
+
+        let mut arguments = vec![expression];
+        while let Some(_) = self.consume_if(TokenCategory::Comma) {
+            let argument = self.parse_argument()?;
+            arguments.push(argument);
+        }
+        Ok(arguments)
+    }
+
+    fn parse_argument(&mut self) -> Result<Node<Argument>, ParserIssue> {
+        let mut passed_by = ArgumentPassedBy::Value;
+        if self.consume_if(TokenCategory::Reference).is_some() {
+            passed_by = ArgumentPassedBy::Reference;
+        }
+        let expression = self.parse_expression()?;
+        let argument = Argument { value: expression.value, passed_by: passed_by };
+        Ok(Node { value: argument, position: expression.position })
     }
 
     fn parse_expression(&mut self) -> Result<Node<Expression>, ParserIssue> {
@@ -241,7 +261,7 @@ impl<L: ILexer> Parser<L> {
 
         let result = match self.consume_if(TokenCategory::ParenOpen) {
             Some(_) => {
-                let args = self.parse_arguments().into_iter().map(Box::new).collect();
+                let args = self.parse_arguments()?.into_iter().map(Box::new).collect();
                 let _ = self.consume_match(TokenCategory::ParenClose)?;
                 Expression::FunctionCall {
                     identifier: identifier.value,
