@@ -38,7 +38,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_additive_term() {
+            match self.parse_concatenation_term() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -66,6 +66,45 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_arguments(&mut self) -> Vec<Node<Expression>> {
         vec![]
+    }
+
+    fn parse_concatenation_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
+        let left_side = self.parse_relation_term()?;
+        let position = left_side.position;
+        if self.consume_if(TokenCategory::And).is_some() {
+            let right_side = self.parse_relation_term()?;
+            return Ok(Node { value: Expression::Conjunction(Box::new(left_side), Box::new(right_side)), position });
+        }
+        Ok(left_side)
+    }
+
+    fn parse_relation_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
+        let left_side = self.parse_additive_term()?;
+        if let Some(token) = self.consume_if(TokenCategory::Equal) {
+            let right_side = self.parse_additive_term()?;
+            return Ok(Node { value: Expression::Equal(Box::new(left_side), Box::new(right_side)), position: token.position });
+        }
+        if let Some(token) = self.consume_if(TokenCategory::NotEqual) {
+            let right_side = self.parse_additive_term()?;
+            return Ok(Node { value: Expression::NotEqual(Box::new(left_side), Box::new(right_side)), position: token.position });
+        }
+        if let Some(token) = self.consume_if(TokenCategory::Greater) {
+            let right_side = self.parse_additive_term()?;
+            return Ok(Node { value: Expression::Greater(Box::new(left_side), Box::new(right_side)), position: token.position });
+        }
+        if let Some(token) = self.consume_if(TokenCategory::GreaterOrEqual) {
+            let right_side = self.parse_additive_term()?;
+            return Ok(Node { value: Expression::GreaterEqual(Box::new(left_side), Box::new(right_side)), position: token.position });
+        }
+        if let Some(token) = self.consume_if(TokenCategory::Less) {
+            let right_side = self.parse_additive_term()?;
+            return Ok(Node { value: Expression::Less(Box::new(left_side), Box::new(right_side)), position: token.position });
+        }
+        if let Some(token) = self.consume_if(TokenCategory::LessOrEqual) {
+            let right_side = self.parse_additive_term()?;
+            return Ok(Node { value: Expression::LessEqual(Box::new(left_side), Box::new(right_side)), position: token.position });
+        }
+        Ok(left_side)
     }
 
     fn parse_additive_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
