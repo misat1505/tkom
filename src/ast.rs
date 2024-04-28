@@ -12,7 +12,7 @@ type BNode<T> = Box<Node<T>>;
 pub enum Expression {
     // Boolean operations (non-unary)
     Alternative(BNode<Expression>, BNode<Expression>),
-    Conjunction(BNode<Expression>, BNode<Expression>),
+    Concatenation(BNode<Expression>, BNode<Expression>),
     // Reloations
     Greater(BNode<Expression>, BNode<Expression>),
     GreaterEqual(BNode<Expression>, BNode<Expression>),
