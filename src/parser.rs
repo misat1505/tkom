@@ -63,52 +63,39 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_literal(&mut self) -> Result<Node<Literal>, ParserIssue> {
         let token = self.lexer.current().clone().unwrap();
-        match token.category {
-            TokenCategory::True => {
-                let _ = self.lexer.next();
+        if self.consume_if(TokenCategory::True).is_some() {
+            return Ok(Node {
+                value: Literal::True,
+                position: token.position,
+            });
+        } else if self.consume_if(TokenCategory::False).is_some() {
+            return Ok(Node {
+                value: Literal::False,
+                position: token.position,
+            });
+        } else if self.consume_if(TokenCategory::StringValue).is_some() {
+            if let TokenValue::String(string) = token.value {
                 return Ok(Node {
-                    value: Literal::True,
-                    position: token.position.clone(),
+                    value: Literal::String(string),
+                    position: token.position,
                 });
             }
-            TokenCategory::False => {
-                let _ = self.lexer.next();
+        } else if self.consume_if(TokenCategory::I64Value).is_some() {
+            if let TokenValue::I64(int) = token.value {
                 return Ok(Node {
-                    value: Literal::False,
-                    position: token.position.clone(),
+                    value: Literal::I64(int),
+                    position: token.position,
                 });
             }
-            TokenCategory::StringValue => {
-                let _ = self.lexer.next();
-                if let TokenValue::String(string) = token.value {
-                    return Ok(Node {
-                        value: Literal::String(string),
-                        position: token.position.clone(),
-                    });
-                }
+        } else if self.consume_if(TokenCategory::F64Value).is_some() {
+            if let TokenValue::F64(float) = token.value {
+                return Ok(Node {
+                    value: Literal::F64(float),
+                    position: token.position,
+                });
             }
-            TokenCategory::F64Value => {
-                let _ = self.lexer.next();
-                if let TokenValue::F64(f64_value) = token.value {
-                    return Ok(Node {
-                        value: Literal::F64(f64_value),
-                        position: token.position.clone(),
-                    });
-                }
-            }
-            TokenCategory::I64Value => {
-                let _ = self.lexer.next();
-                if let TokenValue::I64(i64_value) = token.value {
-                    return Ok(Node {
-                        value: Literal::I64(i64_value),
-                        position: token.position.clone(),
-                    });
-                }
-            }
-            _ => return Err(Self::create_parser_error("Invalid literal".to_owned())),
         }
-
-        return Err(Self::create_parser_error("Invalid token type".to_owned()));
+        return Err(Self::create_parser_error("Invalid literal".to_owned()));
     }
 
     fn consume_match(&mut self, desired_category: TokenCategory) -> Result<Token, ParserIssue> {
@@ -121,6 +108,15 @@ impl<L: ILexer> Parser<L> {
             "Unexpected token - {:?}. Expected {:?}.",
             current_token.category, desired_category
         )))
+    }
+
+    fn consume_if(&mut self, desired_category: TokenCategory) -> Option<Token> {
+        let current_token = self.lexer.current().clone().unwrap();
+        if current_token.category == desired_category {
+            let _ = self.lexer.next();
+            return Some(current_token.clone());
+        }
+        None
     }
 
     fn create_parser_error(text: String) -> ParserIssue {
