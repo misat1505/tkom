@@ -61,11 +61,15 @@ impl<L: ILexer> Parser<L> {
     }
 
     fn parse_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
-        // TODO add more
+        // TODO better error handling
         let node = self
             .parse_assign_or_call()
-            .or_else(|_| self.parse_declaration())
-            .or_else(|_| self.parse_return_statement())?;
+            .or_else(|_| {
+                let decl = self.parse_declaration()?;
+                self.consume_must(TokenCategory::Semicolon)?;
+                Ok(decl)
+            })
+            .or_else(|_: ParserIssue| self.parse_return_statement())?;
 
         Ok(node)
     }
