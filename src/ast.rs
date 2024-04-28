@@ -1,6 +1,6 @@
 use crate::lazy_stream_reader::Position;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Node<T> {
     pub value: T,
     pub position: Position,
@@ -8,7 +8,7 @@ pub struct Node<T> {
 
 type BNode<T> = Box<Node<T>>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     // Boolean operations (non-unary)
     Alternative(BNode<Expression>, BNode<Expression>),
@@ -42,7 +42,7 @@ pub enum Expression {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Literal {
     True,
     False,
@@ -51,7 +51,7 @@ pub enum Literal {
     F64(f64),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Type {
     Bool,
     Str,
@@ -59,5 +59,5 @@ pub enum Type {
     F64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Identifier(pub String);

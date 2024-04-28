@@ -38,7 +38,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_casted_term() {
+            match self.parse_multiplicative_term() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -67,6 +67,36 @@ impl<L: ILexer> Parser<L> {
     fn parse_arguments(&mut self) -> Vec<Node<Expression>> {
         vec![]
     }
+
+    fn parse_multiplicative_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
+        let mut left_side = self.parse_casted_term()?;
+        let mut current_token = self.lexer.current().clone().unwrap();
+        while current_token.category == TokenCategory::Multiply || current_token.category == TokenCategory::Divide {
+            let _ = self.lexer.next();
+            let right_side = self.parse_casted_term()?;
+            let mut expression_type = Expression::Multiplication(Box::new(left_side.clone()), Box::new(right_side.clone()));
+            if current_token.category == TokenCategory::Divide {
+                expression_type = Expression::Division(Box::new(left_side), Box::new(right_side))
+            }
+            left_side = Node { value: expression_type, position: current_token.position };
+            current_token = self.lexer.current().clone().unwrap();
+        }
+        Ok(left_side)
+    }
+
+    // fn parse_multiplicative_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
+    //     let left_side = self.parse_casted_term()?;
+    //     let position = left_side.position.clone();
+    //     if self.consume_if(TokenCategory::Multiply).is_some() {
+    //         let right_side = self.parse_casted_term()?;
+    //         return Ok(Node { value: Expression::Multiplication(Box::new(left_side), Box::new(right_side)), position: position });
+    //     }
+    //     if self.consume_if(TokenCategory::Divide).is_some() {
+    //         let right_side = self.parse_casted_term()?;
+    //         return Ok(Node { value: Expression::Division(Box::new(left_side), Box::new(right_side)), position: position });
+    //     }
+    //     Ok(left_side)
+    // }
 
     fn parse_casted_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
         let unary_term = self.parse_unary_term()?;
