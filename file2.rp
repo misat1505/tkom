@@ -1,1 +1,1 @@
-return current_value;
+i64 x = 5

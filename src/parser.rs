@@ -38,7 +38,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_return_statement() {
+            match self.parse_declaration() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -60,18 +60,38 @@ impl<L: ILexer> Parser<L> {
         Some(current_token)
     }
 
+    fn parse_declaration(&mut self) -> Result<Node<Statement>, ParserIssue> {
+        let declaration_type = self.parse_type()?;
+        let position = declaration_type.position;
+        let identifier = self.parse_identifier()?.value;
+        let value = match self.consume_if(TokenCategory::Assign) {
+            Some(_) => Some(self.parse_expression()?),
+            None => None,
+        };
+        let node = Node {
+            value: Statement::Declaration {
+                var_type: declaration_type,
+                identifier: identifier,
+                value: value,
+            },
+            position: position,
+        };
+        Ok(node)
+    }
+
     fn parse_return_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
         let token = self.consume_must(TokenCategory::Return)?;
         let returned_value = match self.parse_expression() {
-            Ok(expr) => {
-                Some(expr)
-            },
-            Err(_) => None
+            Ok(expr) => Some(expr),
+            Err(_) => None,
         };
         self.consume_must(TokenCategory::Semicolon)?;
-        let node = Node { value: Statement::Return(returned_value), position: token.position };
+        let node = Node {
+            value: Statement::Return(returned_value),
+            position: token.position,
+        };
         Ok(node)
-    }   
+    }
 
     fn parse_arguments(&mut self) -> Result<Vec<Node<Argument>>, ParserIssue> {
         if self.consume_if(TokenCategory::ParenClose).is_some() {
@@ -94,8 +114,14 @@ impl<L: ILexer> Parser<L> {
             passed_by = ArgumentPassedBy::Reference;
         }
         let expression = self.parse_expression()?;
-        let argument = Argument { value: expression.value, passed_by: passed_by };
-        Ok(Node { value: argument, position: expression.position })
+        let argument = Argument {
+            value: expression.value,
+            passed_by: passed_by,
+        };
+        Ok(Node {
+            value: argument,
+            position: expression.position,
+        })
     }
 
     fn parse_expression(&mut self) -> Result<Node<Expression>, ParserIssue> {

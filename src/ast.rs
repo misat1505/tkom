@@ -8,8 +8,6 @@ pub struct Node<T> {
 
 type BNode<T> = Box<Node<T>>;
 
-
-
 #[derive(Debug, Clone)]
 pub enum Expression {
     // Boolean operations (non-unary)
@@ -67,20 +65,20 @@ pub struct Identifier(pub String);
 #[derive(Debug, Clone)]
 pub enum ArgumentPassedBy {
     Reference,
-    Value
+    Value,
 }
 
 #[derive(Debug, Clone)]
 pub struct Argument {
     pub value: Expression,
-    pub passed_by: ArgumentPassedBy
+    pub passed_by: ArgumentPassedBy,
 }
 
 #[derive(Debug, Clone)]
 pub enum Statement {
     // switch
     Declaration {
-        var_type: Type,
+        var_type: Node<Type>,
         identifier: Identifier,
         value: Option<Node<Expression>>,
     },
@@ -96,11 +94,11 @@ pub enum Statement {
         declaration: Option<Node<Box<Statement>>>,
         condition: Node<Expression>,
         assignment: Option<Node<Box<Statement>>>,
-        block: Node<Block>
+        block: Node<Block>,
     },
     Return(Option<Node<Expression>>),
     Block(Node<Block>),
-    Break
+    Break,
 }
 
 #[derive(Debug, Clone)]
@@ -111,5 +109,3 @@ pub struct ConditionalBlock {
 
 #[derive(Debug, Clone)]
 pub struct Block(pub Vec<Node<Statement>>);
-
-
