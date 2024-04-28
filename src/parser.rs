@@ -35,7 +35,10 @@ impl<L: ILexer> IParser<L> for Parser<L> {
         let _ = self.lexer.next(); // skip STX
 
         loop {
-            match self.parse_identifier_or_call() {
+            if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
+                break;
+            }
+            match self.parse_factor() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -65,6 +68,18 @@ impl<L: ILexer> Parser<L> {
         vec![]
     }
 
+    fn parse_factor(&mut self) -> Result<Node<Expression>, ParserIssue> {
+        // TODO expression
+        match self.parse_literal() {
+            Ok(result) => {
+                let node = Node { value: Expression::Literal(result.value), position: result.position };
+                return Ok(node);
+            },
+            Err(_) => {}
+        }
+        self.parse_identifier_or_call()
+    }
+
     fn parse_identifier_or_call(&mut self) -> Result<Node<Expression>, ParserIssue> {
         let identifier = self.parse_identifier()?;
         let position = identifier.position;
@@ -80,7 +95,6 @@ impl<L: ILexer> Parser<L> {
             },
             None => Expression::Variable(identifier.value)
         };
-
         Ok(Node { value: result, position: position })
     }
 
