@@ -64,7 +64,7 @@ impl<L: ILexer> Parser<L> {
         if self.consume_if(TokenCategory::ParenClose).is_some() {
             return Ok(Vec::new());
         }
-        
+
         let expression = self.parse_argument()?;
 
         let mut arguments = vec![expression];
@@ -242,7 +242,6 @@ impl<L: ILexer> Parser<L> {
     }
 
     fn parse_factor(&mut self) -> Result<Node<Expression>, ParserIssue> {
-        // TODO expression
         match self.parse_literal() {
             Ok(result) => {
                 let node = Node {
@@ -252,6 +251,11 @@ impl<L: ILexer> Parser<L> {
                 return Ok(node);
             }
             Err(_) => {}
+        }
+        if self.consume_if(TokenCategory::ParenOpen).is_some() {
+            let expression = self.parse_expression()?;
+            self.consume_must(TokenCategory::ParenClose)?;
+            return Ok(expression);
         }
         self.parse_identifier_or_call()
     }
@@ -263,7 +267,7 @@ impl<L: ILexer> Parser<L> {
         let result = match self.consume_if(TokenCategory::ParenOpen) {
             Some(_) => {
                 let args = self.parse_arguments()?.into_iter().map(Box::new).collect();
-                let _ = self.consume_match(TokenCategory::ParenClose)?;
+                let _ = self.consume_must(TokenCategory::ParenClose)?;
                 Expression::FunctionCall {
                     identifier: identifier.value,
                     arguments: args,
@@ -334,7 +338,7 @@ impl<L: ILexer> Parser<L> {
     }
 
     fn parse_identifier(&mut self) -> Result<Node<Identifier>, ParserIssue> {
-        let token = self.consume_match(TokenCategory::Identifier)?;
+        let token = self.consume_must(TokenCategory::Identifier)?;
         if let TokenValue::String(name) = token.value {
             let node = Node {
                 value: Identifier(name),
@@ -345,7 +349,7 @@ impl<L: ILexer> Parser<L> {
         Err(Self::create_parser_error("".to_owned()))
     }
 
-    fn consume_match(&mut self, desired_category: TokenCategory) -> Result<Token, ParserIssue> {
+    fn consume_must(&mut self, desired_category: TokenCategory) -> Result<Token, ParserIssue> {
         let current_token = self.lexer.current().clone().unwrap();
         if current_token.category == desired_category {
             let _ = self.next_token();
