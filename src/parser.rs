@@ -1,5 +1,5 @@
 use crate::{
-    ast::{Expression, Identifier, Literal, Node},
+    ast::{Expression, Identifier, Literal, Node, Type},
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
 };
@@ -38,7 +38,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_unary_term() {
+            match self.parse_casted_term() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -66,6 +66,18 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_arguments(&mut self) -> Vec<Node<Expression>> {
         vec![]
+    }
+
+    fn parse_casted_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
+        let unary_term = self.parse_unary_term()?;
+        let position = unary_term.position.clone();
+        match self.consume_if(TokenCategory::As) {
+            Some(_) => {
+                let type_parsed = self.parse_type()?;
+                return Ok(Node { value: Expression::Casting { value: Box::new(unary_term), to_type: type_parsed }, position: position });
+            }
+            None => Ok(unary_term)
+        }
     }
 
     fn parse_unary_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
@@ -110,6 +122,24 @@ impl<L: ILexer> Parser<L> {
         };
         Ok(Node { value: result, position: position })
     }
+
+    fn parse_type(&mut self) -> Result<Node<Type>, ParserIssue> {
+        let token = self.lexer.current().clone().unwrap();
+        let result = match token.category {
+            TokenCategory::Bool => Type::Bool,
+            TokenCategory::String => Type::Str,
+            TokenCategory::I64 => Type::I64,
+            TokenCategory::F64 => Type::F64,
+            _ => {
+                return Err(Self::create_parser_error("Can't cast".to_owned()));
+            }
+        };
+
+        let _ = self.lexer.next();
+        Ok(Node { value: result, position: token.position })
+    }
+
+
 
     fn parse_literal(&mut self) -> Result<Node<Literal>, ParserIssue> {
         let token = self.lexer.current().clone().unwrap();
