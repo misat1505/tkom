@@ -91,7 +91,8 @@ pub enum Statement {
         value: Node<Expression>,
     },
     Conditional {
-        if_block: Node<ConditionalBlock>,
+        condition: Node<Expression>,
+        if_block: Node<Block>,
         else_block: Option<Node<Block>>,
     },
     ForLoop {
@@ -103,12 +104,6 @@ pub enum Statement {
     Return(Option<Node<Expression>>),
     Block(Node<Block>),
     Break,
-}
-
-#[derive(Debug, Clone)]
-pub struct ConditionalBlock {
-    pub condition: Node<Expression>,
-    pub block: Node<Block>,
 }
 
 #[derive(Debug, Clone)]

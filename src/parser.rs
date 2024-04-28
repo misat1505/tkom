@@ -1,5 +1,7 @@
 use crate::{
-    ast::{Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Statement, Type},
+    ast::{
+        Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Statement, Type,
+    },
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
 };
@@ -38,7 +40,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_statement() {
+            match self.parse_if_statement() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -60,22 +62,46 @@ impl<L: ILexer> Parser<L> {
         Some(current_token)
     }
 
-    fn parse_statement_block(&mut self) -> Result<Node<Statement>, ParserIssue> {
+    fn parse_if_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+        let if_token = self.consume_must(TokenCategory::If)?;
+        let _ = self.consume_must(TokenCategory::ParenOpen)?;
+        let condition = self.parse_expression()?;
+        let _ = self.consume_must(TokenCategory::ParenClose)?;
+        let true_block = self.parse_statement_block()?;
+
+        let false_block = match self.consume_if(TokenCategory::Else) {
+            Some(_) => Some(self.parse_statement_block()?),
+            None => None,
+        };
+
+        let node = Node {
+            value: Statement::Conditional {
+                condition,
+                if_block: true_block,
+                else_block: false_block,
+            },
+            position: if_token.position,
+        };
+        Ok(node)
+    }
+
+    fn parse_statement_block(&mut self) -> Result<Node<Block>, ParserIssue> {
         let position = self.consume_must(TokenCategory::BraceOpen)?.position;
         let mut statements: Vec<Node<Statement>> = vec![];
         while self.consume_if(TokenCategory::BraceClose).is_none() {
             let statement = self.parse_statement()?;
             statements.push(statement);
         }
-        let block = Node { value: Block(statements), position };
-        Ok(Node { value: Statement::Block(block), position })
+        Ok(Node {
+            value: Block(statements),
+            position,
+        })
     }
 
     fn parse_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
         // TODO better error handling
         let node = self
             .parse_assign_or_call()
-            .or_else(|_| self.parse_statement_block())
             .or_else(|_| {
                 let decl = self.parse_declaration()?;
                 self.consume_must(TokenCategory::Semicolon)?;
@@ -159,7 +185,10 @@ impl<L: ILexer> Parser<L> {
     fn parse_break_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
         let token = self.consume_must(TokenCategory::Break)?;
         let _ = self.consume_must(TokenCategory::Semicolon)?;
-        let node = Node { value: Statement::Break, position: token.position };
+        let node = Node {
+            value: Statement::Break,
+            position: token.position,
+        };
         Ok(node)
     }
 
