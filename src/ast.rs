@@ -47,7 +47,7 @@ pub enum Literal {
     True,
     False,
     String(String),
-    I64(i32),
+    I64(i64),
     F64(f64),
 }
 
