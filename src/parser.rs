@@ -40,7 +40,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_if_statement() {
+            match self.parse_for_statement() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -60,6 +60,35 @@ impl<L: ILexer> Parser<L> {
             current_token = self.lexer.next().unwrap();
         }
         Some(current_token)
+    }
+
+    fn parse_for_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+        let for_token = self.consume_must(TokenCategory::For)?;
+        let _ = self.consume_must(TokenCategory::ParenOpen)?;
+        let declaration = match self.parse_declaration() {
+            Ok(decl) => {
+                let position = decl.position;
+                let node = Node { value: Box::new(decl.value), position };
+                Some(node)
+            },
+            Err(_) => None
+        };
+        self.consume_must(TokenCategory::Semicolon)?;
+        let condition = self.parse_expression()?;
+        self.consume_must(TokenCategory::Semicolon)?;
+        let mut assignment: Option<Node<Box<Statement>>> = None;
+        if self.lexer.current().clone().unwrap().category == TokenCategory::Identifier {
+            let identifier = self.parse_identifier()?;
+            let position = identifier.position;
+            let _ = self.consume_must(TokenCategory::Assign)?;
+            let expr = self.parse_expression()?;
+            let assign = Node { value: Box::new(Statement::Assignment { identifier, value: expr }), position };
+            assignment = Some(assign);
+        };
+        self.consume_must(TokenCategory::ParenClose)?;
+        let block = self.parse_statement_block()?;
+        let node = Node { value: Statement::ForLoop { declaration, condition, assignment, block }, position: for_token.position };
+        Ok(node)
     }
 
     fn parse_if_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
