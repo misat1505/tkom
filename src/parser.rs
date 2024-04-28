@@ -31,8 +31,8 @@ impl<L: ILexer> IParser<L> for Parser<L> {
     }
 
     fn parse(&mut self) {
-        let _ = self.lexer.next(); // initialize
-        let _ = self.lexer.next(); // skip STX
+        let _ = self.next_token(); // initialize
+        let _ = self.next_token(); // skip STX
 
         loop {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
@@ -52,6 +52,14 @@ impl<L: ILexer> IParser<L> for Parser<L> {
 }
 
 impl<L: ILexer> Parser<L> {
+    fn next_token(&mut self) -> Option<Token> {
+        let mut current_token = self.lexer.next().clone().unwrap();
+        while current_token.category == TokenCategory::Comment {
+            current_token = self.lexer.next().unwrap();
+        }
+        Some(current_token)
+    }
+
     fn parse_arguments(&mut self) -> Vec<Node<Expression>> {
         vec![]
     }
@@ -135,7 +143,7 @@ impl<L: ILexer> Parser<L> {
         while current_token.category == TokenCategory::Plus
             || current_token.category == TokenCategory::Minus
         {
-            let _ = self.lexer.next();
+            let _ = self.next_token();
             let right_side = self.parse_multiplicative_term()?;
             let mut expression_type =
                 Expression::Addition(Box::new(left_side.clone()), Box::new(right_side.clone()));
@@ -157,7 +165,7 @@ impl<L: ILexer> Parser<L> {
         while current_token.category == TokenCategory::Multiply
             || current_token.category == TokenCategory::Divide
         {
-            let _ = self.lexer.next();
+            let _ = self.next_token();
             let right_side = self.parse_casted_term()?;
             let mut expression_type = Expression::Multiplication(
                 Box::new(left_side.clone()),
@@ -260,7 +268,7 @@ impl<L: ILexer> Parser<L> {
             }
         };
 
-        let _ = self.lexer.next();
+        let _ = self.next_token();
         Ok(Node {
             value: result,
             position: token.position,
@@ -319,7 +327,7 @@ impl<L: ILexer> Parser<L> {
     fn consume_match(&mut self, desired_category: TokenCategory) -> Result<Token, ParserIssue> {
         let current_token = self.lexer.current().clone().unwrap();
         if current_token.category == desired_category {
-            let _ = self.lexer.next();
+            let _ = self.next_token();
             return Ok(current_token.clone());
         }
         Err(Self::create_parser_error(format!(
@@ -331,7 +339,7 @@ impl<L: ILexer> Parser<L> {
     fn consume_if(&mut self, desired_category: TokenCategory) -> Option<Token> {
         let current_token = self.lexer.current().clone().unwrap();
         if current_token.category == desired_category {
-            let _ = self.lexer.next();
+            let _ = self.next_token();
             return Some(current_token.clone());
         }
         None
