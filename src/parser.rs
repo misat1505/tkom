@@ -572,7 +572,7 @@ impl<L: ILexer> Parser<L> {
         };
         Ok(Node {
             value: result,
-            position: position,
+            position,
         })
     }
 
@@ -644,7 +644,10 @@ impl<L: ILexer> Parser<L> {
             TokenCategory::I64 => Type::I64,
             TokenCategory::F64 => Type::F64,
             _ => {
-                return Err(Self::create_parser_error("Can't cast".to_owned()));
+                return Err(Self::create_parser_error(format!(
+                    "Can't cast to type: {:?}.",
+                    token.category
+                )));
             }
         };
 
@@ -798,39 +801,341 @@ mod tests {
         }
     }
 
+    // #[test]
+    // fn parse_assign_or_call_call() {
+    //     let tokens = vec![
+    //         create_token(
+    //             TokenCategory::Identifier,
+    //             TokenValue::String("print".to_owned()),
+    //         ),
+    //         create_token(TokenCategory::ParenOpen, TokenValue::Null),
+    //         create_token(
+    //             TokenCategory::StringValue,
+    //             TokenValue::String("Hello world".to_owned()),
+    //         ),
+    //         create_token(TokenCategory::ParenClose, TokenValue::Null),
+    //         create_token(TokenCategory::Semicolon, TokenValue::Null),
+    //         create_token(TokenCategory::ETX, TokenValue::Null),
+    //     ];
+
+    //     let mock_lexer = LexerMock::new(tokens);
+    //     let mut parser = Parser::new(mock_lexer);
+    //     let result = parser.parse_assign_or_call();
+
+    //     assert!(result.is_ok());
+    //     let parsed = result.unwrap();
+    //     assert!(
+    //         parsed.value
+    //             == Statement::FunctionCall {
+    //                 identifier: Node {
+    //                     value: Identifier("print".to_owned()),
+    //                     position: default_position()
+    //                 },
+    //                 arguments: vec![Box::new(Node {
+    //                     value: Argument {
+    //                         value: Expression::Literal(Literal::String("Hello world".to_owned())),
+    //                         passed_by: ArgumentPassedBy::Value
+    //                     },
+    //                     position: default_position()
+    //                 })]
+    //             }
+    //     );
+    // }
+
     #[test]
-    fn parse_assign_or_call_call() {
+    fn parse_multiplicative_term() {
+        let tokens = vec![
+            create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+            create_token(TokenCategory::Multiply, TokenValue::Null),
+            create_token(TokenCategory::F64Value, TokenValue::F64(2.0)),
+            create_token(TokenCategory::Divide, TokenValue::Null),
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("x".to_owned()),
+            ),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let node = parser.parse_multiplicative_term().unwrap();
+        assert!(
+            node.value
+                == Expression::Division(
+                    Box::new(Node {
+                        value: Expression::Multiplication(
+                            Box::new(Node {
+                                value: Expression::Literal(Literal::I64(5)),
+                                position: default_position()
+                            }),
+                            Box::new(Node {
+                                value: Expression::Literal(Literal::F64(2.0)),
+                                position: default_position()
+                            })
+                        ),
+                        position: default_position()
+                    }),
+                    Box::new(Node {
+                        value: Expression::Variable(Identifier("x".to_owned())),
+                        position: default_position()
+                    })
+                )
+        )
+    }
+
+    #[test]
+    fn parse_casted_term() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::As, TokenValue::Null),
+                create_token(TokenCategory::String, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = vec![
+            Expression::Casting {
+                value: Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+                to_type: Node {
+                    value: Type::Str,
+                    position: default_position(),
+                },
+            },
+            Expression::Literal(Literal::I64(5)),
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_casted_term().unwrap();
+            assert!(node.value == expected[idx]);
+        }
+    }
+
+    #[test]
+    fn parse_unary_term() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::Negate, TokenValue::Null),
+                create_token(TokenCategory::True, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::Minus, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = [
+            Expression::BooleanNegation(Box::new(Node {
+                value: Expression::Literal(Literal::True),
+                position: default_position(),
+            })),
+            Expression::ArithmeticNegation(Box::new(Node {
+                value: Expression::Literal(Literal::I64(5)),
+                position: default_position(),
+            })),
+            Expression::Literal(Literal::I64(5)),
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_unary_term().unwrap();
+            assert!(node.value == expected[idx]);
+        }
+    }
+
+    #[test]
+    fn parse_factor() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::Plus, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(2)),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("print".to_owned()),
+                ),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = vec![
+            Expression::Addition(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(2)),
+                    position: default_position(),
+                }),
+            ),
+            Expression::Literal(Literal::I64(5)),
+            Expression::Variable(Identifier("print".to_owned())),
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_factor().unwrap();
+            assert!(node.value == expected[idx]);
+        }
+    }
+
+    #[test]
+    fn parse_factor_nested_expression_unclosed() {
+        let tokens = vec![
+            create_token(TokenCategory::ParenOpen, TokenValue::Null),
+            create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+            create_token(TokenCategory::Plus, TokenValue::Null),
+            create_token(TokenCategory::I64Value, TokenValue::I64(2)),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        assert!(parser.parse_factor().is_err());
+    }
+
+    #[test]
+    fn parse_identifier_or_call_call_unclosed() {
         let tokens = vec![
             create_token(
                 TokenCategory::Identifier,
                 TokenValue::String("print".to_owned()),
             ),
             create_token(TokenCategory::ParenOpen, TokenValue::Null),
-            create_token(
-                TokenCategory::StringValue,
-                TokenValue::String("Hello world".to_owned()),
-            ),
-            create_token(TokenCategory::ParenClose, TokenValue::Null),
-            create_token(TokenCategory::Semicolon, TokenValue::Null),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 
         let mock_lexer = LexerMock::new(tokens);
         let mut parser = Parser::new(mock_lexer);
-        let result = parser.parse_assign_or_call();
 
-        assert!(result.is_ok());
-        let parsed = result.unwrap();
+        let result = parser.parse_identifier_or_call();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_identifier_or_call_call_bad_args() {
+        let tokens = vec![
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("print".to_owned()),
+            ),
+            create_token(TokenCategory::ParenOpen, TokenValue::Null),
+            create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+            create_token(TokenCategory::Comma, TokenValue::Null),
+            create_token(TokenCategory::ParenClose, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let result = parser.parse_identifier_or_call();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_identifier_or_call_call_multiple_args() {
+        let tokens = vec![
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("print".to_owned()),
+            ),
+            create_token(TokenCategory::ParenOpen, TokenValue::Null),
+            create_token(TokenCategory::Reference, TokenValue::Null),
+            create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+            create_token(TokenCategory::Comma, TokenValue::Null),
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("x".to_owned()),
+            ),
+            create_token(TokenCategory::ParenClose, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let node = parser.parse_identifier_or_call().unwrap();
         assert!(
-            parsed.value
-                == Statement::FunctionCall {
-                    identifier: Node {
-                        value: Identifier("print".to_owned()),
-                        position: default_position()
-                    },
+            node.value
+                == Expression::FunctionCall {
+                    identifier: Identifier("print".to_owned()),
+                    arguments: vec![
+                        Box::new(Node {
+                            value: Argument {
+                                value: Expression::Literal(Literal::I64(5)),
+                                passed_by: ArgumentPassedBy::Reference
+                            },
+                            position: default_position()
+                        }),
+                        Box::new(Node {
+                            value: Argument {
+                                value: Expression::Variable(Identifier("x".to_owned())),
+                                passed_by: ArgumentPassedBy::Value
+                            },
+                            position: default_position()
+                        })
+                    ]
+                }
+        );
+    }
+
+    #[test]
+    fn parse_identifier_or_call_call_one_arg() {
+        let tokens = vec![
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("print".to_owned()),
+            ),
+            create_token(TokenCategory::ParenOpen, TokenValue::Null),
+            create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+            create_token(TokenCategory::ParenClose, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let node = parser.parse_identifier_or_call().unwrap();
+        assert!(
+            node.value
+                == Expression::FunctionCall {
+                    identifier: Identifier("print".to_owned()),
                     arguments: vec![Box::new(Node {
                         value: Argument {
-                            value: Expression::Literal(Literal::String("Hello world".to_owned())),
+                            value: Expression::Literal(Literal::I64(5)),
                             passed_by: ArgumentPassedBy::Value
                         },
                         position: default_position()
@@ -840,11 +1145,109 @@ mod tests {
     }
 
     #[test]
+    fn parse_identifier_or_call_call_no_args() {
+        let tokens = vec![
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("print".to_owned()),
+            ),
+            create_token(TokenCategory::ParenOpen, TokenValue::Null),
+            create_token(TokenCategory::ParenClose, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let node = parser.parse_identifier_or_call().unwrap();
+        assert!(
+            node.value
+                == Expression::FunctionCall {
+                    identifier: Identifier("print".to_owned()),
+                    arguments: vec![]
+                }
+        );
+    }
+
+    #[test]
+    fn parse_identifier_or_call_identifier() {
+        let tokens = vec![
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("print".to_owned()),
+            ),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let node = parser.parse_identifier_or_call().unwrap();
+        assert!(node.value == Expression::Variable(Identifier("print".to_owned())));
+    }
+
+    #[test]
+    fn parse_type() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::I64, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::F64, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::String, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::Bool, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected_types = [Type::I64, Type::F64, Type::Str, Type::Bool];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_type().unwrap();
+            assert!(node.value == expected_types[idx]);
+        }
+    }
+
+    #[test]
+    fn parse_type_fail() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::Void, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::Comma, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        for series in token_series {
+            let mock_lexer = LexerMock::new(series);
+            let mut parser = Parser::new(mock_lexer);
+
+            assert!(parser.parse_type().is_err());
+        }
+    }
+
+    #[test]
     fn parse_literals() {
         let tokens = vec![
             create_token(TokenCategory::True, TokenValue::Null),
             create_token(TokenCategory::False, TokenValue::Null),
-            create_token(TokenCategory::StringValue, TokenValue::String("a".to_owned())),
+            create_token(
+                TokenCategory::StringValue,
+                TokenValue::String("a".to_owned()),
+            ),
             create_token(TokenCategory::I64Value, TokenValue::I64(5)),
             create_token(TokenCategory::F64Value, TokenValue::F64(5.0)),
             create_token(TokenCategory::ETX, TokenValue::Null),
@@ -870,13 +1273,39 @@ mod tests {
     }
 
     #[test]
+    fn parse_literals_bad_value_types() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::StringValue, TokenValue::I64(5)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::F64(5.0)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::F64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        for series in token_series {
+            let mock_lexer = LexerMock::new(series);
+            let mut parser = Parser::new(mock_lexer);
+
+            let result = parser.parse_literal();
+            assert!(result.is_err());
+        }
+    }
+
+    #[test]
     fn parse_identifier() {
         let tokens = vec![
             create_token(
                 TokenCategory::Identifier,
                 TokenValue::String("print".to_owned()),
             ),
-            create_token(TokenCategory::ETX, TokenValue::Null)
+            create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 
         let mock_lexer = LexerMock::new(tokens);
@@ -889,11 +1318,8 @@ mod tests {
     #[test]
     fn parse_identifier_bad_value_type() {
         let tokens = vec![
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::I64(5),
-            ),
-            create_token(TokenCategory::ETX, TokenValue::Null)
+            create_token(TokenCategory::Identifier, TokenValue::I64(5)),
+            create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 
         let mock_lexer = LexerMock::new(tokens);
