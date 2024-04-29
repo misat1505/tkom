@@ -40,7 +40,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_parameter() {
+            match self.parse_parameters() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -60,6 +60,21 @@ impl<L: ILexer> Parser<L> {
             current_token = self.lexer.next().unwrap();
         }
         Some(current_token)
+    }
+
+    fn parse_parameters(&mut self) -> Result<Vec<Node<Parameter>>, ParserIssue> {
+        if self.lexer.current().clone().unwrap().category == TokenCategory::ParenClose {
+            return Ok(vec![]);
+        }
+
+        let expression = self.parse_parameter()?;
+
+        let mut parameters = vec![expression];
+        while let Some(_) = self.consume_if(TokenCategory::Comma) {
+            let parameter = self.parse_parameter()?;
+            parameters.push(parameter);
+        }
+        Ok(parameters)
     }
 
     fn parse_parameter(&mut self) -> Result<Node<Parameter>, ParserIssue> {
