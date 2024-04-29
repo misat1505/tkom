@@ -843,6 +843,166 @@ mod tests {
     // }
 
     #[test]
+    fn parse_relation_term() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+                create_token(TokenCategory::Equal, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(2)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+                create_token(TokenCategory::NotEqual, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(2)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+                create_token(TokenCategory::Greater, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(2)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+                create_token(TokenCategory::GreaterOrEqual, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(2)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+                create_token(TokenCategory::Less, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(2)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+                create_token(TokenCategory::LessOrEqual, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(2)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = [
+            Expression::Equal(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(1)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(2)),
+                    position: default_position(),
+                }),
+            ),
+            Expression::NotEqual(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(1)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(2)),
+                    position: default_position(),
+                }),
+            ),
+            Expression::Greater(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(1)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(2)),
+                    position: default_position(),
+                }),
+            ),
+            Expression::GreaterEqual(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(1)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(2)),
+                    position: default_position(),
+                }),
+            ),
+            Expression::Less(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(1)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(2)),
+                    position: default_position(),
+                }),
+            ),
+            Expression::LessEqual(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(1)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(2)),
+                    position: default_position(),
+                }),
+            ),
+            Expression::Literal(Literal::I64(1))
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_relation_term().unwrap();
+            assert!(node.value == expected[idx]);
+        }
+    }
+
+    #[test]
+    fn parse_additive_term() {
+        let tokens = vec![
+            create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+            create_token(TokenCategory::Plus, TokenValue::Null),
+            create_token(TokenCategory::F64Value, TokenValue::F64(2.0)),
+            create_token(TokenCategory::Minus, TokenValue::Null),
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("x".to_owned()),
+            ),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let node = parser.parse_additive_term().unwrap();
+        assert!(
+            node.value
+                == Expression::Subtraction(
+                    Box::new(Node {
+                        value: Expression::Addition(
+                            Box::new(Node {
+                                value: Expression::Literal(Literal::I64(5)),
+                                position: default_position()
+                            }),
+                            Box::new(Node {
+                                value: Expression::Literal(Literal::F64(2.0)),
+                                position: default_position()
+                            })
+                        ),
+                        position: default_position()
+                    }),
+                    Box::new(Node {
+                        value: Expression::Variable(Identifier("x".to_owned())),
+                        position: default_position()
+                    })
+                )
+        )
+    }
+
+    #[test]
     fn parse_multiplicative_term() {
         let tokens = vec![
             create_token(TokenCategory::I64Value, TokenValue::I64(5)),
