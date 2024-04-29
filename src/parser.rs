@@ -43,17 +43,30 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.current_token().category == TokenCategory::ETX {
                 break;
             }
-            let node = self
-                .parse_assign_or_call()
-                .or_else(|_| self.parse_function_declaration())
-                .or_else(|_| self.parse_if_statement())
-                .or_else(|_| self.parse_for_statement())
-                .or_else(|_| self.parse_switch_statement())
-                .or_else(|_| {
+
+            let node = match self.current_token().category {
+                TokenCategory::Identifier => self.parse_assign_or_call()?,
+                TokenCategory::Fn => self.parse_function_declaration()?,
+                TokenCategory::If => self.parse_if_statement()?,
+                TokenCategory::For => self.parse_for_statement()?,
+                TokenCategory::Switch => self.parse_switch_statement()?,
+                category
+                    if category == TokenCategory::I64
+                        || category == TokenCategory::F64
+                        || category == TokenCategory::Bool
+                        || category == TokenCategory::String =>
+                {
                     let decl = self.parse_declaration()?;
                     self.consume_must_be(TokenCategory::Semicolon)?;
-                    Ok(decl)
-                })?;
+                    decl
+                }
+                _ => {
+                    return Err(Self::create_parser_error(format!(
+                        "Can't create program statement starting with token: {:?}.",
+                        self.current_token().category
+                    )));
+                }
+            };
 
             statements.push(node);
         }
@@ -83,15 +96,15 @@ impl<L: ILexer> Parser<L> {
         let parameters = self.parse_parameters()?;
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let _ = self.consume_must_be(TokenCategory::Colon)?;
-        // TODO check void
         let return_type = match self.parse_type() {
             Ok(node) => Ok(node),
-            Err(_) => {
-                match self.consume_if_matches(TokenCategory::Void) {
-                    Some(token) => Ok(Node { value: Type::Void, position: token.position }),
-                    None => Err(Self::create_parser_error("Bad return type".to_owned()))
-                }
-            }
+            Err(_) => match self.consume_if_matches(TokenCategory::Void) {
+                Some(token) => Ok(Node {
+                    value: Type::Void,
+                    position: token.position,
+                }),
+                None => Err(Self::create_parser_error("Bad return type".to_owned())),
+            },
         }?;
         let block = self.parse_statement_block()?;
         let node = Node {
@@ -229,18 +242,30 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
         // TODO better error handling
-        let node = self
-            .parse_assign_or_call()
-            .or_else(|_| self.parse_if_statement())
-            .or_else(|_| self.parse_for_statement())
-            .or_else(|_| self.parse_switch_statement())
-            .or_else(|_| self.parse_return_statement())
-            .or_else(|_| self.parse_break_statement())
-            .or_else(|_| {
+        let node = match self.current_token().category {
+            TokenCategory::Identifier => self.parse_assign_or_call()?,
+            TokenCategory::If => self.parse_if_statement()?,
+            TokenCategory::For => self.parse_for_statement()?,
+            TokenCategory::Switch => self.parse_switch_statement()?,
+            TokenCategory::Return => self.parse_return_statement()?,
+            TokenCategory::Break => self.parse_break_statement()?,
+            category
+                if category == TokenCategory::I64
+                    || category == TokenCategory::F64
+                    || category == TokenCategory::Bool
+                    || category == TokenCategory::String =>
+            {
                 let decl = self.parse_declaration()?;
                 self.consume_must_be(TokenCategory::Semicolon)?;
-                Ok(decl)
-            })?;
+                decl
+            }
+            _ => {
+                return Err(Self::create_parser_error(format!(
+                    "Can't create block statement starting with token: {:?}.",
+                    self.current_token().category
+                )));
+            }
+        };
 
         Ok(node)
     }
@@ -642,7 +667,10 @@ impl<L: ILexer> Parser<L> {
                 value: Literal::False,
                 position: token.position,
             });
-        } else if self.consume_if_matches(TokenCategory::StringValue).is_some() {
+        } else if self
+            .consume_if_matches(TokenCategory::StringValue)
+            .is_some()
+        {
             if let TokenValue::String(string) = token.value {
                 return Ok(Node {
                     value: Literal::String(string),
