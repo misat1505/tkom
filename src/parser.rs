@@ -11,6 +11,7 @@ pub struct Parser<L: ILexer> {
     lexer: L,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum ParserIssueKind {
     WARNING,
@@ -733,5 +734,105 @@ impl<L: ILexer> Parser<L> {
             kind: ParserIssueKind::ERROR,
             message: text,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        lazy_stream_reader::Position,
+        lexer_utils::{LexerIssue, LexerIssueKind},
+    };
+
+    use super::*;
+
+    struct LexerMock {
+        current_token: Option<Token>,
+        pub tokens: Vec<Token>,
+    }
+
+    impl LexerMock {
+        fn new(mut tokens: Vec<Token>) -> LexerMock {
+            let current_token = tokens.remove(0); // Remove the first element and get it
+            LexerMock {
+                current_token: Some(current_token),
+                tokens,
+            }
+        }
+    }
+
+    impl ILexer for LexerMock {
+        fn current(&self) -> &Option<Token> {
+            &self.current_token
+        }
+
+        fn next(&mut self) -> Result<Token, LexerIssue> {
+            if self.tokens.len() == 0 {
+                return Err(LexerIssue {
+                    kind: LexerIssueKind::ERROR,
+                    message: "".to_owned(),
+                });
+            }
+            let next_token = self.tokens.remove(0);
+            self.current_token = Some(next_token.clone());
+            Ok(next_token)
+        }
+    }
+
+    fn default_position() -> Position {
+        Position {
+            line: 0,
+            column: 0,
+            offset: 0,
+        }
+    }
+
+    fn create_token(category: TokenCategory, value: TokenValue) -> Token {
+        Token {
+            category,
+            value,
+            position: default_position(),
+        }
+    }
+
+    #[test]
+    fn parse_assign_or_call_call() {
+        let tokens = vec![
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("print".to_owned()),
+            ),
+            create_token(TokenCategory::ParenOpen, TokenValue::Null),
+            create_token(
+                TokenCategory::StringValue,
+                TokenValue::String("Hello world".to_owned()),
+            ),
+            create_token(TokenCategory::ParenClose, TokenValue::Null),
+            create_token(TokenCategory::Semicolon, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+        let result = parser.parse_assign_or_call();
+
+        assert!(result.is_ok());
+        let parsed = result.unwrap();
+        assert!(
+            parsed.value
+                == Statement::FunctionCall {
+                    identifier: Node {
+                        value: Identifier("print".to_owned()),
+                        position: default_position()
+                    },
+                    arguments: vec![Box::new(Node {
+                        value: Argument {
+                            value: Expression::Literal(Literal::String("Hello world".to_owned())),
+                            passed_by: ArgumentPassedBy::Value
+                        },
+                        position: default_position()
+                    })]
+                }
+        );
     }
 }

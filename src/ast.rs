@@ -1,6 +1,6 @@
 use crate::lazy_stream_reader::Position;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Node<T> {
     pub value: T,
     pub position: Position,
@@ -8,7 +8,7 @@ pub struct Node<T> {
 
 type BNode<T> = Box<Node<T>>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     // Boolean operations (non-unary)
     Alternative(BNode<Expression>, BNode<Expression>),
@@ -42,7 +42,7 @@ pub enum Expression {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
     True,
     False,
@@ -51,7 +51,7 @@ pub enum Literal {
     F64(f64),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Bool,
     Str,
@@ -60,22 +60,22 @@ pub enum Type {
     Void,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Identifier(pub String);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ArgumentPassedBy {
     Reference,
     Value,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Argument {
     pub value: Expression,
     pub passed_by: ArgumentPassedBy,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     FunctionDeclaration {
         identifier: Node<Identifier>,
@@ -115,13 +115,13 @@ pub enum Statement {
     Break,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ParameterPassedBy {
     Reference,
     Value,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Parameter {
     pub passed_by: ParameterPassedBy,
     pub parameter_type: Node<Type>,
@@ -129,22 +129,22 @@ pub struct Parameter {
     pub value: Option<Node<Expression>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SwitchExpression {
     pub expression: Node<Expression>,
     pub alias: Option<Node<Identifier>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SwitchCase {
     pub condition: Node<Expression>,
     pub block: Node<Block>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Block(pub Vec<Node<Statement>>);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Program {
     pub statements: Vec<Node<Statement>>,
 }
