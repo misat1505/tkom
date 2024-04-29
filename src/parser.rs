@@ -1,6 +1,6 @@
 use crate::{
     ast::{
-        Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Statement, Type,
+        Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Statement, SwitchCase, Type
     },
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
@@ -40,7 +40,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_for_statement() {
+            match self.parse_switch_case() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -131,6 +131,8 @@ impl<L: ILexer> Parser<L> {
         // TODO better error handling
         let node = self
             .parse_assign_or_call()
+            .or_else(|_| self.parse_if_statement())
+            .or_else(|_| self.parse_for_statement())
             .or_else(|_| {
                 let decl = self.parse_declaration()?;
                 self.consume_must(TokenCategory::Semicolon)?;
@@ -446,6 +448,20 @@ impl<L: ILexer> Parser<L> {
             value: result,
             position: position,
         })
+    }
+
+    // fn parse_switch_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+
+    // }
+
+    fn parse_switch_case(&mut self) -> Result<Node<SwitchCase>, ParserIssue> {
+        let paren_open_token = self.consume_must(TokenCategory::ParenOpen)?;
+        let condition = self.parse_expression()?;
+        let _ = self.consume_must(TokenCategory::ParenClose)?;
+        let _ = self.consume_must(TokenCategory::Arrow)?;
+        let block = self.parse_statement_block()?;
+        let node = Node { value: SwitchCase { condition, block }, position: paren_open_token.position };
+        Ok(node)
     }
 
     fn parse_type(&mut self) -> Result<Node<Type>, ParserIssue> {

@@ -101,10 +101,26 @@ pub enum Statement {
         assignment: Option<Node<Box<Statement>>>,
         block: Node<Block>,
     },
+    Switch {
+        expressions: Vec<Node<SwitchExpression>>,
+        cases: Vec<Node<SwitchCase>>
+    },
     Return(Option<Node<Expression>>),
     Block(Node<Block>),
     Break,
 }
+
+#[derive(Debug, Clone)]
+pub struct SwitchExpression {
+    pub expression: Node<Expression>,
+    pub alias: Option<Node<Identifier>>
+}
+
+#[derive(Debug, Clone)]
+pub struct SwitchCase {
+    pub condition: Node<Expression>,
+    pub block: Node<Block>
+} 
 
 #[derive(Debug, Clone)]
 pub struct Block(pub Vec<Node<Statement>>);
