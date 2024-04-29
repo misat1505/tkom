@@ -381,27 +381,35 @@ impl<L: ILexer> Parser<L> {
     }
 
     fn parse_expression(&mut self) -> Result<Node<Expression>, ParserIssue> {
-        let left_side = self.parse_concatenation_term()?;
-        let position = left_side.position;
-        if self.consume_if_matches(TokenCategory::Or).is_some() {
+        let mut left_side = self.parse_concatenation_term()?;
+        let mut current_token = self.current_token();
+        while current_token.category == TokenCategory::Or {
+            let _ = self.next_token();
             let right_side = self.parse_concatenation_term()?;
-            return Ok(Node {
-                value: Expression::Alternative(Box::new(left_side), Box::new(right_side)),
-                position,
-            });
+            let expression_type =
+                Expression::Alternative(Box::new(left_side.clone()), Box::new(right_side.clone()));
+            left_side = Node {
+                value: expression_type,
+                position: current_token.position,
+            };
+            current_token = self.current_token();
         }
         Ok(left_side)
     }
 
     fn parse_concatenation_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
-        let left_side = self.parse_relation_term()?;
-        let position = left_side.position;
-        if self.consume_if_matches(TokenCategory::And).is_some() {
+        let mut left_side = self.parse_relation_term()?;
+        let mut current_token = self.current_token();
+        while current_token.category == TokenCategory::And {
+            let _ = self.next_token();
             let right_side = self.parse_relation_term()?;
-            return Ok(Node {
-                value: Expression::Concatenation(Box::new(left_side), Box::new(right_side)),
-                position,
-            });
+            let expression_type =
+                Expression::Concatenation(Box::new(left_side.clone()), Box::new(right_side.clone()));
+            left_side = Node {
+                value: expression_type,
+                position: current_token.position,
+            };
+            current_token = self.current_token();
         }
         Ok(left_side)
     }
@@ -843,6 +851,102 @@ mod tests {
     // }
 
     #[test]
+    fn parse_expression() {
+        let tokens = vec![
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("a".to_owned()),
+            ),
+            create_token(TokenCategory::Or, TokenValue::Null),
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("b".to_owned()),
+            ),
+            create_token(TokenCategory::Or, TokenValue::Null),
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("c".to_owned()),
+            ),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let node = parser.parse_expression().unwrap();
+        assert!(
+            node.value
+                == Expression::Alternative(
+                    Box::new(Node {
+                        value: Expression::Alternative(
+                            Box::new(Node {
+                                value: Expression::Variable(Identifier("a".to_owned())),
+                                position: default_position()
+                            }),
+                            Box::new(Node {
+                                value: Expression::Variable(Identifier("b".to_owned())),
+                                position: default_position()
+                            })
+                        ),
+                        position: default_position()
+                    }),
+                    Box::new(Node {
+                        value: Expression::Variable(Identifier("c".to_owned())),
+                        position: default_position()
+                    })
+                )
+        );
+    }
+
+    #[test]
+    fn parse_concatenation_term() {
+        let tokens = vec![
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("a".to_owned()),
+            ),
+            create_token(TokenCategory::And, TokenValue::Null),
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("b".to_owned()),
+            ),
+            create_token(TokenCategory::And, TokenValue::Null),
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("c".to_owned()),
+            ),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let node = parser.parse_concatenation_term().unwrap();
+        assert!(
+            node.value
+                == Expression::Concatenation(
+                    Box::new(Node {
+                        value: Expression::Concatenation(
+                            Box::new(Node {
+                                value: Expression::Variable(Identifier("a".to_owned())),
+                                position: default_position()
+                            }),
+                            Box::new(Node {
+                                value: Expression::Variable(Identifier("b".to_owned())),
+                                position: default_position()
+                            })
+                        ),
+                        position: default_position()
+                    }),
+                    Box::new(Node {
+                        value: Expression::Variable(Identifier("c".to_owned())),
+                        position: default_position()
+                    })
+                )
+        );
+    }
+
+    #[test]
     fn parse_relation_term() {
         let token_series = vec![
             vec![
@@ -948,7 +1052,7 @@ mod tests {
                     position: default_position(),
                 }),
             ),
-            Expression::Literal(Literal::I64(1))
+            Expression::Literal(Literal::I64(1)),
         ];
 
         for (idx, series) in token_series.iter().enumerate() {
