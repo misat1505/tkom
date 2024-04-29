@@ -40,7 +40,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_switch_expression() {
+            match self.parse_switch_expressions() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -471,6 +471,17 @@ impl<L: ILexer> Parser<L> {
     // fn parse_switch_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
 
     // }
+
+    fn parse_switch_expressions(&mut self) -> Result<Vec<Node<SwitchExpression>>, ParserIssue> {
+        let mut switch_expressions: Vec<Node<SwitchExpression>> = vec![];
+        let mut expression = self.parse_switch_expression()?;
+        switch_expressions.push(expression);
+        while let Some(_) = self.consume_if(TokenCategory::Comma) {
+            expression = self.parse_switch_expression()?;
+            switch_expressions.push(expression);
+        }
+        Ok(switch_expressions)
+    }
 
     fn parse_switch_expression(&mut self) -> Result<Node<SwitchExpression>, ParserIssue> {
         let expression = self.parse_expression()?;

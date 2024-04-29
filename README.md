@@ -180,7 +180,7 @@ super_variable_123
 **switch_case** = "(", expression, ")", "->", statement_block;
 
 ```
-switch (x as temp1, y as temp2) {
+switch (x: temp1, y: temp2) {
     (x < 5 && temp2 < 5) -> {
       print("Less than 5.");
     }
@@ -394,7 +394,7 @@ fn sum_up_to(i64 x): i64 {
 **Pattern matching**
 
 ```
-switch (x as temp1, y as temp2) {
+switch (x: temp1, y: temp2) {
     (x < 5 && temp2 < 5) -> {
       print("Less than 5.");
     },
