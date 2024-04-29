@@ -112,7 +112,6 @@ pub enum Statement {
         cases: Vec<Node<SwitchCase>>,
     },
     Return(Option<Node<Expression>>),
-    Block(Node<Block>),
     Break,
 }
 

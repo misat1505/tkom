@@ -211,7 +211,7 @@ mod edge_case_tests {
 
     use crate::{
         lazy_stream_reader::LazyStreamReader,
-        lexer::{ILexer, Lexer},
+        lexer::Lexer,
         lexer_utils::{LexerIssue, LexerOptions},
         tokens::TokenCategory,
     };
