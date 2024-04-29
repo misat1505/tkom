@@ -1,6 +1,6 @@
 use crate::{
     ast::{
-        Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Statement, SwitchCase, SwitchExpression, Type
+        Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Parameter, ParameterPassedBy, Statement, SwitchCase, SwitchExpression, Type
     },
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
@@ -40,7 +40,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_switch_statement() {
+            match self.parse_parameter() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -60,6 +60,22 @@ impl<L: ILexer> Parser<L> {
             current_token = self.lexer.next().unwrap();
         }
         Some(current_token)
+    }
+
+    fn parse_parameter(&mut self) -> Result<Node<Parameter>, ParserIssue> {
+        let position = self.lexer.current().clone().unwrap().position;
+        let passed_by = match self.consume_if(TokenCategory::Reference) {
+            Some(_) => ParameterPassedBy::Reference,
+            None => ParameterPassedBy::Value
+        };
+        let parameter_type = self.parse_type()?;
+        let identifier = self.parse_identifier()?;
+        let value = match self.consume_if(TokenCategory::Assign) {
+            Some(_) => Some(self.parse_expression()?),
+            None => None
+        };
+        let node = Node { value: Parameter {passed_by, parameter_type, identifier, value}, position };
+        Ok(node)
     }
 
     fn parse_for_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
@@ -150,6 +166,7 @@ impl<L: ILexer> Parser<L> {
             .parse_assign_or_call()
             .or_else(|_| self.parse_if_statement())
             .or_else(|_| self.parse_for_statement())
+            .or_else(|_| self.parse_switch_statement())
             .or_else(|_| {
                 let decl = self.parse_declaration()?;
                 self.consume_must(TokenCategory::Semicolon)?;
@@ -187,7 +204,6 @@ impl<L: ILexer> Parser<L> {
                 },
                 position,
             };
-            println!("{:?}", self.lexer.current().clone().unwrap());
             self.consume_must(TokenCategory::ParenClose)?;
             self.consume_must(TokenCategory::Semicolon)?;
             return Ok(node);

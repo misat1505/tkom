@@ -57,6 +57,7 @@ pub enum Type {
     Str,
     I64,
     F64,
+    Void
 }
 
 #[derive(Debug, Clone)]
@@ -76,7 +77,6 @@ pub struct Argument {
 
 #[derive(Debug, Clone)]
 pub enum Statement {
-    // TODO switch
     FunctionCall {
         identifier: Node<Identifier>,
         arguments: Vec<BNode<Argument>>,
@@ -108,6 +108,20 @@ pub enum Statement {
     Return(Option<Node<Expression>>),
     Block(Node<Block>),
     Break,
+}
+
+#[derive(Debug, Clone)]
+pub enum ParameterPassedBy {
+    Reference,
+    Value,
+}
+
+#[derive(Debug, Clone)]
+pub struct Parameter {
+    pub passed_by: ParameterPassedBy,
+    pub parameter_type: Node<Type>,
+    pub identifier: Node<Identifier>,
+    pub value: Option<Node<Expression>>,
 }
 
 #[derive(Debug, Clone)]
