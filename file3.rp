@@ -1,4 +1,4 @@
-fn is_pseudo_prime(i64 x): bool {
+fn is_pseudo_prime(i64 x): void {
   if (x <= 1) {
     return false;
   }

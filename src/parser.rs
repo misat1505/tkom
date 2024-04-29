@@ -84,7 +84,15 @@ impl<L: ILexer> Parser<L> {
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let _ = self.consume_must_be(TokenCategory::Colon)?;
         // TODO check void
-        let return_type = self.parse_type()?;
+        let return_type = match self.parse_type() {
+            Ok(node) => Ok(node),
+            Err(_) => {
+                match self.consume_if_matches(TokenCategory::Void) {
+                    Some(token) => Ok(Node { value: Type::Void, position: token.position }),
+                    None => Err(Self::create_parser_error("Bad return type".to_owned()))
+                }
+            }
+        }?;
         let block = self.parse_statement_block()?;
         let node = Node {
             value: Statement::FunctionDeclaration {
@@ -671,21 +679,21 @@ impl<L: ILexer> Parser<L> {
         Err(Self::create_parser_error("".to_owned()))
     }
 
-    fn consume_must_be(&mut self, desired_category: TokenCategory) -> Result<Token, ParserIssue> {
+    fn consume_must_be(&mut self, category: TokenCategory) -> Result<Token, ParserIssue> {
         let current_token = self.current_token();
-        if current_token.category == desired_category {
+        if current_token.category == category {
             let _ = self.next_token();
             return Ok(current_token.clone());
         }
         Err(Self::create_parser_error(format!(
             "Unexpected token - {:?}. Expected {:?}.",
-            current_token.category, desired_category
+            current_token.category, category
         )))
     }
 
-    fn consume_if_matches(&mut self, desired_category: TokenCategory) -> Option<Token> {
+    fn consume_if_matches(&mut self, category: TokenCategory) -> Option<Token> {
         let current_token = self.current_token();
-        if current_token.category == desired_category {
+        if current_token.category == category {
             let _ = self.next_token();
             return Some(current_token.clone());
         }
