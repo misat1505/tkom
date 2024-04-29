@@ -1,1 +1,9 @@
-exp1, exp2 as i64: temp
+switch (x, y: temp2) {
+    (x < 5 && temp2 < 5) -> {
+      print("Less than 5.");
+    }
+    (x < 10 && y < 10) -> {
+      print("Less than 10.");
+      break;
+    }
+}

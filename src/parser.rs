@@ -40,7 +40,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_switch_expressions() {
+            match self.parse_switch_statement() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -468,9 +468,21 @@ impl<L: ILexer> Parser<L> {
         })
     }
 
-    // fn parse_switch_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
-
-    // }
+    fn parse_switch_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+        let switch_token = self.consume_must(TokenCategory::Switch)?;
+        let _ = self.consume_must(TokenCategory::ParenOpen)?;
+        let switch_expressions = self.parse_switch_expressions()?;
+        let _ = self.consume_must(TokenCategory::ParenClose)?;
+        let _ = self.consume_must(TokenCategory::BraceOpen)?;
+        let mut switch_cases: Vec<Node<SwitchCase>> = vec![];
+        while self.lexer.current().clone().unwrap().category != TokenCategory::BraceClose {
+            let switch_case = self.parse_switch_case()?;
+            switch_cases.push(switch_case);
+        }
+        let _ = self.consume_must(TokenCategory::BraceClose)?;
+        let node = Node { value: Statement::Switch { expressions: switch_expressions, cases: switch_cases }, position: switch_token.position };
+        Ok(node)
+    }
 
     fn parse_switch_expressions(&mut self) -> Result<Vec<Node<SwitchExpression>>, ParserIssue> {
         let mut switch_expressions: Vec<Node<SwitchExpression>> = vec![];
