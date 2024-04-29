@@ -242,7 +242,6 @@ impl<L: ILexer> Parser<L> {
     }
 
     fn parse_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
-        // TODO better error handling
         let node = match self.current_token().category {
             TokenCategory::Identifier => self.parse_assign_or_call()?,
             TokenCategory::If => self.parse_if_statement()?,
@@ -705,7 +704,11 @@ impl<L: ILexer> Parser<L> {
             };
             return Ok(node);
         }
-        Err(Self::create_parser_error("".to_owned()))
+        Err(Self::create_parser_error(format!(
+            "Wrong token value type - given: {:?}, expected: {:?}.",
+            token.value,
+            TokenValue::String("".to_owned())
+        )))
     }
 
     fn consume_must_be(&mut self, category: TokenCategory) -> Result<Token, ParserIssue> {
@@ -753,7 +756,7 @@ mod tests {
 
     impl LexerMock {
         fn new(mut tokens: Vec<Token>) -> LexerMock {
-            let current_token = tokens.remove(0); // Remove the first element and get it
+            let current_token = tokens.remove(0);
             LexerMock {
                 current_token: Some(current_token),
                 tokens,
@@ -834,5 +837,131 @@ mod tests {
                     })]
                 }
         );
+    }
+
+    #[test]
+    fn parse_literals() {
+        let tokens = vec![
+            create_token(TokenCategory::True, TokenValue::Null),
+            create_token(TokenCategory::False, TokenValue::Null),
+            create_token(TokenCategory::StringValue, TokenValue::String("a".to_owned())),
+            create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+            create_token(TokenCategory::F64Value, TokenValue::F64(5.0)),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let mut literal = parser.parse_literal().unwrap();
+        assert!(literal.value == Literal::True);
+
+        literal = parser.parse_literal().unwrap();
+        assert!(literal.value == Literal::False);
+
+        literal = parser.parse_literal().unwrap();
+        assert!(literal.value == Literal::String("a".to_owned()));
+
+        literal = parser.parse_literal().unwrap();
+        assert!(literal.value == Literal::I64(5));
+
+        literal = parser.parse_literal().unwrap();
+        assert!(literal.value == Literal::F64(5.0));
+    }
+
+    #[test]
+    fn parse_identifier() {
+        let tokens = vec![
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("print".to_owned()),
+            ),
+            create_token(TokenCategory::ETX, TokenValue::Null)
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let node = parser.parse_identifier().unwrap();
+        assert!(node.value == Identifier("print".to_owned()));
+    }
+
+    #[test]
+    fn parse_identifier_bad_value_type() {
+        let tokens = vec![
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::I64(5),
+            ),
+            create_token(TokenCategory::ETX, TokenValue::Null)
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let result = parser.parse_identifier();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn consume_must_be() {
+        let tokens = vec![
+            create_token(TokenCategory::ParenOpen, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+        assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
+        let _ = parser.consume_must_be(TokenCategory::ParenOpen).unwrap();
+
+        assert!(parser.current_token().clone().category == TokenCategory::ETX);
+    }
+
+    #[test]
+    fn consume_must_be_fail() {
+        let tokens = vec![
+            create_token(TokenCategory::ParenOpen, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+        assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
+        let result = parser.consume_must_be(TokenCategory::Semicolon);
+
+        assert!(result.is_err());
+        assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
+    }
+
+    #[test]
+    fn consume_if_matches() {
+        let tokens = vec![
+            create_token(TokenCategory::ParenOpen, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+        assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
+        let _ = parser.consume_if_matches(TokenCategory::ParenOpen).unwrap();
+
+        assert!(parser.current_token().clone().category == TokenCategory::ETX);
+    }
+
+    #[test]
+    fn consume_if_matches_fail() {
+        let tokens = vec![
+            create_token(TokenCategory::ParenOpen, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+        assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
+        let result = parser.consume_if_matches(TokenCategory::Semicolon);
+
+        assert!(result.is_none());
+        assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
     }
 }

@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::lazy_stream_reader::Position;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -13,7 +15,7 @@ pub enum Expression {
     // Boolean operations (non-unary)
     Alternative(BNode<Expression>, BNode<Expression>),
     Concatenation(BNode<Expression>, BNode<Expression>),
-    // Reloations
+    // Relations
     Greater(BNode<Expression>, BNode<Expression>),
     GreaterEqual(BNode<Expression>, BNode<Expression>),
     Less(BNode<Expression>, BNode<Expression>),
