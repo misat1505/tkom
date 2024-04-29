@@ -1,6 +1,7 @@
 use crate::{
     ast::{
-        Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Statement, SwitchCase, Type
+        Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Statement,
+        SwitchCase, Type,
     },
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
@@ -68,10 +69,13 @@ impl<L: ILexer> Parser<L> {
         let declaration = match self.parse_declaration() {
             Ok(decl) => {
                 let position = decl.position;
-                let node = Node { value: Box::new(decl.value), position };
+                let node = Node {
+                    value: Box::new(decl.value),
+                    position,
+                };
                 Some(node)
-            },
-            Err(_) => None
+            }
+            Err(_) => None,
         };
         self.consume_must(TokenCategory::Semicolon)?;
         let condition = self.parse_expression()?;
@@ -82,12 +86,26 @@ impl<L: ILexer> Parser<L> {
             let position = identifier.position;
             let _ = self.consume_must(TokenCategory::Assign)?;
             let expr = self.parse_expression()?;
-            let assign = Node { value: Box::new(Statement::Assignment { identifier, value: expr }), position };
+            let assign = Node {
+                value: Box::new(Statement::Assignment {
+                    identifier,
+                    value: expr,
+                }),
+                position,
+            };
             assignment = Some(assign);
         };
         self.consume_must(TokenCategory::ParenClose)?;
         let block = self.parse_statement_block()?;
-        let node = Node { value: Statement::ForLoop { declaration, condition, assignment, block }, position: for_token.position };
+        let node = Node {
+            value: Statement::ForLoop {
+                declaration,
+                condition,
+                assignment,
+                block,
+            },
+            position: for_token.position,
+        };
         Ok(node)
     }
 
@@ -170,6 +188,7 @@ impl<L: ILexer> Parser<L> {
                 },
                 position,
             };
+            println!("{:?}", self.lexer.current().clone().unwrap());
             self.consume_must(TokenCategory::ParenClose)?;
             self.consume_must(TokenCategory::Semicolon)?;
             return Ok(node);
@@ -224,8 +243,8 @@ impl<L: ILexer> Parser<L> {
     }
 
     fn parse_arguments(&mut self) -> Result<Vec<Node<Argument>>, ParserIssue> {
-        if self.consume_if(TokenCategory::ParenClose).is_some() {
-            return Ok(Vec::new());
+        if self.lexer.current().clone().unwrap().category == TokenCategory::ParenClose {
+            return Ok(vec![]);
         }
 
         let expression = self.parse_argument()?;
@@ -460,7 +479,10 @@ impl<L: ILexer> Parser<L> {
         let _ = self.consume_must(TokenCategory::ParenClose)?;
         let _ = self.consume_must(TokenCategory::Arrow)?;
         let block = self.parse_statement_block()?;
-        let node = Node { value: SwitchCase { condition, block }, position: paren_open_token.position };
+        let node = Node {
+            value: SwitchCase { condition, block },
+            position: paren_open_token.position,
+        };
         Ok(node)
     }
 
