@@ -1,1 +1,5 @@
-&i64 x = 0, str text
+fn do_sth(&i64 x, i64 y=0): i64 {
+  if (x == 0) {
+    print();
+  }
+}

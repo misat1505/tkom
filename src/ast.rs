@@ -77,6 +77,12 @@ pub struct Argument {
 
 #[derive(Debug, Clone)]
 pub enum Statement {
+    FunctionDeclaration {
+        identifier: Node<Identifier>,
+        parameters: Vec<Node<Parameter>>,
+        return_type: Node<Type>,
+        block: Node<Block>
+    },
     FunctionCall {
         identifier: Node<Identifier>,
         arguments: Vec<BNode<Argument>>,
