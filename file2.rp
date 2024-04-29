@@ -51,5 +51,5 @@ fn fib(i64 x): i64 {
 str text = "hello world";
 print(text);
 # jakis komentarz
-print(56 + 6532475327647647762)
+print(56 + 6532475327647647762);
 i64 x = 2 + 3;
