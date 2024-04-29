@@ -57,7 +57,7 @@ pub enum Type {
     Str,
     I64,
     F64,
-    Void
+    Void,
 }
 
 #[derive(Debug, Clone)]
@@ -81,7 +81,7 @@ pub enum Statement {
         identifier: Node<Identifier>,
         parameters: Vec<Node<Parameter>>,
         return_type: Node<Type>,
-        block: Node<Block>
+        block: Node<Block>,
     },
     FunctionCall {
         identifier: Node<Identifier>,
@@ -146,5 +146,5 @@ pub struct Block(pub Vec<Node<Statement>>);
 
 #[derive(Debug, Clone)]
 pub struct Program {
-    pub statements: Vec<Node<Statement>>
+    pub statements: Vec<Node<Statement>>,
 }

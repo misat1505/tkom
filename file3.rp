@@ -14,4 +14,5 @@ fn is_pseudo_prime(i64 x): bool {
 
   return true;
 }
+
 print(is_pseudo_prime(5));

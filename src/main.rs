@@ -1,7 +1,8 @@
 use std::{
     env::args,
     fs::File,
-    io::{BufReader, Error}, time::Instant,
+    io::{BufReader, Error},
+    time::Instant,
 };
 
 use lexer::Lexer;
@@ -54,7 +55,7 @@ fn main() -> Result<(), Error> {
     match parser_result {
         Ok(program) => {
             println!("{:?}", program);
-        },
+        }
         Err(err) => {
             println!("{:?}", err.message);
         }
