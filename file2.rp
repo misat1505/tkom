@@ -10,14 +10,14 @@ fn add(&i64 x, i64 y): i64 {
 
 for(i64 i = 0; i < 10; i = i+1) {
   add(i, i);
-  true != false;
+  bool a = true != false;
 }
 
-fn do_stuff(i64 x, f64 y): void {
+fn do_stuff(i64 x, f64 y): i64 {
   switch (x) {
     (x < 5) -> {
       print("Less than 5.");
-    },
+    }
     (x < 10) -> {
       print("Less than 10.");
       break;
@@ -29,13 +29,11 @@ fn do_stuff(i64 x, f64 y): void {
       print("Less than 5.");
       print(temp1);
       print(temp2);
-      break;
-    },
+    }
     (temp1 < 10 || y < 10.0) -> {
       print("Less than 10.");
       print(temp1);
       print(temp2);
-      break;
     }
   }
 }
@@ -53,6 +51,5 @@ fn fib(i64 x): i64 {
 str text = "hello world";
 print(text);
 # jakis komentarz
-|
 print(56 + 6532475327647647762)
-2 + 3
+i64 x = 2 + 3;

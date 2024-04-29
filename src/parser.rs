@@ -205,13 +205,13 @@ impl<L: ILexer> Parser<L> {
             .or_else(|_| self.parse_if_statement())
             .or_else(|_| self.parse_for_statement())
             .or_else(|_| self.parse_switch_statement())
+            .or_else(|_| self.parse_return_statement())
+            .or_else(|_| self.parse_break_statement())
             .or_else(|_| {
                 let decl = self.parse_declaration()?;
                 self.consume_must(TokenCategory::Semicolon)?;
                 Ok(decl)
-            })
-            .or_else(|_: ParserIssue| self.parse_return_statement())
-            .or_else(|_| self.parse_break_statement())?;
+            })?;
 
         Ok(node)
     }
@@ -456,7 +456,7 @@ impl<L: ILexer> Parser<L> {
                         value: Box::new(unary_term),
                         to_type: type_parsed,
                     },
-                    position: position,
+                    position,
                 });
             }
             None => Ok(unary_term),
