@@ -1,7 +1,7 @@
 use std::{
     env::args,
     fs::File,
-    io::{BufReader, Error},
+    io::{BufReader, Error}, time::Instant,
 };
 
 use lexer::Lexer;
@@ -48,7 +48,10 @@ fn main() -> Result<(), Error> {
 
     let lexer = Lexer::new(reader, lexer_options, on_warning);
     let mut parser = Parser::new(lexer);
-    match parser.parse() {
+    let start = Instant::now();
+    let parser_result = parser.parse();
+    let finish = Instant::now();
+    match parser_result {
         Ok(program) => {
             println!("{:?}", program);
         },
@@ -56,6 +59,7 @@ fn main() -> Result<(), Error> {
             println!("{:?}", err.message);
         }
     }
+    println!("Parsed in: {:?}", finish - start);
 
     Ok(())
 }
