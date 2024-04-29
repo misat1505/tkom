@@ -144,3 +144,8 @@ pub struct SwitchCase {
 
 #[derive(Debug, Clone)]
 pub struct Block(pub Vec<Node<Statement>>);
+
+#[derive(Debug, Clone)]
+pub struct Program {
+    pub statements: Vec<Node<Statement>>
+}

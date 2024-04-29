@@ -1,6 +1,6 @@
 use crate::{
     ast::{
-        Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Parameter, ParameterPassedBy, Statement, SwitchCase, SwitchExpression, Type
+        Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Parameter, ParameterPassedBy, Program, Statement, SwitchCase, SwitchExpression, Type
     },
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
@@ -24,7 +24,7 @@ pub struct ParserIssue {
 
 pub trait IParser<L: ILexer> {
     fn new(lexer: L) -> Parser<L>;
-    fn parse(&mut self);
+    fn parse(&mut self) -> Result<Program, ParserIssue>;
 }
 
 impl<L: ILexer> IParser<L> for Parser<L> {
@@ -32,24 +32,33 @@ impl<L: ILexer> IParser<L> for Parser<L> {
         Parser { lexer }
     }
 
-    fn parse(&mut self) {
+    fn parse(&mut self) -> Result<Program, ParserIssue> {
         let _ = self.next_token(); // initialize
         let _ = self.next_token(); // skip STX
+
+        let mut statements: Vec<Node<Statement>> = vec![];
 
         loop {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_function_declaration() {
-                Ok(node) => {
-                    println!("{:?}", node);
-                }
-                Err(err) => {
-                    println!("{}", err.message);
-                    return;
-                }
-            }
+            let node = self
+                .parse_assign_or_call()
+                .or_else(|_| self.parse_function_declaration())
+                .or_else(|_| self.parse_if_statement())
+                .or_else(|_| self.parse_for_statement())
+                .or_else(|_| self.parse_switch_statement())
+                .or_else(|_| {
+                    let decl = self.parse_declaration()?;
+                    self.consume_must(TokenCategory::Semicolon)?;
+                    Ok(decl)
+                })?;
+
+            statements.push(node);
         }
+
+        let program = Program { statements };
+        Ok(program)
     }
 }
 

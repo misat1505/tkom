@@ -48,7 +48,14 @@ fn main() -> Result<(), Error> {
 
     let lexer = Lexer::new(reader, lexer_options, on_warning);
     let mut parser = Parser::new(lexer);
-    parser.parse();
+    match parser.parse() {
+        Ok(program) => {
+            println!("{:?}", program);
+        },
+        Err(err) => {
+            println!("{:?}", err.message);
+        }
+    }
 
     Ok(())
 }
