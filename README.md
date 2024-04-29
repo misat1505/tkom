@@ -173,7 +173,7 @@ super_variable_123
 
 **switch_statement** = "switch", "(", switch_expressions, ")", "{", {switch_case}, "}";
 
-**switch_expression** = expression, [ "as", identifier ];
+**switch_expression** = expression, [ ":", identifier ];
 
 **switch_expressions** = switch_expression, { “,”, switch_expression };
 

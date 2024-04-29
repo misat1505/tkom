@@ -1,7 +1,6 @@
 use crate::{
     ast::{
-        Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Statement,
-        SwitchCase, Type,
+        Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Statement, SwitchCase, SwitchExpression, Type
     },
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
@@ -41,7 +40,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             if self.lexer.current().clone().unwrap().category == TokenCategory::ETX {
                 break;
             }
-            match self.parse_switch_case() {
+            match self.parse_switch_expression() {
                 Ok(node) => {
                     println!("{:?}", node);
                 }
@@ -472,6 +471,19 @@ impl<L: ILexer> Parser<L> {
     // fn parse_switch_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
 
     // }
+
+    fn parse_switch_expression(&mut self) -> Result<Node<SwitchExpression>, ParserIssue> {
+        let expression = self.parse_expression()?;
+        let position = expression.position;
+        let alias = match self.consume_if(TokenCategory::Colon) {
+            Some(_) => {
+                Some(self.parse_identifier()?)
+            },
+            None => None
+        };
+        let node = Node { value: SwitchExpression {expression, alias}, position };
+        Ok(node)
+    }
 
     fn parse_switch_case(&mut self) -> Result<Node<SwitchCase>, ParserIssue> {
         let paren_open_token = self.consume_must(TokenCategory::ParenOpen)?;
