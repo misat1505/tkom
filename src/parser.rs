@@ -403,8 +403,10 @@ impl<L: ILexer> Parser<L> {
         while current_token.category == TokenCategory::And {
             let _ = self.next_token();
             let right_side = self.parse_relation_term()?;
-            let expression_type =
-                Expression::Concatenation(Box::new(left_side.clone()), Box::new(right_side.clone()));
+            let expression_type = Expression::Concatenation(
+                Box::new(left_side.clone()),
+                Box::new(right_side.clone()),
+            );
             left_side = Node {
                 value: expression_type,
                 position: current_token.position,
@@ -849,6 +851,202 @@ mod tests {
     //             }
     //     );
     // }
+
+    #[test]
+    fn parse_return_statement_fail() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::Comma, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::Return, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::Return, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ]
+        ];
+
+        for series in token_series {
+            let mock_lexer = LexerMock::new(series);
+            let mut parser = Parser::new(mock_lexer);
+
+            assert!(parser.parse_return_statement().is_err());
+        }
+    }
+
+    #[test]
+    fn parse_return_statement() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::Return, TokenValue::Null),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::Return, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ]
+        ];
+
+        let expected = [
+            Statement::Return(None),
+            Statement::Return(Some(Node { value: Expression::Literal(Literal::I64(5)), position: default_position() }))
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_return_statement().unwrap();
+            assert!(node.value == expected[idx]);
+        }
+    }
+
+    #[test]
+    fn parse_break_statement_fail() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::Break, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        for series in token_series {
+            let mock_lexer = LexerMock::new(series);
+            let mut parser = Parser::new(mock_lexer);
+
+            assert!(parser.parse_break_statement().is_err());
+        }
+    }
+
+    #[test]
+    fn parse_break_statement() {
+        let tokens = vec![
+            create_token(TokenCategory::Break, TokenValue::Null),
+            create_token(TokenCategory::Semicolon, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        let node = parser.parse_break_statement().unwrap();
+        assert!(node.value == Statement::Break);
+    }
+
+    #[test]
+    fn parse_arguments_comma_end() {
+        let tokens = vec![
+            create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+            create_token(TokenCategory::Comma, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        assert!(parser.parse_arguments().is_err());
+    }
+
+    #[test]
+    fn parse_arguments() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::Reference, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+                create_token(TokenCategory::Comma, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(2)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = [
+            vec![],
+            vec![Node {
+                value: Argument {
+                    value: Expression::Literal(Literal::I64(1)),
+                    passed_by: ArgumentPassedBy::Value,
+                },
+                position: default_position(),
+            }],
+            vec![
+                Node {
+                    value: Argument {
+                        value: Expression::Literal(Literal::I64(1)),
+                        passed_by: ArgumentPassedBy::Reference,
+                    },
+                    position: default_position(),
+                },
+                Node {
+                    value: Argument {
+                        value: Expression::Literal(Literal::I64(2)),
+                        passed_by: ArgumentPassedBy::Value,
+                    },
+                    position: default_position(),
+                },
+            ],
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let vector = parser.parse_arguments().unwrap();
+            assert!(vector == expected[idx]);
+        }
+    }
+
+    #[test]
+    fn parse_argument() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::Reference, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = [
+            Argument {
+                value: Expression::Literal(Literal::I64(1)),
+                passed_by: ArgumentPassedBy::Value,
+            },
+            Argument {
+                value: Expression::Literal(Literal::I64(1)),
+                passed_by: ArgumentPassedBy::Reference,
+            },
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_argument().unwrap();
+            assert!(node.value == expected[idx]);
+        }
+    }
 
     #[test]
     fn parse_expression() {
