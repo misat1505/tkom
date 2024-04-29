@@ -320,7 +320,7 @@ impl<L: ILexer> Parser<L> {
                 identifier,
                 value,
             },
-            position: position,
+            position,
         };
         Ok(node)
     }
@@ -811,46 +811,269 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn parse_assign_or_call_call() {
-    //     let tokens = vec![
-    //         create_token(
-    //             TokenCategory::Identifier,
-    //             TokenValue::String("print".to_owned()),
-    //         ),
-    //         create_token(TokenCategory::ParenOpen, TokenValue::Null),
-    //         create_token(
-    //             TokenCategory::StringValue,
-    //             TokenValue::String("Hello world".to_owned()),
-    //         ),
-    //         create_token(TokenCategory::ParenClose, TokenValue::Null),
-    //         create_token(TokenCategory::Semicolon, TokenValue::Null),
-    //         create_token(TokenCategory::ETX, TokenValue::Null),
-    //     ];
+    // tests
 
-    //     let mock_lexer = LexerMock::new(tokens);
-    //     let mut parser = Parser::new(mock_lexer);
-    //     let result = parser.parse_assign_or_call();
+    #[test]
+    fn parse_if_statement_fail() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::True, TokenValue::Null),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::If, TokenValue::Null),
+                create_token(TokenCategory::True, TokenValue::Null),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::If, TokenValue::Null),
+                create_token(TokenCategory::True, TokenValue::Null),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
 
-    //     assert!(result.is_ok());
-    //     let parsed = result.unwrap();
-    //     assert!(
-    //         parsed.value
-    //             == Statement::FunctionCall {
-    //                 identifier: Node {
-    //                     value: Identifier("print".to_owned()),
-    //                     position: default_position()
-    //                 },
-    //                 arguments: vec![Box::new(Node {
-    //                     value: Argument {
-    //                         value: Expression::Literal(Literal::String("Hello world".to_owned())),
-    //                         passed_by: ArgumentPassedBy::Value
-    //                     },
-    //                     position: default_position()
-    //                 })]
-    //             }
-    //     );
-    // }
+        for series in token_series {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            assert!(parser.parse_assign_or_call().is_err());
+        }
+    }
+
+    #[test]
+    fn parse_if_statement() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::If, TokenValue::Null),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::True, TokenValue::Null),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::If, TokenValue::Null),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::True, TokenValue::Null),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::Else, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = vec![
+            Statement::Conditional {
+                condition: Node {
+                    value: Expression::Literal(Literal::True),
+                    position: default_position(),
+                },
+                if_block: Node {
+                    value: Block(vec![]),
+                    position: default_position(),
+                },
+                else_block: None,
+            },
+            Statement::Conditional {
+                condition: Node {
+                    value: Expression::Literal(Literal::True),
+                    position: default_position(),
+                },
+                if_block: Node {
+                    value: Block(vec![]),
+                    position: default_position(),
+                },
+                else_block: Some(Node {
+                    value: Block(vec![]),
+                    position: default_position(),
+                }),
+            },
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_if_statement().unwrap();
+            assert!(node.value == expected[idx]);
+        }
+    }
+
+    #[test]
+    fn parse_assign_or_call_fail() {
+        let token_series = vec![
+            vec![
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("print".to_owned()),
+                ),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("print".to_owned()),
+                ),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Assign, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Comma, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        for series in token_series {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            assert!(parser.parse_assign_or_call().is_err());
+        }
+    }
+
+    #[test]
+    fn parse_assign_or_call() {
+        let token_series = vec![
+            vec![
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("print".to_owned()),
+                ),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Assign, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = vec![
+            Statement::FunctionCall {
+                identifier: Node {
+                    value: Identifier("print".to_owned()),
+                    position: default_position(),
+                },
+                arguments: vec![],
+            },
+            Statement::Assignment {
+                identifier: Node {
+                    value: Identifier("x".to_owned()),
+                    position: default_position(),
+                },
+                value: Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                },
+            },
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_assign_or_call().unwrap();
+            assert!(node.value == expected[idx]);
+        }
+    }
+
+    #[test]
+    fn parse_declaration() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::I64, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("a".to_owned()),
+                ),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("a".to_owned()),
+                ),
+                create_token(TokenCategory::Assign, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = [
+            Statement::Declaration {
+                var_type: Node {
+                    value: Type::I64,
+                    position: default_position(),
+                },
+                identifier: Node {
+                    value: Identifier("a".to_owned()),
+                    position: default_position(),
+                },
+                value: None,
+            },
+            Statement::Declaration {
+                var_type: Node {
+                    value: Type::I64,
+                    position: default_position(),
+                },
+                identifier: Node {
+                    value: Identifier("a".to_owned()),
+                    position: default_position(),
+                },
+                value: Some(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+            },
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_declaration().unwrap();
+            assert!(node.value == expected[idx]);
+        }
+    }
 
     #[test]
     fn parse_return_statement_fail() {
@@ -867,7 +1090,7 @@ mod tests {
                 create_token(TokenCategory::Return, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::ETX, TokenValue::Null),
-            ]
+            ],
         ];
 
         for series in token_series {
@@ -891,12 +1114,15 @@ mod tests {
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
-            ]
+            ],
         ];
 
         let expected = [
             Statement::Return(None),
-            Statement::Return(Some(Node { value: Expression::Literal(Literal::I64(5)), position: default_position() }))
+            Statement::Return(Some(Node {
+                value: Expression::Literal(Literal::I64(5)),
+                position: default_position(),
+            })),
         ];
 
         for (idx, series) in token_series.iter().enumerate() {
