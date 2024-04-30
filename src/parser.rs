@@ -820,6 +820,329 @@ mod tests {
     // tests
 
     #[test]
+    fn parse_statement_block_fail() {
+        let token_series = vec![vec![
+            create_token(TokenCategory::BraceOpen, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ]];
+
+        for series in token_series {
+            let mock_lexer = LexerMock::new(series);
+            let mut parser = Parser::new(mock_lexer);
+
+            assert!(parser.parse_statement_block().is_err());
+        }
+    }
+
+    #[test]
+    fn parse_statement_block() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Assign, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Assign, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Assign, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = [
+            Block(vec![]),
+            Block(vec![Node {
+                value: Statement::Assignment {
+                    identifier: Node {
+                        value: Identifier("x".to_owned()),
+                        position: default_position(),
+                    },
+                    value: Node {
+                        value: Expression::Literal(Literal::I64(5)),
+                        position: default_position(),
+                    },
+                },
+                position: default_position(),
+            }]),
+            Block(vec![
+                Node {
+                    value: Statement::Assignment {
+                        identifier: Node {
+                            value: Identifier("x".to_owned()),
+                            position: default_position(),
+                        },
+                        value: Node {
+                            value: Expression::Literal(Literal::I64(5)),
+                            position: default_position(),
+                        },
+                    },
+                    position: default_position(),
+                },
+                Node {
+                    value: Statement::Assignment {
+                        identifier: Node {
+                            value: Identifier("x".to_owned()),
+                            position: default_position(),
+                        },
+                        value: Node {
+                            value: Expression::Literal(Literal::I64(5)),
+                            position: default_position(),
+                        },
+                    },
+                    position: default_position(),
+                },
+            ]),
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_statement_block().unwrap();
+            assert!(node.value == expected[idx]);
+        }
+    }
+
+    #[test]
+    fn parse_statement_fail() {
+        let token_series = vec![
+            vec![
+                // i64 a = 5
+                create_token(TokenCategory::I64, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("a".to_owned()),
+                ),
+                create_token(TokenCategory::Assign, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![create_token(TokenCategory::And, TokenValue::Null)],
+            vec![create_token(TokenCategory::ETX, TokenValue::Null)],
+        ];
+
+        for series in token_series {
+            let mock_lexer = LexerMock::new(series);
+            let mut parser = Parser::new(mock_lexer);
+
+            assert!(parser.parse_statement().is_err());
+        }
+    }
+
+    #[test]
+    fn parse_statement() {
+        let token_series = vec![
+            vec![
+                // x = 5;
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Assign, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                // print();
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("print".to_owned()),
+                ),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                // if (true) {}
+                create_token(TokenCategory::If, TokenValue::Null),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::True, TokenValue::Null),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                // for(;true;) {}
+                create_token(TokenCategory::For, TokenValue::Null),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::True, TokenValue::Null),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                // switch(x) {
+                //      (true) -> {}
+                // }
+                create_token(TokenCategory::Switch, TokenValue::Null),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::True, TokenValue::Null),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::Arrow, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                // return;
+                create_token(TokenCategory::Return, TokenValue::Null),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                // break;
+                create_token(TokenCategory::Break, TokenValue::Null),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                // i64 a = 5;
+                create_token(TokenCategory::I64, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("a".to_owned()),
+                ),
+                create_token(TokenCategory::Assign, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = [
+            Statement::Assignment {
+                identifier: Node {
+                    value: Identifier("x".to_owned()),
+                    position: default_position(),
+                },
+                value: Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                },
+            },
+            Statement::FunctionCall {
+                identifier: Node {
+                    value: Identifier("print".to_owned()),
+                    position: default_position(),
+                },
+                arguments: vec![],
+            },
+            Statement::Conditional {
+                condition: Node {
+                    value: Expression::Literal(Literal::True),
+                    position: default_position(),
+                },
+                if_block: Node {
+                    value: Block(vec![]),
+                    position: default_position(),
+                },
+                else_block: None,
+            },
+            Statement::ForLoop {
+                declaration: None,
+                condition: Node {
+                    value: Expression::Literal(Literal::True),
+                    position: default_position(),
+                },
+                assignment: None,
+                block: Node {
+                    value: Block(vec![]),
+                    position: default_position(),
+                },
+            },
+            Statement::Switch {
+                expressions: vec![Node {
+                    value: SwitchExpression {
+                        expression: Node {
+                            value: Expression::Variable(Identifier("x".to_owned())),
+                            position: default_position(),
+                        },
+                        alias: None,
+                    },
+                    position: default_position(),
+                }],
+                cases: vec![Node {
+                    value: SwitchCase {
+                        condition: Node {
+                            value: Expression::Literal(Literal::True),
+                            position: default_position(),
+                        },
+                        block: Node {
+                            value: Block(vec![]),
+                            position: default_position(),
+                        },
+                    },
+                    position: default_position(),
+                }],
+            },
+            Statement::Return(None),
+            Statement::Break,
+            Statement::Declaration {
+                var_type: Node {
+                    value: Type::I64,
+                    position: default_position(),
+                },
+                identifier: Node {
+                    value: Identifier("a".to_owned()),
+                    position: default_position(),
+                },
+                value: Some(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+            },
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_statement().unwrap();
+            assert!(node.value == expected[idx]);
+        }
+    }
+
+    #[test]
     fn parse_function_declaration_fail() {
         let token_series = vec![vec![
             // fn add(): , {}
@@ -1295,7 +1618,7 @@ mod tests {
     fn parse_if_statement_fail() {
         let token_series = vec![
             vec![
-                // (True) {}
+                // (true) {}
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::True, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
@@ -1304,7 +1627,7 @@ mod tests {
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
-                // if True) {}
+                // if true) {}
                 create_token(TokenCategory::If, TokenValue::Null),
                 create_token(TokenCategory::True, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
@@ -1335,7 +1658,7 @@ mod tests {
     fn parse_if_statement() {
         let token_series = vec![
             vec![
-                // if (True) {}
+                // if (true) {}
                 create_token(TokenCategory::If, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::True, TokenValue::Null),
@@ -1345,7 +1668,7 @@ mod tests {
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
-                // if (True) {} else {}
+                // if (true) {} else {}
                 create_token(TokenCategory::If, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::True, TokenValue::Null),
@@ -2373,7 +2696,7 @@ mod tests {
     fn parse_switch_statement() {
         let token_series = vec![vec![
             // switch(x) {
-            //      (True) -> {}
+            //      (true) -> {}
             // }
             create_token(TokenCategory::Switch, TokenValue::Null),
             create_token(TokenCategory::ParenOpen, TokenValue::Null),
@@ -2589,7 +2912,7 @@ mod tests {
     #[test]
     fn parse_switch_case() {
         let token_series = vec![vec![
-            // (True) -> {}
+            // (true) -> {}
             create_token(TokenCategory::ParenOpen, TokenValue::Null),
             create_token(TokenCategory::True, TokenValue::Null),
             create_token(TokenCategory::ParenClose, TokenValue::Null),
