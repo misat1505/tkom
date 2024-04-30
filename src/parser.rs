@@ -814,6 +814,178 @@ mod tests {
     // tests
 
     #[test]
+    fn parse_parameters_fail() {
+        let tokens = vec![
+            create_token(TokenCategory::I64, TokenValue::Null),
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("x".to_owned()),
+            ),
+            create_token(TokenCategory::Comma, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ];
+
+        let mock_lexer = LexerMock::new(tokens);
+        let mut parser = Parser::new(mock_lexer);
+
+        assert!(parser.parse_parameters().is_err());
+    }
+
+    #[test]
+    fn parse_parameters() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Comma, TokenValue::Null),
+                create_token(TokenCategory::I64, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("y".to_owned()),
+                ),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = [
+            vec![],
+            vec![Node {
+                value: Parameter {
+                    passed_by: ParameterPassedBy::Value,
+                    parameter_type: Node {
+                        value: Type::I64,
+                        position: default_position(),
+                    },
+                    identifier: Node {
+                        value: Identifier("x".to_owned()),
+                        position: default_position(),
+                    },
+                    value: None,
+                },
+                position: default_position(),
+            }],
+            vec![
+                Node {
+                    value: Parameter {
+                        passed_by: ParameterPassedBy::Value,
+                        parameter_type: Node {
+                            value: Type::I64,
+                            position: default_position(),
+                        },
+                        identifier: Node {
+                            value: Identifier("x".to_owned()),
+                            position: default_position(),
+                        },
+                        value: None,
+                    },
+                    position: default_position(),
+                },
+                Node {
+                    value: Parameter {
+                        passed_by: ParameterPassedBy::Value,
+                        parameter_type: Node {
+                            value: Type::I64,
+                            position: default_position(),
+                        },
+                        identifier: Node {
+                            value: Identifier("y".to_owned()),
+                            position: default_position(),
+                        },
+                        value: None,
+                    },
+                    position: default_position(),
+                },
+            ],
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let vector = parser.parse_parameters().unwrap();
+            assert!(vector == expected[idx]);
+        }
+    }
+
+    #[test]
+    fn parse_parameter() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::Reference, TokenValue::Null),
+                create_token(TokenCategory::I64, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Assign, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(0)),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::I64, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = [
+            Parameter {
+                passed_by: ParameterPassedBy::Reference,
+                parameter_type: Node {
+                    value: Type::I64,
+                    position: default_position(),
+                },
+                identifier: Node {
+                    value: Identifier("x".to_owned()),
+                    position: default_position(),
+                },
+                value: Some(Node {
+                    value: Expression::Literal(Literal::I64(0)),
+                    position: default_position(),
+                }),
+            },
+            Parameter {
+                passed_by: ParameterPassedBy::Value,
+                parameter_type: Node {
+                    value: Type::I64,
+                    position: default_position(),
+                },
+                identifier: Node {
+                    value: Identifier("x".to_owned()),
+                    position: default_position(),
+                },
+                value: None,
+            },
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_parameter().unwrap();
+            assert!(node.value == expected[idx]);
+        }
+    }
+
+    #[test]
     fn parse_if_statement_fail() {
         let token_series = vec![
             vec![
@@ -847,6 +1019,195 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             assert!(parser.parse_assign_or_call().is_err());
+        }
+    }
+
+    #[test]
+    fn parse_for_statement_fail() {
+        let token_series = vec![
+            vec![
+                create_token(TokenCategory::For, TokenValue::Null),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::For, TokenValue::Null),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                create_token(TokenCategory::For, TokenValue::Null),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        for series in token_series {
+            let mock_lexer = LexerMock::new(series);
+            let mut parser = Parser::new(mock_lexer);
+
+            assert!(parser.parse_for_statement().is_err());
+        }
+    }
+
+    #[test]
+    fn parse_for_statement() {
+        let token_series = vec![
+            vec![
+                // for (i64 x = 0; x < 5; x = x + 1) {}
+                create_token(TokenCategory::For, TokenValue::Null),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::I64, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Assign, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(0)),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Less, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Assign, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Plus, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(1)),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+            vec![
+                // for (;x < 5;) {}
+                create_token(TokenCategory::For, TokenValue::Null),
+                create_token(TokenCategory::ParenOpen, TokenValue::Null),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(
+                    TokenCategory::Identifier,
+                    TokenValue::String("x".to_owned()),
+                ),
+                create_token(TokenCategory::Less, TokenValue::Null),
+                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+                create_token(TokenCategory::Semicolon, TokenValue::Null),
+                create_token(TokenCategory::ParenClose, TokenValue::Null),
+                create_token(TokenCategory::BraceOpen, TokenValue::Null),
+                create_token(TokenCategory::BraceClose, TokenValue::Null),
+                create_token(TokenCategory::ETX, TokenValue::Null),
+            ],
+        ];
+
+        let expected = vec![
+            Statement::ForLoop {
+                declaration: Some(Node {
+                    value: Box::new(Statement::Declaration {
+                        var_type: Node {
+                            value: Type::I64,
+                            position: default_position(),
+                        },
+                        identifier: Node {
+                            value: Identifier("x".to_owned()),
+                            position: default_position(),
+                        },
+                        value: Some(Node {
+                            value: Expression::Literal(Literal::I64(0)),
+                            position: default_position(),
+                        }),
+                    }),
+                    position: default_position(),
+                }),
+                condition: Node {
+                    value: Expression::Less(
+                        Box::new(Node {
+                            value: Expression::Variable(Identifier("x".to_owned())),
+                            position: default_position(),
+                        }),
+                        Box::new(Node {
+                            value: Expression::Literal(Literal::I64(5)),
+                            position: default_position(),
+                        }),
+                    ),
+                    position: default_position(),
+                },
+                assignment: Some(Node {
+                    value: Box::new(Statement::Assignment {
+                        identifier: Node {
+                            value: Identifier("x".to_owned()),
+                            position: default_position(),
+                        },
+                        value: Node {
+                            value: Expression::Addition(
+                                Box::new(Node {
+                                    value: Expression::Variable(Identifier("x".to_owned())),
+                                    position: default_position(),
+                                }),
+                                Box::new(Node {
+                                    value: Expression::Literal(Literal::I64(1)),
+                                    position: default_position(),
+                                }),
+                            ),
+                            position: default_position(),
+                        },
+                    }),
+                    position: default_position(),
+                }),
+                block: Node {
+                    value: Block(vec![]),
+                    position: default_position(),
+                },
+            },
+            Statement::ForLoop {
+                declaration: None,
+                condition: Node {
+                    value: Expression::Less(
+                        Box::new(Node {
+                            value: Expression::Variable(Identifier("x".to_owned())),
+                            position: default_position(),
+                        }),
+                        Box::new(Node {
+                            value: Expression::Literal(Literal::I64(5)),
+                            position: default_position(),
+                        }),
+                    ),
+                    position: default_position(),
+                },
+                assignment: None,
+                block: Node {
+                    value: Block(vec![]),
+                    position: default_position(),
+                },
+            },
+        ];
+
+        for (idx, series) in token_series.iter().enumerate() {
+            let mock_lexer = LexerMock::new(series.to_vec());
+            let mut parser = Parser::new(mock_lexer);
+
+            let node = parser.parse_for_statement().unwrap();
+            assert!(node.value == expected[idx]);
         }
     }
 
