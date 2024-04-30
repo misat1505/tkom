@@ -57,7 +57,7 @@ fn main() -> Result<(), Error> {
             println!("{:?}", program);
         }
         Err(err) => {
-            println!("{:?}", err.message);
+            println!("{}", err.message);
         }
     }
     println!("Parsed in: {:?}", finish - start);

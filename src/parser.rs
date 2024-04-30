@@ -62,7 +62,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
                     decl
                 }
                 _ => {
-                    return Err(Self::create_parser_error(format!(
+                    return Err(self.create_parser_error(format!(
                         "Can't create program statement starting with token: {:?}.",
                         self.current_token().category
                     )));
@@ -104,7 +104,10 @@ impl<L: ILexer> Parser<L> {
                     value: Type::Void,
                     position: token.position,
                 }),
-                None => Err(Self::create_parser_error("Bad return type".to_owned())),
+                None => Err(self.create_parser_error(format!(
+                    "Bad return type: {:?}. Expected one of: 'i64', 'f64', 'bool', 'str', 'void'.",
+                    self.current_token().category
+                ))),
             },
         }?;
         let block = self.parse_statement_block()?;
@@ -260,7 +263,7 @@ impl<L: ILexer> Parser<L> {
                 decl
             }
             _ => {
-                return Err(Self::create_parser_error(format!(
+                return Err(self.create_parser_error(format!(
                     "Can't create block statement starting with token: {:?}.",
                     self.current_token().category
                 )));
@@ -301,9 +304,7 @@ impl<L: ILexer> Parser<L> {
             return Ok(node);
         }
 
-        Err(Self::create_parser_error(format!(
-            "Could not create assignment or call."
-        )))
+        Err(self.create_parser_error(format!("Could not create assignment or call.")))
     }
 
     fn parse_declaration(&mut self) -> Result<Node<Statement>, ParserIssue> {
@@ -654,10 +655,9 @@ impl<L: ILexer> Parser<L> {
             TokenCategory::I64 => Type::I64,
             TokenCategory::F64 => Type::F64,
             _ => {
-                return Err(Self::create_parser_error(format!(
-                    "Can't cast to type: {:?}.",
-                    token.category
-                )));
+                return Err(
+                    self.create_parser_error(format!("Can't cast to type: {:?}.", token.category))
+                );
             }
         };
 
@@ -705,7 +705,7 @@ impl<L: ILexer> Parser<L> {
                 });
             }
         }
-        return Err(Self::create_parser_error("Invalid literal".to_owned()));
+        return Err(self.create_parser_error("Invalid literal".to_owned()));
     }
 
     fn parse_identifier(&mut self) -> Result<Node<Identifier>, ParserIssue> {
@@ -717,7 +717,7 @@ impl<L: ILexer> Parser<L> {
             };
             return Ok(node);
         }
-        Err(Self::create_parser_error(format!(
+        Err(self.create_parser_error(format!(
             "Wrong token value type - given: {:?}, expected: {:?}.",
             token.value,
             TokenValue::String("".to_owned())
@@ -730,7 +730,7 @@ impl<L: ILexer> Parser<L> {
             let _ = self.next_token();
             return Ok(current_token.clone());
         }
-        Err(Self::create_parser_error(format!(
+        Err(self.create_parser_error(format!(
             "Unexpected token - {:?}. Expected {:?}.",
             current_token.category, category
         )))
@@ -745,10 +745,14 @@ impl<L: ILexer> Parser<L> {
         None
     }
 
-    fn create_parser_error(text: String) -> ParserIssue {
+    fn create_parser_error(&self, text: String) -> ParserIssue {
+        let position = self.current_token().position;
         ParserIssue {
             kind: ParserIssueKind::ERROR,
-            message: text,
+            message: format!(
+                "{}\nAt line: {}, column: {}",
+                text, position.line, position.column
+            ),
         }
     }
 }
