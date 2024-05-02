@@ -210,7 +210,9 @@ mod edge_case_tests {
     use std::io::BufReader;
 
     use crate::{
-        errors::Issue, lazy_stream_reader::LazyStreamReader, lexer::{Lexer, LexerOptions},
+        errors::Issue,
+        lazy_stream_reader::LazyStreamReader,
+        lexer::{Lexer, LexerOptions},
         tokens::TokenCategory,
     };
 

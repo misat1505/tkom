@@ -1,7 +1,7 @@
 use crate::{
     ast::{
-        Argument, PassedBy, Block, Expression, Identifier, Literal, Node, Parameter,
-        Program, Statement, SwitchCase, SwitchExpression, Type,
+        Argument, Block, Expression, Identifier, Literal, Node, Parameter, PassedBy, Program,
+        Statement, SwitchCase, SwitchExpression, Type,
     },
     errors::{Issue, IssueLevel, ParserIssue},
     lexer::ILexer,
@@ -33,9 +33,9 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             match self.parse_program_statement() {
                 Ok(result) => match result {
                     Some(statement) => statements.push(statement),
-                    None => break
+                    None => break,
                 },
-                Err(err) => return Err(err)
+                Err(err) => return Err(err),
             }
         }
 
@@ -95,22 +95,21 @@ impl<L: ILexer> Parser<L> {
             Self::parse_for_statement,
             Self::parse_switch_statement,
             Self::parse_return_statement,
-            Self::parse_variable_declaration
+            Self::parse_variable_declaration,
         ];
 
         for generator in &generators {
-                match generator(self) {
-                    Ok(statement_option) => match statement_option {
-                        Some(statement) => {
-                            return Ok(Some(statement));
-                        }
-                        None => {}
-                    },
-                    Err(err) => {
-                        return Err(err);
+            match generator(self) {
+                Ok(statement_option) => match statement_option {
+                    Some(statement) => {
+                        return Ok(Some(statement));
                     }
+                    None => {}
+                },
+                Err(err) => {
+                    return Err(err);
                 }
-            
+            }
         }
 
         Ok(None)
@@ -120,11 +119,11 @@ impl<L: ILexer> Parser<L> {
         // function_declaration = “fn”, identifier, "(", parameters, ")", “:”, type | “void”, statement_block;
         let fn_token = match self.consume_must_be(TokenCategory::Fn) {
             Ok(t) => t,
-            Err(_) => return Ok(None)
+            Err(_) => return Ok(None),
         };
         let identifier = match self.parse_identifier()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create identifier.".to_owned()))
+            None => return Err(self.create_parser_error("Couldn't create identifier.".to_owned())),
         };
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let parameters = self.parse_parameters()?;
@@ -157,7 +156,9 @@ impl<L: ILexer> Parser<L> {
         };
         let block = match self.parse_statement_block()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create statement block.".to_owned()))
+            None => {
+                return Err(self.create_parser_error("Couldn't create statement block.".to_owned()))
+            }
         };
         let node = Node {
             value: Statement::FunctionDeclaration {
@@ -175,14 +176,16 @@ impl<L: ILexer> Parser<L> {
         // parameters = [ parameter, { ",", parameter } ];
         let expression = match self.parse_parameter()? {
             Some(t) => t,
-            None => return Ok(vec![])
+            None => return Ok(vec![]),
         };
 
         let mut parameters = vec![expression];
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             let parameter = match self.parse_parameter()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create parameter.".to_owned()))
+                None => {
+                    return Err(self.create_parser_error("Couldn't create parameter.".to_owned()))
+                }
             };
             parameters.push(parameter);
         }
@@ -198,11 +201,11 @@ impl<L: ILexer> Parser<L> {
         };
         let parameter_type = match self.parse_type()? {
             Some(t) => t,
-            None => return Ok(None)
+            None => return Ok(None),
         };
         let identifier = match self.parse_identifier()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create identifier.".to_owned()))
+            None => return Err(self.create_parser_error("Couldn't create identifier.".to_owned())),
         };
         let value = match self.consume_if_matches(TokenCategory::Assign)? {
             Some(_) => self.parse_expression()?,
@@ -224,12 +227,11 @@ impl<L: ILexer> Parser<L> {
         // for_statement = "for", "(", [ declaration ], “;”, expression, “;”, [ identifier, "=", expression ], ")", statement_block;
         let for_token = match self.consume_must_be(TokenCategory::For) {
             Ok(t) => t,
-            Err(_) => return Ok(None)
+            Err(_) => return Ok(None),
         };
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let declaration = match self.parse_declaration() {
-            Ok(decl) => {
-                match decl {
+            Ok(decl) => match decl {
                 Some(t) => {
                     let position = t.position;
                     let node = Node {
@@ -237,30 +239,32 @@ impl<L: ILexer> Parser<L> {
                         position,
                     };
                     Some(node)
-                },
-                None => None
-            }
-            }
+                }
+                None => None,
+            },
             Err(_) => None,
-
         };
         self.consume_must_be(TokenCategory::Semicolon)?;
         let condition = match self.parse_expression()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+            None => return Err(self.create_parser_error("Couldn't create expression.".to_owned())),
         };
         self.consume_must_be(TokenCategory::Semicolon)?;
         let mut assignment: Option<Node<Box<Statement>>> = None;
         if self.current_token().category == TokenCategory::Identifier {
             let identifier = match self.parse_identifier()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create identifier.".to_owned()))
+                None => {
+                    return Err(self.create_parser_error("Couldn't create identifier.".to_owned()))
+                }
             };
             let position = identifier.position;
             let _ = self.consume_must_be(TokenCategory::Assign)?;
             let expr = match self.parse_expression()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+                None => {
+                    return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+                }
             };
             let assign = Node {
                 value: Box::new(Statement::Assignment {
@@ -274,7 +278,9 @@ impl<L: ILexer> Parser<L> {
         self.consume_must_be(TokenCategory::ParenClose)?;
         let block = match self.parse_statement_block()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create statement block.".to_owned()))
+            None => {
+                return Err(self.create_parser_error("Couldn't create statement block.".to_owned()))
+            }
         };
         let node = Node {
             value: Statement::ForLoop {
@@ -292,18 +298,20 @@ impl<L: ILexer> Parser<L> {
         // if_statement = "if", "(", expression, ")", statement_block, [ "else", statement_block ];
         let if_token = match self.consume_must_be(TokenCategory::If) {
             Ok(t) => t,
-            Err(_) => return Ok(None)
+            Err(_) => return Ok(None),
         };
 
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let condition = match self.parse_expression()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+            None => return Err(self.create_parser_error("Couldn't create expression.".to_owned())),
         };
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let true_block = match self.parse_statement_block()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create statement block.".to_owned()))
+            None => {
+                return Err(self.create_parser_error("Couldn't create statement block.".to_owned()))
+            }
         };
 
         let false_block = match self.consume_if_matches(TokenCategory::Else)? {
@@ -326,7 +334,7 @@ impl<L: ILexer> Parser<L> {
         // statement_block = "{", {statement}, "}";
         let position = match self.consume_must_be(TokenCategory::BraceOpen) {
             Ok(t) => t.position,
-            Err(_) => return Ok(None)
+            Err(_) => return Ok(None),
         };
         let mut statements: Vec<Node<Statement>> = vec![];
         while self
@@ -335,7 +343,9 @@ impl<L: ILexer> Parser<L> {
         {
             let statement = match self.parse_statement()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create statement.".to_owned()))
+                None => {
+                    return Err(self.create_parser_error("Couldn't create statement.".to_owned()))
+                }
             };
             statements.push(statement);
         }
@@ -348,7 +358,7 @@ impl<L: ILexer> Parser<L> {
     fn parse_variable_declaration(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
         let decl = match self.parse_declaration()? {
             Some(t) => t,
-            None => return Ok(None)
+            None => return Ok(None),
         };
         self.consume_must_be(TokenCategory::Semicolon)?;
         Ok(Some(decl))
@@ -363,21 +373,20 @@ impl<L: ILexer> Parser<L> {
             Self::parse_switch_statement,
             Self::parse_return_statement,
             Self::parse_break_statement,
-            Self::parse_variable_declaration
+            Self::parse_variable_declaration,
         ];
 
         for generator in &generators {
-                match generator(self) {
-                    Ok(statement_option) => match statement_option {
-                        Some(statement) => {
-                            return Ok(Some(statement));
-                        }
-                        None => {}
-                    },
-                    Err(err) => {
-                        return Err(err);
+            match generator(self) {
+                Ok(statement_option) => match statement_option {
+                    Some(statement) => {
+                        return Ok(Some(statement));
                     }
-                
+                    None => {}
+                },
+                Err(err) => {
+                    return Err(err);
+                }
             }
         }
 
@@ -388,7 +397,7 @@ impl<L: ILexer> Parser<L> {
         // assign_or_call = identifier, ("=", expression | "(", arguments, ")"), ";";
         let identifier = match self.parse_identifier()? {
             Some(t) => t,
-            None => return Ok(None)
+            None => return Ok(None),
         };
 
         let position = identifier.position;
@@ -396,7 +405,9 @@ impl<L: ILexer> Parser<L> {
         if self.consume_if_matches(TokenCategory::Assign)?.is_some() {
             let expr = match self.parse_expression()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+                None => {
+                    return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+                }
             };
             let node = Node {
                 value: Statement::Assignment {
@@ -430,13 +441,13 @@ impl<L: ILexer> Parser<L> {
         // declaration = type, identifier, [ "=", expression ];
         let declaration_type = match self.parse_type()? {
             Some(t) => t,
-            None => return Ok(None)
+            None => return Ok(None),
         };
 
         let position = declaration_type.position;
         let identifier = match self.parse_identifier()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create identifier.".to_owned()))
+            None => return Err(self.create_parser_error("Couldn't create identifier.".to_owned())),
         };
         let value = match self.consume_if_matches(TokenCategory::Assign)? {
             Some(_) => self.parse_expression()?,
@@ -456,7 +467,7 @@ impl<L: ILexer> Parser<L> {
     fn parse_return_statement(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
         // return_statement = "return", [ expression ], ";";
         if self.current_token().category != TokenCategory::Return {
-            return Ok(None)
+            return Ok(None);
         }
 
         let token = self.consume_must_be(TokenCategory::Return)?;
@@ -472,7 +483,7 @@ impl<L: ILexer> Parser<L> {
     fn parse_break_statement(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
         // break_statement = "break", ";";
         if self.current_token().category != TokenCategory::Break {
-            return Ok(None)
+            return Ok(None);
         }
 
         let token = self.consume_must_be(TokenCategory::Break)?;
@@ -487,20 +498,20 @@ impl<L: ILexer> Parser<L> {
     fn parse_arguments(&mut self) -> Result<Vec<Node<Argument>>, Box<dyn Issue>> {
         // arguments = [ argument, {",", argument} ];
         let expression = match self.parse_argument() {
-            Ok(temp) => {
-                match temp {
-                    Some(t) => t,
-                    None => return Ok(vec![])
-                }
+            Ok(temp) => match temp {
+                Some(t) => t,
+                None => return Ok(vec![]),
             },
-            Err(_) => return Ok(vec![])
+            Err(_) => return Ok(vec![]),
         };
 
         let mut arguments = vec![expression];
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             let argument = match self.parse_argument()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create argument.".to_owned()))
+                None => {
+                    return Err(self.create_parser_error("Couldn't create argument.".to_owned()))
+                }
             };
             arguments.push(argument);
         }
@@ -511,12 +522,12 @@ impl<L: ILexer> Parser<L> {
         // argument = [“&”], expression;
         let passed_by = match self.consume_if_matches(TokenCategory::Reference)? {
             Some(_) => PassedBy::Reference,
-            None => PassedBy::Value
+            None => PassedBy::Value,
         };
 
         let expression = match self.parse_expression()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+            None => return Err(self.create_parser_error("Couldn't create expression.".to_owned())),
         };
         let argument = Argument {
             value: expression.value,
@@ -532,14 +543,18 @@ impl<L: ILexer> Parser<L> {
         // expression = concatenation_term { “||”, concatenation_term };
         let mut left_side = match self.parse_concatenation_term()? {
             Some(t) => t,
-            None => return Ok(None)
+            None => return Ok(None),
         };
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Or {
             let _ = self.next_token()?;
             let right_side = match self.parse_concatenation_term()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create concatenation term.".to_owned()))
+                None => {
+                    return Err(
+                        self.create_parser_error("Couldn't create concatenation term.".to_owned())
+                    )
+                }
             };
             let expression_type =
                 Expression::Alternative(Box::new(left_side.clone()), Box::new(right_side.clone()));
@@ -556,14 +571,18 @@ impl<L: ILexer> Parser<L> {
         // concatenation_term = relation_term, { “&&”, relation_term };
         let mut left_side = match self.parse_relation_term()? {
             Some(t) => t,
-            None => return Ok(None)
+            None => return Ok(None),
         };
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::And {
             let _ = self.next_token()?;
             let right_side = match self.parse_relation_term()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create relation term.".to_owned()))
+                None => {
+                    return Err(
+                        self.create_parser_error("Couldn't create relation term.".to_owned())
+                    )
+                }
             };
             let expression_type = Expression::Concatenation(
                 Box::new(left_side.clone()),
@@ -582,13 +601,17 @@ impl<L: ILexer> Parser<L> {
         // relation_term = additive_term, [ relation_operands, additive_term ];
         let left_side = match self.parse_additive_term()? {
             Some(t) => t,
-            None => return Ok(None)
+            None => return Ok(None),
         };
 
         if let Some(token) = self.consume_if_matches(TokenCategory::Equal)? {
             let right_side = match self.parse_additive_term()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create additive term.".to_owned()))
+                None => {
+                    return Err(
+                        self.create_parser_error("Couldn't create additive term.".to_owned())
+                    )
+                }
             };
             return Ok(Some(Node {
                 value: Expression::Equal(Box::new(left_side), Box::new(right_side)),
@@ -598,7 +621,11 @@ impl<L: ILexer> Parser<L> {
         if let Some(token) = self.consume_if_matches(TokenCategory::NotEqual)? {
             let right_side = match self.parse_additive_term()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create additive term.".to_owned()))
+                None => {
+                    return Err(
+                        self.create_parser_error("Couldn't create additive term.".to_owned())
+                    )
+                }
             };
             return Ok(Some(Node {
                 value: Expression::NotEqual(Box::new(left_side), Box::new(right_side)),
@@ -608,7 +635,11 @@ impl<L: ILexer> Parser<L> {
         if let Some(token) = self.consume_if_matches(TokenCategory::Greater)? {
             let right_side = match self.parse_additive_term()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create additive term.".to_owned()))
+                None => {
+                    return Err(
+                        self.create_parser_error("Couldn't create additive term.".to_owned())
+                    )
+                }
             };
             return Ok(Some(Node {
                 value: Expression::Greater(Box::new(left_side), Box::new(right_side)),
@@ -618,7 +649,11 @@ impl<L: ILexer> Parser<L> {
         if let Some(token) = self.consume_if_matches(TokenCategory::GreaterOrEqual)? {
             let right_side = match self.parse_additive_term()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create additive term.".to_owned()))
+                None => {
+                    return Err(
+                        self.create_parser_error("Couldn't create additive term.".to_owned())
+                    )
+                }
             };
             return Ok(Some(Node {
                 value: Expression::GreaterEqual(Box::new(left_side), Box::new(right_side)),
@@ -628,7 +663,11 @@ impl<L: ILexer> Parser<L> {
         if let Some(token) = self.consume_if_matches(TokenCategory::Less)? {
             let right_side = match self.parse_additive_term()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create additive term.".to_owned()))
+                None => {
+                    return Err(
+                        self.create_parser_error("Couldn't create additive term.".to_owned())
+                    )
+                }
             };
             return Ok(Some(Node {
                 value: Expression::Less(Box::new(left_side), Box::new(right_side)),
@@ -638,7 +677,11 @@ impl<L: ILexer> Parser<L> {
         if let Some(token) = self.consume_if_matches(TokenCategory::LessOrEqual)? {
             let right_side = match self.parse_additive_term()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create additive term.".to_owned()))
+                None => {
+                    return Err(
+                        self.create_parser_error("Couldn't create additive term.".to_owned())
+                    )
+                }
             };
             return Ok(Some(Node {
                 value: Expression::LessEqual(Box::new(left_side), Box::new(right_side)),
@@ -654,7 +697,7 @@ impl<L: ILexer> Parser<L> {
         // plus i minus
         let mut left_side = match self.parse_multiplicative_term()? {
             Some(t) => t,
-            None => return Ok(None)
+            None => return Ok(None),
         };
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Plus
@@ -663,7 +706,11 @@ impl<L: ILexer> Parser<L> {
             let _ = self.next_token()?;
             let right_side = match self.parse_multiplicative_term()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create multiplicative term.".to_owned()))
+                None => {
+                    return Err(
+                        self.create_parser_error("Couldn't create multiplicative term.".to_owned())
+                    )
+                }
             };
             let mut expression_type =
                 Expression::Addition(Box::new(left_side.clone()), Box::new(right_side.clone()));
@@ -683,7 +730,7 @@ impl<L: ILexer> Parser<L> {
         // multiplicative_term = casted_term, { ("*" | "/"), casted_term };
         let mut left_side = match self.parse_casted_term()? {
             Some(t) => t,
-            None => return Ok(None)
+            None => return Ok(None),
         };
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Multiply
@@ -692,7 +739,9 @@ impl<L: ILexer> Parser<L> {
             let _ = self.next_token()?;
             let right_side = match self.parse_casted_term()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create casted term.".to_owned()))
+                None => {
+                    return Err(self.create_parser_error("Couldn't create casted term.".to_owned()))
+                }
             };
             let mut expression_type = Expression::Multiplication(
                 Box::new(left_side.clone()),
@@ -721,7 +770,7 @@ impl<L: ILexer> Parser<L> {
             Some(_) => {
                 let type_parsed = match self.parse_type()? {
                     Some(t) => t,
-                    None => return Err(self.create_parser_error("Couldn't parse type.".to_owned()))
+                    None => return Err(self.create_parser_error("Couldn't parse type.".to_owned())),
                 };
                 return Ok(Some(Node {
                     value: Expression::Casting {
@@ -741,7 +790,7 @@ impl<L: ILexer> Parser<L> {
         if let Some(token) = self.consume_if_matches(TokenCategory::Negate)? {
             let factor = match self.parse_factor()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create factor.".to_owned()))
+                None => return Err(self.create_parser_error("Couldn't create factor.".to_owned())),
             };
             return Ok(Some(Node {
                 value: Expression::BooleanNegation(Box::new(factor)),
@@ -751,7 +800,7 @@ impl<L: ILexer> Parser<L> {
         if let Some(token) = self.consume_if_matches(TokenCategory::Minus)? {
             let factor = match self.parse_factor()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create factor.".to_owned()))
+                None => return Err(self.create_parser_error("Couldn't create factor.".to_owned())),
             };
             return Ok(Some(Node {
                 value: Expression::ArithmeticNegation(Box::new(factor)),
@@ -765,24 +814,24 @@ impl<L: ILexer> Parser<L> {
     fn parse_factor(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // factor = literal | ( "(", expression, ")" ) | identifier_or_call;
         match self.parse_literal() {
-            Ok(result) => {
-                match result {
-                    Some(literal) => {
-                        let node = Node {
-                            value: Expression::Literal(literal.value),
-                            position: literal.position,
-                        };
-                        return Ok(Some(node));
-                    },
-                    None => {}
+            Ok(result) => match result {
+                Some(literal) => {
+                    let node = Node {
+                        value: Expression::Literal(literal.value),
+                        position: literal.position,
+                    };
+                    return Ok(Some(node));
                 }
-            }
+                None => {}
+            },
             Err(_) => {}
         }
         if self.consume_if_matches(TokenCategory::ParenOpen)?.is_some() {
             let expression = match self.parse_expression()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+                None => {
+                    return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+                }
             };
             self.consume_must_be(TokenCategory::ParenClose)?;
             return Ok(Some(expression));
@@ -819,7 +868,7 @@ impl<L: ILexer> Parser<L> {
         // switch_statement = "switch", "(", switch_expressions, ")", "{", {switch_case}, "}";
         let switch_token = match self.consume_must_be(TokenCategory::Switch) {
             Ok(t) => t,
-            Err(_) => return Ok(None)
+            Err(_) => return Ok(None),
         };
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let switch_expressions = self.parse_switch_expressions()?;
@@ -829,7 +878,9 @@ impl<L: ILexer> Parser<L> {
         while self.current_token().category != TokenCategory::BraceClose {
             let switch_case = match self.parse_switch_case()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create switch case.".to_owned()))
+                None => {
+                    return Err(self.create_parser_error("Couldn't create switch case.".to_owned()))
+                }
             };
             switch_cases.push(switch_case);
         }
@@ -849,24 +900,30 @@ impl<L: ILexer> Parser<L> {
         let mut switch_expressions: Vec<Node<SwitchExpression>> = vec![];
         let mut expression = match self.parse_switch_expression()? {
             Some(t) => t,
-            None => return Ok(vec![])
+            None => return Ok(vec![]),
         };
         switch_expressions.push(expression);
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             expression = match self.parse_switch_expression()? {
                 Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create swicth expression.".to_owned()))
+                None => {
+                    return Err(
+                        self.create_parser_error("Couldn't create swicth expression.".to_owned())
+                    )
+                }
             };
             switch_expressions.push(expression);
         }
         Ok(switch_expressions)
     }
 
-    fn parse_switch_expression(&mut self) -> Result<Option<Node<SwitchExpression>>, Box<dyn Issue>> {
+    fn parse_switch_expression(
+        &mut self,
+    ) -> Result<Option<Node<SwitchExpression>>, Box<dyn Issue>> {
         // switch_expression = expression, [ ":", identifier ];
         let expression = match self.parse_expression()? {
             Some(t) => t,
-            None => return Ok(None)
+            None => return Ok(None),
         };
 
         let position = expression.position;
@@ -889,13 +946,15 @@ impl<L: ILexer> Parser<L> {
         let paren_open_token = self.consume_must_be(TokenCategory::ParenOpen)?;
         let condition = match self.parse_expression()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+            None => return Err(self.create_parser_error("Couldn't create expression.".to_owned())),
         };
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let _ = self.consume_must_be(TokenCategory::Arrow)?;
         let block = match self.parse_statement_block()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create statement block.".to_owned()))
+            None => {
+                return Err(self.create_parser_error("Couldn't create statement block.".to_owned()))
+            }
         };
         let node = Node {
             value: SwitchCase { condition, block },
@@ -906,9 +965,13 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_type(&mut self) -> Result<Option<Node<Type>>, Box<dyn Issue>> {
         let token = self.current_token();
-        if token.category != TokenCategory::Bool && token.category != TokenCategory::String &&token.category != TokenCategory::I64 &&token.category != TokenCategory::F64 {
+        if token.category != TokenCategory::Bool
+            && token.category != TokenCategory::String
+            && token.category != TokenCategory::I64
+            && token.category != TokenCategory::F64
+        {
             return Ok(None);
-        } 
+        }
         let result = match token.category {
             TokenCategory::Bool => Type::Bool,
             TokenCategory::String => Type::Str,
@@ -1173,19 +1236,17 @@ mod tests {
 
     #[test]
     fn parse_statement_fail() {
-        let token_series = vec![
-            vec![
-                // i64 a = 5
-                create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("a".to_owned()),
-                ),
-                create_token(TokenCategory::Assign, TokenValue::Null),
-                create_token(TokenCategory::I64Value, TokenValue::I64(5)),
-                create_token(TokenCategory::ETX, TokenValue::Null),
-            ],
-        ];
+        let token_series = vec![vec![
+            // i64 a = 5
+            create_token(TokenCategory::I64, TokenValue::Null),
+            create_token(
+                TokenCategory::Identifier,
+                TokenValue::String("a".to_owned()),
+            ),
+            create_token(TokenCategory::Assign, TokenValue::Null),
+            create_token(TokenCategory::I64Value, TokenValue::I64(5)),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ]];
 
         for series in token_series {
             let mock_lexer = LexerMock::new(series);
@@ -2180,13 +2241,11 @@ mod tests {
 
     #[test]
     fn parse_break_statement_fail() {
-        let token_series = vec![
-            vec![
-                // break
-                create_token(TokenCategory::Break, TokenValue::Null),
-                create_token(TokenCategory::ETX, TokenValue::Null),
-            ],
-        ];
+        let token_series = vec![vec![
+            // break
+            create_token(TokenCategory::Break, TokenValue::Null),
+            create_token(TokenCategory::ETX, TokenValue::Null),
+        ]];
 
         for series in token_series {
             let mock_lexer = LexerMock::new(series);

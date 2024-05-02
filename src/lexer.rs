@@ -11,7 +11,6 @@ pub struct LexerOptions {
     pub max_identifier_length: u32,
 }
 
-
 pub trait ILexer {
     fn current(&self) -> &Option<Token>;
     fn next(&mut self) -> Result<Token, Box<dyn Issue>>;
