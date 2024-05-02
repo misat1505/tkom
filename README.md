@@ -52,7 +52,7 @@ fn do_sth(&i64 x, i64 y=0): void {}
 
 **statement_block** = "{", {statement}, "}";
 
-**statement** = assign_or_call | if_statement | for_statement | switch_statement | declaration, ";" | return_statement | “break”, “;”;
+**statement** = assign_or_call | if_statement | for_statement | switch_statement | declaration, ";" | return_statement | break_statement;
 
 **assign_or_call** = identifier, ("=", expression | "(", arguments, ")"), ";";
 
@@ -77,6 +77,12 @@ if (x == 5) {} else {}
 
 ```
 for (i64 x = a - 1; i < a + 1; i = i + 1) {}
+```
+
+**break_statement** = "break", ";";
+
+```
+break;
 ```
 
 **return_statement** = "return", [ expression ], ";";
