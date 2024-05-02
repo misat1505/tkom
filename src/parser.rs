@@ -4,6 +4,7 @@ use crate::{
         Statement, SwitchCase, SwitchExpression, Type,
     },
     errors::{Issue, IssueLevel, ParserIssue},
+    lazy_stream_reader::Position,
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
 };
@@ -990,13 +991,18 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_type(&mut self) -> Result<Option<Node<Type>>, Box<dyn Issue>> {
         let token = self.current_token();
-        if token.category != TokenCategory::Bool
-            && token.category != TokenCategory::String
-            && token.category != TokenCategory::I64
-            && token.category != TokenCategory::F64
-        {
+
+        let valid_types = [
+            TokenCategory::Bool,
+            TokenCategory::String,
+            TokenCategory::I64,
+            TokenCategory::F64,
+        ];
+
+        if !valid_types.contains(&token.category) {
             return Ok(None);
         }
+
         let result = match token.category {
             TokenCategory::Bool => Type::Bool,
             TokenCategory::String => Type::Str,
@@ -1018,39 +1024,33 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_literal(&mut self) -> Result<Option<Node<Literal>>, Box<dyn Issue>> {
         let token = self.current_token();
+        let position = token.position;
+
+        fn create_literal_node(
+            value: Literal,
+            position: Position,
+        ) -> Result<Option<Node<Literal>>, Box<dyn Issue>> {
+            Ok(Some(Node { value, position }))
+        }
+
         if self.consume_if_matches(TokenCategory::True)?.is_some() {
-            return Ok(Some(Node {
-                value: Literal::True,
-                position: token.position,
-            }));
+            return create_literal_node(Literal::True, position);
         } else if self.consume_if_matches(TokenCategory::False)?.is_some() {
-            return Ok(Some(Node {
-                value: Literal::False,
-                position: token.position,
-            }));
+            return create_literal_node(Literal::False, position);
         } else if self
             .consume_if_matches(TokenCategory::StringValue)?
             .is_some()
         {
             if let TokenValue::String(string) = token.value {
-                return Ok(Some(Node {
-                    value: Literal::String(string),
-                    position: token.position,
-                }));
+                return create_literal_node(Literal::String(string), position);
             }
         } else if self.consume_if_matches(TokenCategory::I64Value)?.is_some() {
             if let TokenValue::I64(int) = token.value {
-                return Ok(Some(Node {
-                    value: Literal::I64(int),
-                    position: token.position,
-                }));
+                return create_literal_node(Literal::I64(int), position);
             }
         } else if self.consume_if_matches(TokenCategory::F64Value)?.is_some() {
             if let TokenValue::F64(float) = token.value {
-                return Ok(Some(Node {
-                    value: Literal::F64(float),
-                    position: token.position,
-                }));
+                return create_literal_node(Literal::F64(float), position);
             }
         }
         return Ok(None);
