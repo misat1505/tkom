@@ -630,17 +630,6 @@ impl<L: ILexer> Parser<L> {
         Ok(Some(left_side))
     }
 
-    fn parse_comparison(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
-        match self.parse_additive_term()? {
-            Some(t) => Ok(Some(t)),
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create additive term while parsing relation term.".to_owned(),
-                ))
-            }
-        }
-    }
-
     fn parse_relation_term(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // relation_term = additive_term, [ relation_operands, additive_term ];
         let left_side = match self.parse_additive_term()? {
@@ -648,50 +637,41 @@ impl<L: ILexer> Parser<L> {
             None => return Ok(None),
         };
 
-        if let Some(token) = self.consume_if_matches(TokenCategory::Equal)? {
-            let right_side = self.parse_comparison()?.unwrap();
-            return Ok(Some(Node {
-                value: Expression::Equal(Box::new(left_side), Box::new(right_side)),
-                position: token.position,
-            }));
-        }
-        if let Some(token) = self.consume_if_matches(TokenCategory::NotEqual)? {
-            let right_side = self.parse_comparison()?.unwrap();
-            return Ok(Some(Node {
-                value: Expression::NotEqual(Box::new(left_side), Box::new(right_side)),
-                position: token.position,
-            }));
-        }
-        if let Some(token) = self.consume_if_matches(TokenCategory::Greater)? {
-            let right_side = self.parse_comparison()?.unwrap();
-            return Ok(Some(Node {
-                value: Expression::Greater(Box::new(left_side), Box::new(right_side)),
-                position: token.position,
-            }));
-        }
-        if let Some(token) = self.consume_if_matches(TokenCategory::GreaterOrEqual)? {
-            let right_side = self.parse_comparison()?.unwrap();
-            return Ok(Some(Node {
-                value: Expression::GreaterEqual(Box::new(left_side), Box::new(right_side)),
-                position: token.position,
-            }));
-        }
-        if let Some(token) = self.consume_if_matches(TokenCategory::Less)? {
-            let right_side = self.parse_comparison()?.unwrap();
-            return Ok(Some(Node {
-                value: Expression::Less(Box::new(left_side), Box::new(right_side)),
-                position: token.position,
-            }));
-        }
-        if let Some(token) = self.consume_if_matches(TokenCategory::LessOrEqual)? {
-            let right_side = self.parse_comparison()?.unwrap();
-            return Ok(Some(Node {
-                value: Expression::LessEqual(Box::new(left_side), Box::new(right_side)),
-                position: token.position,
-            }));
+        let operands = [
+            TokenCategory::Equal,
+            TokenCategory::NotEqual,
+            TokenCategory::Greater,
+            TokenCategory::GreaterOrEqual,
+            TokenCategory::Less,
+            TokenCategory::LessOrEqual,
+        ];
+
+        let current_token = self.current_token();
+        if !operands.contains(&current_token.category) {
+            return Ok(Some(left_side));
         }
 
-        Ok(Some(left_side))
+        let _ = self.next_token()?;
+        let right_side = match self.parse_additive_term()? {
+            Some(t) => t,
+            None => return Err(self.create_parser_error("Couldn't create additive term while parsing relation term.".to_owned()))
+        };
+
+        let box_l = Box::new(left_side.clone());
+        let box_r = Box::new(right_side);
+
+        let expr = match current_token.category {
+            TokenCategory::Equal => Expression::Equal(box_l.clone(), box_r.clone()),
+            TokenCategory::NotEqual => Expression::NotEqual(box_l.clone(), box_r.clone()),
+            TokenCategory::Greater => Expression::Greater(box_l.clone(), box_r.clone()),
+            TokenCategory::GreaterOrEqual => Expression::GreaterEqual(box_l.clone(), box_r.clone()),
+            TokenCategory::Less => Expression::Less(box_l.clone(), box_r.clone()),
+            TokenCategory::LessOrEqual => Expression::LessEqual(box_l.clone(), box_r.clone()),
+            _ => return Err(self.create_parser_error("Couldn't create additive term while parsing relation term.".to_owned()))
+        };
+
+        let node = Node { value: expr, position: left_side.position };
+        Ok(Some(node))
     }
 
     fn parse_additive_term(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
