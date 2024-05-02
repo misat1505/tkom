@@ -498,9 +498,8 @@ impl<L: ILexer> Parser<L> {
     fn parse_arguments(&mut self) -> Result<Vec<Node<Argument>>, Box<dyn Issue>> {
         // arguments = [ argument, {",", argument} ];
         let expression = match self.parse_argument()? {
-                Some(t) => t,
-                None => return Ok(vec![]),
-            
+            Some(t) => t,
+            None => return Ok(vec![]),
         };
 
         let mut arguments = vec![expression];
