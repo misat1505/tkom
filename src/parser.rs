@@ -123,7 +123,11 @@ impl<L: ILexer> Parser<L> {
         };
         let identifier = match self.parse_identifier()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create identifier.".to_owned())),
+            None => {
+                return Err(self.create_parser_error(
+                    "Couldn't create identifier while parsing function declaration.".to_owned(),
+                ))
+            }
         };
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let parameters = self.parse_parameters()?;
@@ -157,7 +161,10 @@ impl<L: ILexer> Parser<L> {
         let block = match self.parse_statement_block()? {
             Some(t) => t,
             None => {
-                return Err(self.create_parser_error("Couldn't create statement block.".to_owned()))
+                return Err(self.create_parser_error(
+                    "Couldn't create statement block while parsing function declaration."
+                        .to_owned(),
+                ))
             }
         };
         let node = Node {
@@ -184,7 +191,9 @@ impl<L: ILexer> Parser<L> {
             let parameter = match self.parse_parameter()? {
                 Some(t) => t,
                 None => {
-                    return Err(self.create_parser_error("Couldn't create parameter.".to_owned()))
+                    return Err(self.create_parser_error(
+                        "Couldn't create parameter while parsing parameters.".to_owned(),
+                    ))
                 }
             };
             parameters.push(parameter);
@@ -205,7 +214,11 @@ impl<L: ILexer> Parser<L> {
         };
         let identifier = match self.parse_identifier()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create identifier.".to_owned())),
+            None => {
+                return Err(self.create_parser_error(
+                    "Couldn't create identifier while parsing parameter.".to_owned(),
+                ))
+            }
         };
         let value = match self.consume_if_matches(TokenCategory::Assign)? {
             Some(_) => self.parse_expression()?,
@@ -247,7 +260,11 @@ impl<L: ILexer> Parser<L> {
         self.consume_must_be(TokenCategory::Semicolon)?;
         let condition = match self.parse_expression()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create expression.".to_owned())),
+            None => {
+                return Err(self.create_parser_error(
+                    "Couldn't create expression while parsing for statement.".to_owned(),
+                ))
+            }
         };
         self.consume_must_be(TokenCategory::Semicolon)?;
         let mut assignment: Option<Node<Box<Statement>>> = None;
@@ -255,7 +272,9 @@ impl<L: ILexer> Parser<L> {
             let identifier = match self.parse_identifier()? {
                 Some(t) => t,
                 None => {
-                    return Err(self.create_parser_error("Couldn't create identifier.".to_owned()))
+                    return Err(self.create_parser_error(
+                        "Couldn't create identifier while parsing for statement.".to_owned(),
+                    ))
                 }
             };
             let position = identifier.position;
@@ -263,7 +282,9 @@ impl<L: ILexer> Parser<L> {
             let expr = match self.parse_expression()? {
                 Some(t) => t,
                 None => {
-                    return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+                    return Err(self.create_parser_error(
+                        "Couldn't create expression while parsing for statement.".to_owned(),
+                    ))
                 }
             };
             let assign = Node {
@@ -279,7 +300,9 @@ impl<L: ILexer> Parser<L> {
         let block = match self.parse_statement_block()? {
             Some(t) => t,
             None => {
-                return Err(self.create_parser_error("Couldn't create statement block.".to_owned()))
+                return Err(self.create_parser_error(
+                    "Couldn't create statement block while parsing for statement.".to_owned(),
+                ))
             }
         };
         let node = Node {
@@ -304,13 +327,19 @@ impl<L: ILexer> Parser<L> {
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let condition = match self.parse_expression()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create expression.".to_owned())),
+            None => {
+                return Err(self.create_parser_error(
+                    "Couldn't create expression while parsing if statement.".to_owned(),
+                ))
+            }
         };
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let true_block = match self.parse_statement_block()? {
             Some(t) => t,
             None => {
-                return Err(self.create_parser_error("Couldn't create statement block.".to_owned()))
+                return Err(self.create_parser_error(
+                    "Couldn't create statement block while parsing if statement.".to_owned(),
+                ))
             }
         };
 
@@ -344,7 +373,9 @@ impl<L: ILexer> Parser<L> {
             let statement = match self.parse_statement()? {
                 Some(t) => t,
                 None => {
-                    return Err(self.create_parser_error("Couldn't create statement.".to_owned()))
+                    return Err(self.create_parser_error(
+                        "Couldn't create statement while parsing statement block.".to_owned(),
+                    ))
                 }
             };
             statements.push(statement);
@@ -406,7 +437,9 @@ impl<L: ILexer> Parser<L> {
             let expr = match self.parse_expression()? {
                 Some(t) => t,
                 None => {
-                    return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+                    return Err(self.create_parser_error(
+                        "Couldn't create expression while parsing assignment.".to_owned(),
+                    ))
                 }
             };
             let node = Node {
@@ -447,7 +480,11 @@ impl<L: ILexer> Parser<L> {
         let position = declaration_type.position;
         let identifier = match self.parse_identifier()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create identifier.".to_owned())),
+            None => {
+                return Err(self.create_parser_error(
+                    "Couldn't create identifier while parsing variable declaration.".to_owned(),
+                ))
+            }
         };
         let value = match self.consume_if_matches(TokenCategory::Assign)? {
             Some(_) => self.parse_expression()?,
@@ -507,7 +544,9 @@ impl<L: ILexer> Parser<L> {
             let argument = match self.parse_argument()? {
                 Some(t) => t,
                 None => {
-                    return Err(self.create_parser_error("Couldn't create argument.".to_owned()))
+                    return Err(self.create_parser_error(
+                        "Couldn't create argument while parsing arguments.".to_owned(),
+                    ))
                 }
             };
             arguments.push(argument);
@@ -548,9 +587,9 @@ impl<L: ILexer> Parser<L> {
             let right_side = match self.parse_concatenation_term()? {
                 Some(t) => t,
                 None => {
-                    return Err(
-                        self.create_parser_error("Couldn't create concatenation term.".to_owned())
-                    )
+                    return Err(self.create_parser_error(
+                        "Couldn't create concatenation term while parsing expression.".to_owned(),
+                    ))
                 }
             };
             let expression_type =
@@ -576,9 +615,10 @@ impl<L: ILexer> Parser<L> {
             let right_side = match self.parse_relation_term()? {
                 Some(t) => t,
                 None => {
-                    return Err(
-                        self.create_parser_error("Couldn't create relation term.".to_owned())
-                    )
+                    return Err(self.create_parser_error(
+                        "Couldn't create relation term while parsing concatenation term."
+                            .to_owned(),
+                    ))
                 }
             };
             let expression_type = Expression::Concatenation(
@@ -594,6 +634,17 @@ impl<L: ILexer> Parser<L> {
         Ok(Some(left_side))
     }
 
+    fn parse_comparison(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
+        match self.parse_additive_term()? {
+            Some(t) => Ok(Some(t)),
+            None => {
+                return Err(self.create_parser_error(
+                    "Couldn't create additive term while parsing relation term.".to_owned(),
+                ))
+            }
+        }
+    }
+
     fn parse_relation_term(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // relation_term = additive_term, [ relation_operands, additive_term ];
         let left_side = match self.parse_additive_term()? {
@@ -602,84 +653,42 @@ impl<L: ILexer> Parser<L> {
         };
 
         if let Some(token) = self.consume_if_matches(TokenCategory::Equal)? {
-            let right_side = match self.parse_additive_term()? {
-                Some(t) => t,
-                None => {
-                    return Err(
-                        self.create_parser_error("Couldn't create additive term.".to_owned())
-                    )
-                }
-            };
+            let right_side = self.parse_comparison()?.unwrap();
             return Ok(Some(Node {
                 value: Expression::Equal(Box::new(left_side), Box::new(right_side)),
                 position: token.position,
             }));
         }
         if let Some(token) = self.consume_if_matches(TokenCategory::NotEqual)? {
-            let right_side = match self.parse_additive_term()? {
-                Some(t) => t,
-                None => {
-                    return Err(
-                        self.create_parser_error("Couldn't create additive term.".to_owned())
-                    )
-                }
-            };
+            let right_side = self.parse_comparison()?.unwrap();
             return Ok(Some(Node {
                 value: Expression::NotEqual(Box::new(left_side), Box::new(right_side)),
                 position: token.position,
             }));
         }
         if let Some(token) = self.consume_if_matches(TokenCategory::Greater)? {
-            let right_side = match self.parse_additive_term()? {
-                Some(t) => t,
-                None => {
-                    return Err(
-                        self.create_parser_error("Couldn't create additive term.".to_owned())
-                    )
-                }
-            };
+            let right_side = self.parse_comparison()?.unwrap();
             return Ok(Some(Node {
                 value: Expression::Greater(Box::new(left_side), Box::new(right_side)),
                 position: token.position,
             }));
         }
         if let Some(token) = self.consume_if_matches(TokenCategory::GreaterOrEqual)? {
-            let right_side = match self.parse_additive_term()? {
-                Some(t) => t,
-                None => {
-                    return Err(
-                        self.create_parser_error("Couldn't create additive term.".to_owned())
-                    )
-                }
-            };
+            let right_side = self.parse_comparison()?.unwrap();
             return Ok(Some(Node {
                 value: Expression::GreaterEqual(Box::new(left_side), Box::new(right_side)),
                 position: token.position,
             }));
         }
         if let Some(token) = self.consume_if_matches(TokenCategory::Less)? {
-            let right_side = match self.parse_additive_term()? {
-                Some(t) => t,
-                None => {
-                    return Err(
-                        self.create_parser_error("Couldn't create additive term.".to_owned())
-                    )
-                }
-            };
+            let right_side = self.parse_comparison()?.unwrap();
             return Ok(Some(Node {
                 value: Expression::Less(Box::new(left_side), Box::new(right_side)),
                 position: token.position,
             }));
         }
         if let Some(token) = self.consume_if_matches(TokenCategory::LessOrEqual)? {
-            let right_side = match self.parse_additive_term()? {
-                Some(t) => t,
-                None => {
-                    return Err(
-                        self.create_parser_error("Couldn't create additive term.".to_owned())
-                    )
-                }
-            };
+            let right_side = self.parse_comparison()?.unwrap();
             return Ok(Some(Node {
                 value: Expression::LessEqual(Box::new(left_side), Box::new(right_side)),
                 position: token.position,
@@ -691,7 +700,6 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_additive_term(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // additive_term = multiplicative_term , { ("+" | "-"), multiplicative_term };
-        // plus i minus
         let mut left_side = match self.parse_multiplicative_term()? {
             Some(t) => t,
             None => return Ok(None),
@@ -704,9 +712,10 @@ impl<L: ILexer> Parser<L> {
             let right_side = match self.parse_multiplicative_term()? {
                 Some(t) => t,
                 None => {
-                    return Err(
-                        self.create_parser_error("Couldn't create multiplicative term.".to_owned())
-                    )
+                    return Err(self.create_parser_error(
+                        "Couldn't create multiplicative term while parsing additive term."
+                            .to_owned(),
+                    ))
                 }
             };
             let mut expression_type =
@@ -737,7 +746,9 @@ impl<L: ILexer> Parser<L> {
             let right_side = match self.parse_casted_term()? {
                 Some(t) => t,
                 None => {
-                    return Err(self.create_parser_error("Couldn't create casted term.".to_owned()))
+                    return Err(self.create_parser_error(
+                        "Couldn't create casted term while parsing multiplicative term.".to_owned(),
+                    ))
                 }
             };
             let mut expression_type = Expression::Multiplication(
@@ -781,29 +792,35 @@ impl<L: ILexer> Parser<L> {
         }
     }
 
+    fn parse_unary_term_factor(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
+        match self.parse_factor()? {
+            Some(t) => Ok(Some(t)),
+            None => {
+                return Err(self.create_parser_error(
+                    "Couldn't create factor while parsing unary term.".to_owned(),
+                ))
+            }
+        }
+    }
+
     fn parse_unary_term(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // unary_term = [ ("-", "!") ], factor;
-        // zrowicic konstrutor
         if let Some(token) = self.consume_if_matches(TokenCategory::Negate)? {
-            let factor = match self.parse_factor()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create factor.".to_owned())),
-            };
+            let factor = self.parse_unary_term_factor()?.unwrap();
             return Ok(Some(Node {
                 value: Expression::BooleanNegation(Box::new(factor)),
                 position: token.position,
             }));
         }
+
         if let Some(token) = self.consume_if_matches(TokenCategory::Minus)? {
-            let factor = match self.parse_factor()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create factor.".to_owned())),
-            };
+            let factor = self.parse_unary_term_factor()?.unwrap();
             return Ok(Some(Node {
                 value: Expression::ArithmeticNegation(Box::new(factor)),
                 position: token.position,
             }));
         }
+
         let factor = self.parse_factor()?;
         Ok(factor)
     }
@@ -827,7 +844,9 @@ impl<L: ILexer> Parser<L> {
             let expression = match self.parse_expression()? {
                 Some(t) => t,
                 None => {
-                    return Err(self.create_parser_error("Couldn't create expression.".to_owned()))
+                    return Err(self.create_parser_error(
+                        "Couldn't create expression while parsing nested expression.".to_owned(),
+                    ))
                 }
             };
             self.consume_must_be(TokenCategory::ParenClose)?;
@@ -876,7 +895,9 @@ impl<L: ILexer> Parser<L> {
             let switch_case = match self.parse_switch_case()? {
                 Some(t) => t,
                 None => {
-                    return Err(self.create_parser_error("Couldn't create switch case.".to_owned()))
+                    return Err(self.create_parser_error(
+                        "Couldn't create switch case while parsing switch statement.".to_owned(),
+                    ))
                 }
             };
             switch_cases.push(switch_case);
@@ -904,9 +925,10 @@ impl<L: ILexer> Parser<L> {
             expression = match self.parse_switch_expression()? {
                 Some(t) => t,
                 None => {
-                    return Err(
-                        self.create_parser_error("Couldn't create swicth expression.".to_owned())
-                    )
+                    return Err(self.create_parser_error(
+                        "Couldn't create swicth expression while parsing switch expressions."
+                            .to_owned(),
+                    ))
                 }
             };
             switch_expressions.push(expression);
@@ -943,14 +965,20 @@ impl<L: ILexer> Parser<L> {
         let paren_open_token = self.consume_must_be(TokenCategory::ParenOpen)?;
         let condition = match self.parse_expression()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create expression.".to_owned())),
+            None => {
+                return Err(self.create_parser_error(
+                    "Couldn't create expression while parsing switch case.".to_owned(),
+                ))
+            }
         };
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let _ = self.consume_must_be(TokenCategory::Arrow)?;
         let block = match self.parse_statement_block()? {
             Some(t) => t,
             None => {
-                return Err(self.create_parser_error("Couldn't create statement block.".to_owned()))
+                return Err(self.create_parser_error(
+                    "Couldn't create statement block while parsing switch case.".to_owned(),
+                ))
             }
         };
         let node = Node {
