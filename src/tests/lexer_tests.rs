@@ -3,14 +3,14 @@ mod tests {
     use std::io::BufReader;
 
     use crate::{
+        errors::Issue,
         lazy_stream_reader::LazyStreamReader,
-        lexer::{ILexer, Lexer},
-        lexer_utils::{LexerIssue, LexerOptions},
+        lexer::{ILexer, Lexer, LexerOptions},
         tokens::{TokenCategory, TokenValue},
     };
 
-    fn on_warning(warning: LexerIssue) {
-        println!("{}", warning.message);
+    fn on_warning(warning: Box<dyn Issue>) {
+        println!("{}", warning.message());
     }
 
     fn create_lexer(text: &str) -> Lexer<BufReader<&[u8]>> {
@@ -210,14 +210,12 @@ mod edge_case_tests {
     use std::io::BufReader;
 
     use crate::{
-        lazy_stream_reader::LazyStreamReader,
-        lexer::Lexer,
-        lexer_utils::{LexerIssue, LexerOptions},
+        errors::Issue, lazy_stream_reader::LazyStreamReader, lexer::{Lexer, LexerOptions},
         tokens::TokenCategory,
     };
 
-    fn on_warning(warning: LexerIssue) {
-        println!("{}", warning.message);
+    fn on_warning(warning: Box<dyn Issue>) {
+        println!("{}", warning.message());
     }
 
     fn create_lexer(text: &str) -> Lexer<BufReader<&[u8]>> {

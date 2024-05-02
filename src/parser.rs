@@ -3,6 +3,7 @@ use crate::{
         Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Parameter,
         ParameterPassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
     },
+    errors::{Issue, IssueLevel, ParserIssue},
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
 };
@@ -11,22 +12,9 @@ pub struct Parser<L: ILexer> {
     lexer: L,
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-pub enum ParserIssueKind {
-    WARNING,
-    ERROR,
-}
-
-#[derive(Debug, Clone)]
-pub struct ParserIssue {
-    pub kind: ParserIssueKind,
-    pub message: String,
-}
-
 pub trait IParser<L: ILexer> {
     fn new(lexer: L) -> Parser<L>;
-    fn parse(&mut self) -> Result<Program, ParserIssue>;
+    fn parse(&mut self) -> Result<Program, Box<dyn Issue>>;
 }
 
 impl<L: ILexer> IParser<L> for Parser<L> {
@@ -34,9 +22,9 @@ impl<L: ILexer> IParser<L> for Parser<L> {
         Parser { lexer }
     }
 
-    fn parse(&mut self) -> Result<Program, ParserIssue> {
-        let _ = self.next_token(); // initialize
-        let _ = self.next_token(); // skip STX
+    fn parse(&mut self) -> Result<Program, Box<dyn Issue>> {
+        let _ = self.next_token()?; // initialize
+        let _ = self.next_token()?; // skip STX
 
         let mut statements: Vec<Node<Statement>> = vec![];
 
@@ -78,19 +66,19 @@ impl<L: ILexer> IParser<L> for Parser<L> {
 }
 
 impl<L: ILexer> Parser<L> {
-    fn next_token(&mut self) -> Option<Token> {
-        let mut current_token = self.lexer.next().clone().unwrap();
+    fn next_token(&mut self) -> Result<Option<Token>, Box<dyn Issue>> {
+        let mut current_token = self.lexer.next()?.clone();
         while current_token.category == TokenCategory::Comment {
-            current_token = self.lexer.next().unwrap();
+            current_token = self.lexer.next()?.clone();
         }
-        Some(current_token)
+        Ok(Some(current_token))
     }
 
     fn current_token(&self) -> Token {
         self.lexer.current().clone().unwrap()
     }
 
-    fn parse_function_declaration(&mut self) -> Result<Node<Statement>, ParserIssue> {
+    fn parse_function_declaration(&mut self) -> Result<Node<Statement>, Box<dyn Issue>> {
         let fn_token = self.consume_must_be(TokenCategory::Fn)?;
         let identifier = self.parse_identifier()?;
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
@@ -99,7 +87,7 @@ impl<L: ILexer> Parser<L> {
         let _ = self.consume_must_be(TokenCategory::Colon)?;
         let return_type = match self.parse_type() {
             Ok(node) => Ok(node),
-            Err(_) => match self.consume_if_matches(TokenCategory::Void) {
+            Err(_) => match self.consume_if_matches(TokenCategory::Void)? {
                 Some(token) => Ok(Node {
                     value: Type::Void,
                     position: token.position,
@@ -123,7 +111,7 @@ impl<L: ILexer> Parser<L> {
         Ok(node)
     }
 
-    fn parse_parameters(&mut self) -> Result<Vec<Node<Parameter>>, ParserIssue> {
+    fn parse_parameters(&mut self) -> Result<Vec<Node<Parameter>>, Box<dyn Issue>> {
         if self.current_token().category == TokenCategory::ParenClose {
             return Ok(vec![]);
         }
@@ -131,22 +119,22 @@ impl<L: ILexer> Parser<L> {
         let expression = self.parse_parameter()?;
 
         let mut parameters = vec![expression];
-        while let Some(_) = self.consume_if_matches(TokenCategory::Comma) {
+        while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             let parameter = self.parse_parameter()?;
             parameters.push(parameter);
         }
         Ok(parameters)
     }
 
-    fn parse_parameter(&mut self) -> Result<Node<Parameter>, ParserIssue> {
+    fn parse_parameter(&mut self) -> Result<Node<Parameter>, Box<dyn Issue>> {
         let position = self.current_token().position;
-        let passed_by = match self.consume_if_matches(TokenCategory::Reference) {
+        let passed_by = match self.consume_if_matches(TokenCategory::Reference)? {
             Some(_) => ParameterPassedBy::Reference,
             None => ParameterPassedBy::Value,
         };
         let parameter_type = self.parse_type()?;
         let identifier = self.parse_identifier()?;
-        let value = match self.consume_if_matches(TokenCategory::Assign) {
+        let value = match self.consume_if_matches(TokenCategory::Assign)? {
             Some(_) => Some(self.parse_expression()?),
             None => None,
         };
@@ -162,7 +150,7 @@ impl<L: ILexer> Parser<L> {
         Ok(node)
     }
 
-    fn parse_for_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+    fn parse_for_statement(&mut self) -> Result<Node<Statement>, Box<dyn Issue>> {
         let for_token = self.consume_must_be(TokenCategory::For)?;
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let declaration = match self.parse_declaration() {
@@ -208,14 +196,14 @@ impl<L: ILexer> Parser<L> {
         Ok(node)
     }
 
-    fn parse_if_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+    fn parse_if_statement(&mut self) -> Result<Node<Statement>, Box<dyn Issue>> {
         let if_token = self.consume_must_be(TokenCategory::If)?;
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let condition = self.parse_expression()?;
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let true_block = self.parse_statement_block()?;
 
-        let false_block = match self.consume_if_matches(TokenCategory::Else) {
+        let false_block = match self.consume_if_matches(TokenCategory::Else)? {
             Some(_) => Some(self.parse_statement_block()?),
             None => None,
         };
@@ -231,10 +219,13 @@ impl<L: ILexer> Parser<L> {
         Ok(node)
     }
 
-    fn parse_statement_block(&mut self) -> Result<Node<Block>, ParserIssue> {
+    fn parse_statement_block(&mut self) -> Result<Node<Block>, Box<dyn Issue>> {
         let position = self.consume_must_be(TokenCategory::BraceOpen)?.position;
         let mut statements: Vec<Node<Statement>> = vec![];
-        while self.consume_if_matches(TokenCategory::BraceClose).is_none() {
+        while self
+            .consume_if_matches(TokenCategory::BraceClose)?
+            .is_none()
+        {
             let statement = self.parse_statement()?;
             statements.push(statement);
         }
@@ -244,7 +235,7 @@ impl<L: ILexer> Parser<L> {
         })
     }
 
-    fn parse_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+    fn parse_statement(&mut self) -> Result<Node<Statement>, Box<dyn Issue>> {
         let node = match self.current_token().category {
             TokenCategory::Identifier => self.parse_assign_or_call()?,
             TokenCategory::If => self.parse_if_statement()?,
@@ -273,11 +264,11 @@ impl<L: ILexer> Parser<L> {
         Ok(node)
     }
 
-    fn parse_assign_or_call(&mut self) -> Result<Node<Statement>, ParserIssue> {
+    fn parse_assign_or_call(&mut self) -> Result<Node<Statement>, Box<dyn Issue>> {
         let identifier = self.parse_identifier()?;
         let position = identifier.position;
 
-        if self.consume_if_matches(TokenCategory::Assign).is_some() {
+        if self.consume_if_matches(TokenCategory::Assign)?.is_some() {
             let expr = self.parse_expression()?;
             let node = Node {
                 value: Statement::Assignment {
@@ -290,7 +281,7 @@ impl<L: ILexer> Parser<L> {
             return Ok(node);
         }
 
-        if self.consume_if_matches(TokenCategory::ParenOpen).is_some() {
+        if self.consume_if_matches(TokenCategory::ParenOpen)?.is_some() {
             let arguments = self.parse_arguments()?.into_iter().map(Box::new).collect();
             let node = Node {
                 value: Statement::FunctionCall {
@@ -307,11 +298,11 @@ impl<L: ILexer> Parser<L> {
         Err(self.create_parser_error(format!("Could not create assignment or call.")))
     }
 
-    fn parse_declaration(&mut self) -> Result<Node<Statement>, ParserIssue> {
+    fn parse_declaration(&mut self) -> Result<Node<Statement>, Box<dyn Issue>> {
         let declaration_type = self.parse_type()?;
         let position = declaration_type.position;
         let identifier = self.parse_identifier()?;
-        let value = match self.consume_if_matches(TokenCategory::Assign) {
+        let value = match self.consume_if_matches(TokenCategory::Assign)? {
             Some(_) => Some(self.parse_expression()?),
             None => None,
         };
@@ -326,7 +317,7 @@ impl<L: ILexer> Parser<L> {
         Ok(node)
     }
 
-    fn parse_return_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+    fn parse_return_statement(&mut self) -> Result<Node<Statement>, Box<dyn Issue>> {
         let token = self.consume_must_be(TokenCategory::Return)?;
         let returned_value = match self.parse_expression() {
             Ok(expr) => Some(expr),
@@ -340,7 +331,7 @@ impl<L: ILexer> Parser<L> {
         Ok(node)
     }
 
-    fn parse_break_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+    fn parse_break_statement(&mut self) -> Result<Node<Statement>, Box<dyn Issue>> {
         let token = self.consume_must_be(TokenCategory::Break)?;
         let _ = self.consume_must_be(TokenCategory::Semicolon)?;
         let node = Node {
@@ -350,7 +341,7 @@ impl<L: ILexer> Parser<L> {
         Ok(node)
     }
 
-    fn parse_arguments(&mut self) -> Result<Vec<Node<Argument>>, ParserIssue> {
+    fn parse_arguments(&mut self) -> Result<Vec<Node<Argument>>, Box<dyn Issue>> {
         if self.current_token().category == TokenCategory::ParenClose {
             return Ok(vec![]);
         }
@@ -358,16 +349,16 @@ impl<L: ILexer> Parser<L> {
         let expression = self.parse_argument()?;
 
         let mut arguments = vec![expression];
-        while let Some(_) = self.consume_if_matches(TokenCategory::Comma) {
+        while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             let argument = self.parse_argument()?;
             arguments.push(argument);
         }
         Ok(arguments)
     }
 
-    fn parse_argument(&mut self) -> Result<Node<Argument>, ParserIssue> {
+    fn parse_argument(&mut self) -> Result<Node<Argument>, Box<dyn Issue>> {
         let mut passed_by = ArgumentPassedBy::Value;
-        if self.consume_if_matches(TokenCategory::Reference).is_some() {
+        if self.consume_if_matches(TokenCategory::Reference)?.is_some() {
             passed_by = ArgumentPassedBy::Reference;
         }
         let expression = self.parse_expression()?;
@@ -381,11 +372,11 @@ impl<L: ILexer> Parser<L> {
         })
     }
 
-    fn parse_expression(&mut self) -> Result<Node<Expression>, ParserIssue> {
+    fn parse_expression(&mut self) -> Result<Node<Expression>, Box<dyn Issue>> {
         let mut left_side = self.parse_concatenation_term()?;
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Or {
-            let _ = self.next_token();
+            let _ = self.next_token()?;
             let right_side = self.parse_concatenation_term()?;
             let expression_type =
                 Expression::Alternative(Box::new(left_side.clone()), Box::new(right_side.clone()));
@@ -398,11 +389,11 @@ impl<L: ILexer> Parser<L> {
         Ok(left_side)
     }
 
-    fn parse_concatenation_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
+    fn parse_concatenation_term(&mut self) -> Result<Node<Expression>, Box<dyn Issue>> {
         let mut left_side = self.parse_relation_term()?;
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::And {
-            let _ = self.next_token();
+            let _ = self.next_token()?;
             let right_side = self.parse_relation_term()?;
             let expression_type = Expression::Concatenation(
                 Box::new(left_side.clone()),
@@ -417,44 +408,44 @@ impl<L: ILexer> Parser<L> {
         Ok(left_side)
     }
 
-    fn parse_relation_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
+    fn parse_relation_term(&mut self) -> Result<Node<Expression>, Box<dyn Issue>> {
         let left_side = self.parse_additive_term()?;
-        if let Some(token) = self.consume_if_matches(TokenCategory::Equal) {
+        if let Some(token) = self.consume_if_matches(TokenCategory::Equal)? {
             let right_side = self.parse_additive_term()?;
             return Ok(Node {
                 value: Expression::Equal(Box::new(left_side), Box::new(right_side)),
                 position: token.position,
             });
         }
-        if let Some(token) = self.consume_if_matches(TokenCategory::NotEqual) {
+        if let Some(token) = self.consume_if_matches(TokenCategory::NotEqual)? {
             let right_side = self.parse_additive_term()?;
             return Ok(Node {
                 value: Expression::NotEqual(Box::new(left_side), Box::new(right_side)),
                 position: token.position,
             });
         }
-        if let Some(token) = self.consume_if_matches(TokenCategory::Greater) {
+        if let Some(token) = self.consume_if_matches(TokenCategory::Greater)? {
             let right_side = self.parse_additive_term()?;
             return Ok(Node {
                 value: Expression::Greater(Box::new(left_side), Box::new(right_side)),
                 position: token.position,
             });
         }
-        if let Some(token) = self.consume_if_matches(TokenCategory::GreaterOrEqual) {
+        if let Some(token) = self.consume_if_matches(TokenCategory::GreaterOrEqual)? {
             let right_side = self.parse_additive_term()?;
             return Ok(Node {
                 value: Expression::GreaterEqual(Box::new(left_side), Box::new(right_side)),
                 position: token.position,
             });
         }
-        if let Some(token) = self.consume_if_matches(TokenCategory::Less) {
+        if let Some(token) = self.consume_if_matches(TokenCategory::Less)? {
             let right_side = self.parse_additive_term()?;
             return Ok(Node {
                 value: Expression::Less(Box::new(left_side), Box::new(right_side)),
                 position: token.position,
             });
         }
-        if let Some(token) = self.consume_if_matches(TokenCategory::LessOrEqual) {
+        if let Some(token) = self.consume_if_matches(TokenCategory::LessOrEqual)? {
             let right_side = self.parse_additive_term()?;
             return Ok(Node {
                 value: Expression::LessEqual(Box::new(left_side), Box::new(right_side)),
@@ -464,13 +455,13 @@ impl<L: ILexer> Parser<L> {
         Ok(left_side)
     }
 
-    fn parse_additive_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
+    fn parse_additive_term(&mut self) -> Result<Node<Expression>, Box<dyn Issue>> {
         let mut left_side = self.parse_multiplicative_term()?;
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Plus
             || current_token.category == TokenCategory::Minus
         {
-            let _ = self.next_token();
+            let _ = self.next_token()?;
             let right_side = self.parse_multiplicative_term()?;
             let mut expression_type =
                 Expression::Addition(Box::new(left_side.clone()), Box::new(right_side.clone()));
@@ -486,13 +477,13 @@ impl<L: ILexer> Parser<L> {
         Ok(left_side)
     }
 
-    fn parse_multiplicative_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
+    fn parse_multiplicative_term(&mut self) -> Result<Node<Expression>, Box<dyn Issue>> {
         let mut left_side = self.parse_casted_term()?;
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Multiply
             || current_token.category == TokenCategory::Divide
         {
-            let _ = self.next_token();
+            let _ = self.next_token()?;
             let right_side = self.parse_casted_term()?;
             let mut expression_type = Expression::Multiplication(
                 Box::new(left_side.clone()),
@@ -510,10 +501,10 @@ impl<L: ILexer> Parser<L> {
         Ok(left_side)
     }
 
-    fn parse_casted_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
+    fn parse_casted_term(&mut self) -> Result<Node<Expression>, Box<dyn Issue>> {
         let unary_term = self.parse_unary_term()?;
         let position = unary_term.position.clone();
-        match self.consume_if_matches(TokenCategory::As) {
+        match self.consume_if_matches(TokenCategory::As)? {
             Some(_) => {
                 let type_parsed = self.parse_type()?;
                 return Ok(Node {
@@ -528,15 +519,15 @@ impl<L: ILexer> Parser<L> {
         }
     }
 
-    fn parse_unary_term(&mut self) -> Result<Node<Expression>, ParserIssue> {
-        if let Some(token) = self.consume_if_matches(TokenCategory::Negate) {
+    fn parse_unary_term(&mut self) -> Result<Node<Expression>, Box<dyn Issue>> {
+        if let Some(token) = self.consume_if_matches(TokenCategory::Negate)? {
             let factor = self.parse_factor()?;
             return Ok(Node {
                 value: Expression::BooleanNegation(Box::new(factor)),
                 position: token.position,
             });
         }
-        if let Some(token) = self.consume_if_matches(TokenCategory::Minus) {
+        if let Some(token) = self.consume_if_matches(TokenCategory::Minus)? {
             let factor = self.parse_factor()?;
             return Ok(Node {
                 value: Expression::ArithmeticNegation(Box::new(factor)),
@@ -547,7 +538,7 @@ impl<L: ILexer> Parser<L> {
         Ok(factor)
     }
 
-    fn parse_factor(&mut self) -> Result<Node<Expression>, ParserIssue> {
+    fn parse_factor(&mut self) -> Result<Node<Expression>, Box<dyn Issue>> {
         match self.parse_literal() {
             Ok(result) => {
                 let node = Node {
@@ -558,7 +549,7 @@ impl<L: ILexer> Parser<L> {
             }
             Err(_) => {}
         }
-        if self.consume_if_matches(TokenCategory::ParenOpen).is_some() {
+        if self.consume_if_matches(TokenCategory::ParenOpen)?.is_some() {
             let expression = self.parse_expression()?;
             self.consume_must_be(TokenCategory::ParenClose)?;
             return Ok(expression);
@@ -566,11 +557,11 @@ impl<L: ILexer> Parser<L> {
         self.parse_identifier_or_call()
     }
 
-    fn parse_identifier_or_call(&mut self) -> Result<Node<Expression>, ParserIssue> {
+    fn parse_identifier_or_call(&mut self) -> Result<Node<Expression>, Box<dyn Issue>> {
         let identifier = self.parse_identifier()?;
         let position = identifier.position;
 
-        let result = match self.consume_if_matches(TokenCategory::ParenOpen) {
+        let result = match self.consume_if_matches(TokenCategory::ParenOpen)? {
             Some(_) => {
                 let args = self.parse_arguments()?.into_iter().map(Box::new).collect();
                 let _ = self.consume_must_be(TokenCategory::ParenClose)?;
@@ -587,7 +578,7 @@ impl<L: ILexer> Parser<L> {
         })
     }
 
-    fn parse_switch_statement(&mut self) -> Result<Node<Statement>, ParserIssue> {
+    fn parse_switch_statement(&mut self) -> Result<Node<Statement>, Box<dyn Issue>> {
         let switch_token = self.consume_must_be(TokenCategory::Switch)?;
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let switch_expressions = self.parse_switch_expressions()?;
@@ -609,21 +600,21 @@ impl<L: ILexer> Parser<L> {
         Ok(node)
     }
 
-    fn parse_switch_expressions(&mut self) -> Result<Vec<Node<SwitchExpression>>, ParserIssue> {
+    fn parse_switch_expressions(&mut self) -> Result<Vec<Node<SwitchExpression>>, Box<dyn Issue>> {
         let mut switch_expressions: Vec<Node<SwitchExpression>> = vec![];
         let mut expression = self.parse_switch_expression()?;
         switch_expressions.push(expression);
-        while let Some(_) = self.consume_if_matches(TokenCategory::Comma) {
+        while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             expression = self.parse_switch_expression()?;
             switch_expressions.push(expression);
         }
         Ok(switch_expressions)
     }
 
-    fn parse_switch_expression(&mut self) -> Result<Node<SwitchExpression>, ParserIssue> {
+    fn parse_switch_expression(&mut self) -> Result<Node<SwitchExpression>, Box<dyn Issue>> {
         let expression = self.parse_expression()?;
         let position = expression.position;
-        let alias = match self.consume_if_matches(TokenCategory::Colon) {
+        let alias = match self.consume_if_matches(TokenCategory::Colon)? {
             Some(_) => Some(self.parse_identifier()?),
             None => None,
         };
@@ -634,7 +625,7 @@ impl<L: ILexer> Parser<L> {
         Ok(node)
     }
 
-    fn parse_switch_case(&mut self) -> Result<Node<SwitchCase>, ParserIssue> {
+    fn parse_switch_case(&mut self) -> Result<Node<SwitchCase>, Box<dyn Issue>> {
         let paren_open_token = self.consume_must_be(TokenCategory::ParenOpen)?;
         let condition = self.parse_expression()?;
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
@@ -647,7 +638,7 @@ impl<L: ILexer> Parser<L> {
         Ok(node)
     }
 
-    fn parse_type(&mut self) -> Result<Node<Type>, ParserIssue> {
+    fn parse_type(&mut self) -> Result<Node<Type>, Box<dyn Issue>> {
         let token = self.current_token();
         let result = match token.category {
             TokenCategory::Bool => Type::Bool,
@@ -661,27 +652,27 @@ impl<L: ILexer> Parser<L> {
             }
         };
 
-        let _ = self.next_token();
+        let _ = self.next_token()?;
         Ok(Node {
             value: result,
             position: token.position,
         })
     }
 
-    fn parse_literal(&mut self) -> Result<Node<Literal>, ParserIssue> {
+    fn parse_literal(&mut self) -> Result<Node<Literal>, Box<dyn Issue>> {
         let token = self.current_token();
-        if self.consume_if_matches(TokenCategory::True).is_some() {
+        if self.consume_if_matches(TokenCategory::True)?.is_some() {
             return Ok(Node {
                 value: Literal::True,
                 position: token.position,
             });
-        } else if self.consume_if_matches(TokenCategory::False).is_some() {
+        } else if self.consume_if_matches(TokenCategory::False)?.is_some() {
             return Ok(Node {
                 value: Literal::False,
                 position: token.position,
             });
         } else if self
-            .consume_if_matches(TokenCategory::StringValue)
+            .consume_if_matches(TokenCategory::StringValue)?
             .is_some()
         {
             if let TokenValue::String(string) = token.value {
@@ -690,14 +681,14 @@ impl<L: ILexer> Parser<L> {
                     position: token.position,
                 });
             }
-        } else if self.consume_if_matches(TokenCategory::I64Value).is_some() {
+        } else if self.consume_if_matches(TokenCategory::I64Value)?.is_some() {
             if let TokenValue::I64(int) = token.value {
                 return Ok(Node {
                     value: Literal::I64(int),
                     position: token.position,
                 });
             }
-        } else if self.consume_if_matches(TokenCategory::F64Value).is_some() {
+        } else if self.consume_if_matches(TokenCategory::F64Value)?.is_some() {
             if let TokenValue::F64(float) = token.value {
                 return Ok(Node {
                     value: Literal::F64(float),
@@ -708,7 +699,7 @@ impl<L: ILexer> Parser<L> {
         return Err(self.create_parser_error("Invalid literal".to_owned()));
     }
 
-    fn parse_identifier(&mut self) -> Result<Node<Identifier>, ParserIssue> {
+    fn parse_identifier(&mut self) -> Result<Node<Identifier>, Box<dyn Issue>> {
         let token = self.consume_must_be(TokenCategory::Identifier)?;
         if let TokenValue::String(name) = token.value {
             let node = Node {
@@ -724,10 +715,10 @@ impl<L: ILexer> Parser<L> {
         )))
     }
 
-    fn consume_must_be(&mut self, category: TokenCategory) -> Result<Token, ParserIssue> {
+    fn consume_must_be(&mut self, category: TokenCategory) -> Result<Token, Box<dyn Issue>> {
         let current_token = self.current_token();
         if current_token.category == category {
-            let _ = self.next_token();
+            let _ = self.next_token()?;
             return Ok(current_token.clone());
         }
         Err(self.create_parser_error(format!(
@@ -736,24 +727,27 @@ impl<L: ILexer> Parser<L> {
         )))
     }
 
-    fn consume_if_matches(&mut self, category: TokenCategory) -> Option<Token> {
+    fn consume_if_matches(
+        &mut self,
+        category: TokenCategory,
+    ) -> Result<Option<Token>, Box<dyn Issue>> {
         let current_token = self.current_token();
         if current_token.category == category {
-            let _ = self.next_token();
-            return Some(current_token.clone());
+            let _ = self.next_token()?;
+            return Ok(Some(current_token.clone()));
         }
-        None
+        Ok(None)
     }
 
-    fn create_parser_error(&self, text: String) -> ParserIssue {
+    fn create_parser_error(&self, text: String) -> Box<dyn Issue> {
         let position = self.current_token().position;
-        ParserIssue {
-            kind: ParserIssueKind::ERROR,
+        Box::new(ParserIssue {
+            level: IssueLevel::ERROR,
             message: format!(
                 "{}\nAt line: {}, column: {}",
                 text, position.line, position.column
             ),
-        }
+        })
     }
 }
 
@@ -762,8 +756,8 @@ mod tests {
     use std::vec;
 
     use crate::{
+        errors::{IssueLevel, LexerIssue},
         lazy_stream_reader::Position,
-        lexer_utils::{LexerIssue, LexerIssueKind},
     };
 
     use super::*;
@@ -788,12 +782,12 @@ mod tests {
             &self.current_token
         }
 
-        fn next(&mut self) -> Result<Token, LexerIssue> {
+        fn next(&mut self) -> Result<Token, Box<dyn Issue>> {
             if self.tokens.len() == 0 {
-                return Err(LexerIssue {
-                    kind: LexerIssueKind::ERROR,
+                return Err(Box::new(LexerIssue {
+                    level: IssueLevel::ERROR,
                     message: "".to_owned(),
-                });
+                }));
             }
             let next_token = self.tokens.remove(0);
             self.current_token = Some(next_token.clone());
@@ -3144,7 +3138,7 @@ mod tests {
         assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
         let result = parser.consume_if_matches(TokenCategory::Semicolon);
 
-        assert!(result.is_none());
+        assert!(result.unwrap().is_none());
         assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
     }
 }

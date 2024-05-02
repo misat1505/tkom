@@ -5,18 +5,18 @@ use std::{
     time::Instant,
 };
 
+use errors::Issue;
 use lexer::Lexer;
 mod lazy_stream_reader;
 use lazy_stream_reader::LazyStreamReader;
-use lexer_utils::LexerIssue;
 
 use crate::{
-    lexer_utils::LexerOptions,
+    lexer::LexerOptions,
     parser::{IParser, Parser},
 };
-mod lexer_utils;
 
 mod ast;
+mod errors;
 mod lexer;
 mod parser;
 mod tokens;
@@ -31,8 +31,8 @@ fn parse_filename() -> String {
     panic!("Path to file not given.");
 }
 
-fn on_warning(warning: LexerIssue) {
-    println!("{}", warning.message);
+fn on_warning(warning: Box<dyn Issue>) {
+    println!("{}", warning.message());
 }
 
 fn main() -> Result<(), Error> {
@@ -57,7 +57,7 @@ fn main() -> Result<(), Error> {
             println!("{:?}", program);
         }
         Err(err) => {
-            println!("{}", err.message);
+            println!("{}", err.message());
         }
     }
     println!("Parsed in: {:?}", finish - start);
