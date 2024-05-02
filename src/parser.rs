@@ -107,13 +107,26 @@ impl<L: ILexer> Parser<L> {
                     }
                     None => {}
                 },
-                Err(err) => {
-                    return Err(err);
-                }
+                Err(err) => return Err(err),
             }
         }
 
         Ok(None)
+    }
+
+    fn void_type_or_error(&mut self) -> Result<Option<Node<Type>>, Box<dyn Issue>> {
+        match self.consume_if_matches(TokenCategory::Void)? {
+            Some(token) => Ok(Some(Node {
+                value: Type::Void,
+                position: token.position,
+            })),
+            None => {
+                return Err(self.create_parser_error(format!(
+                    "Bad return type: {:?}. Expected one of: 'i64', 'f64', 'bool', 'str', 'void'.",
+                    self.current_token().category
+                )))
+            }
+        }
     }
 
     fn parse_function_declaration(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
@@ -137,27 +150,9 @@ impl<L: ILexer> Parser<L> {
         let return_type = match self.parse_type() {
             Ok(t) => match t {
                 Some(t) => t,
-                None => match self.consume_if_matches(TokenCategory::Void)? {
-                    Some(token) => Node {
-                        value: Type::Void,
-                        position: token.position,
-                    },
-                    None => return Err(self.create_parser_error(format!(
-                        "Bad return type: {:?}. Expected one of: 'i64', 'f64', 'bool', 'str', 'void'.",
-                        self.current_token().category
-                    ))),
-                }
+                None => self.void_type_or_error()?.unwrap(),
             },
-            Err(_) => match self.consume_if_matches(TokenCategory::Void)? {
-                Some(token) => Node {
-                    value: Type::Void,
-                    position: token.position,
-                },
-                None => return Err(self.create_parser_error(format!(
-                    "Bad return type: {:?}. Expected one of: 'i64', 'f64', 'bool', 'str', 'void'.",
-                    self.current_token().category
-                ))),
-            },
+            Err(_) => self.void_type_or_error()?.unwrap(),
         };
         let block = match self.parse_statement_block()? {
             Some(t) => t,
