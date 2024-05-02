@@ -123,7 +123,7 @@ x == y
 1 + (1 + 2) / (2 + 3)
 ```
 
-**multiplicative_term** = unary_term, { ("\*" | "/"), unary_term };
+**multiplicative_term** = casted_term, { ("\*" | "/"), casted_term };
 
 ```
 (1 + 2) / (2 + 3)
