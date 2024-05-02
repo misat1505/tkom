@@ -13,7 +13,7 @@ for(i64 i = 0; i < 10; i = i+1) {
   bool a = true != false;
 }
 
-fn do_stuff(i64 x, f64 y): i64 {
+fn do_stuff(i64 x, f64 y): void {
   switch (x) {
     (x < 5) -> {
       print("Less than 5.");
@@ -48,8 +48,25 @@ fn fib(i64 x): i64 {
   return fib(x - 1) + fib(x-2);
 }
 
+if (x == 0) {
+  print("zero");
+} else {
+  if (x < 0) {
+    print("Negative");
+  } else {
+    print("positive");
+  }
+}
+
+for (;x < 5;) {break;}
+
+fn my_fun(): void {}
+
 str text = "hello world";
 print(text);
 # jakis komentarz
 print(56 + 6532475327647647762);
 i64 x = 2 + 3;
+my_fun();
+x = 6 < 1 + 1 && (6 + 7 && b);
+x = true && false && 5 && 5.0;

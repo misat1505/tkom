@@ -15,5 +15,5 @@ fn is_pseudo_prime(): void {
   return true;
 }
 
-print(is_pseudo_prime(5, 5));
+print(is_pseudo_prime(5, 1));
 i64 x = a && b && c;

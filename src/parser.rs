@@ -497,12 +497,10 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_arguments(&mut self) -> Result<Vec<Node<Argument>>, Box<dyn Issue>> {
         // arguments = [ argument, {",", argument} ];
-        let expression = match self.parse_argument() {
-            Ok(temp) => match temp {
+        let expression = match self.parse_argument()? {
                 Some(t) => t,
                 None => return Ok(vec![]),
-            },
-            Err(_) => return Ok(vec![]),
+            
         };
 
         let mut arguments = vec![expression];
@@ -527,7 +525,7 @@ impl<L: ILexer> Parser<L> {
 
         let expression = match self.parse_expression()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create expression.".to_owned())),
+            None => return Ok(None),
         };
         let argument = Argument {
             value: expression.value,
