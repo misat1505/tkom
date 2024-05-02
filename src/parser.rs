@@ -67,15 +67,39 @@ impl<L: ILexer> IParser<L> for Parser<L> {
 
 impl<L: ILexer> Parser<L> {
     fn next_token(&mut self) -> Result<Option<Token>, Box<dyn Issue>> {
-        let mut current_token = self.lexer.next()?.clone();
+        let mut current_token = self.lexer.next()?;
         while current_token.category == TokenCategory::Comment {
-            current_token = self.lexer.next()?.clone();
+            current_token = self.lexer.next()?;
         }
         Ok(Some(current_token))
     }
 
     fn current_token(&self) -> Token {
         self.lexer.current().clone().unwrap()
+    }
+
+    fn consume_must_be(&mut self, category: TokenCategory) -> Result<Token, Box<dyn Issue>> {
+        let current_token = self.current_token();
+        if current_token.category == category {
+            let _ = self.next_token()?;
+            return Ok(current_token.clone());
+        }
+        Err(self.create_parser_error(format!(
+            "Unexpected token - {:?}. Expected {:?}.",
+            current_token.category, category
+        )))
+    }
+
+    fn consume_if_matches(
+        &mut self,
+        category: TokenCategory,
+    ) -> Result<Option<Token>, Box<dyn Issue>> {
+        let current_token = self.current_token();
+        if current_token.category == category {
+            let _ = self.next_token()?;
+            return Ok(Some(current_token.clone()));
+        }
+        Ok(None)
     }
 
     fn parse_function_declaration(&mut self) -> Result<Node<Statement>, Box<dyn Issue>> {
@@ -713,30 +737,6 @@ impl<L: ILexer> Parser<L> {
             token.value,
             TokenValue::String("".to_owned())
         )))
-    }
-
-    fn consume_must_be(&mut self, category: TokenCategory) -> Result<Token, Box<dyn Issue>> {
-        let current_token = self.current_token();
-        if current_token.category == category {
-            let _ = self.next_token()?;
-            return Ok(current_token.clone());
-        }
-        Err(self.create_parser_error(format!(
-            "Unexpected token - {:?}. Expected {:?}.",
-            current_token.category, category
-        )))
-    }
-
-    fn consume_if_matches(
-        &mut self,
-        category: TokenCategory,
-    ) -> Result<Option<Token>, Box<dyn Issue>> {
-        let current_token = self.current_token();
-        if current_token.category == category {
-            let _ = self.next_token()?;
-            return Ok(Some(current_token.clone()));
-        }
-        Ok(None)
     }
 
     fn create_parser_error(&self, text: String) -> Box<dyn Issue> {
