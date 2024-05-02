@@ -1,7 +1,7 @@
 use crate::{
     ast::{
-        Argument, ArgumentPassedBy, Block, Expression, Identifier, Literal, Node, Parameter,
-        ParameterPassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
+        Argument, PassedBy, Block, Expression, Identifier, Literal, Node, Parameter,
+        Program, Statement, SwitchCase, SwitchExpression, Type,
     },
     errors::{Issue, IssueLevel, ParserIssue},
     lexer::ILexer,
@@ -160,8 +160,8 @@ impl<L: ILexer> Parser<L> {
         // parameter = [“&”], type, identifier, [ "=", expression ];
         let position = self.current_token().position;
         let passed_by = match self.consume_if_matches(TokenCategory::Reference)? {
-            Some(_) => ParameterPassedBy::Reference,
-            None => ParameterPassedBy::Value,
+            Some(_) => PassedBy::Reference,
+            None => PassedBy::Value,
         };
         let parameter_type = self.parse_type()?;
         let identifier = self.parse_identifier()?;
@@ -398,9 +398,9 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_argument(&mut self) -> Result<Node<Argument>, Box<dyn Issue>> {
         // argument = [“&”], expression;
-        let mut passed_by = ArgumentPassedBy::Value;
+        let mut passed_by = PassedBy::Value;
         if self.consume_if_matches(TokenCategory::Reference)?.is_some() {
-            passed_by = ArgumentPassedBy::Reference;
+            passed_by = PassedBy::Reference;
         }
         let expression = self.parse_expression()?;
         let argument = Argument {
@@ -1325,7 +1325,7 @@ mod tests {
             vec![],
             vec![Node {
                 value: Parameter {
-                    passed_by: ParameterPassedBy::Value,
+                    passed_by: PassedBy::Value,
                     parameter_type: Node {
                         value: Type::I64,
                         position: default_position(),
@@ -1341,7 +1341,7 @@ mod tests {
             vec![
                 Node {
                     value: Parameter {
-                        passed_by: ParameterPassedBy::Value,
+                        passed_by: PassedBy::Value,
                         parameter_type: Node {
                             value: Type::I64,
                             position: default_position(),
@@ -1356,7 +1356,7 @@ mod tests {
                 },
                 Node {
                     value: Parameter {
-                        passed_by: ParameterPassedBy::Value,
+                        passed_by: PassedBy::Value,
                         parameter_type: Node {
                             value: Type::I64,
                             position: default_position(),
@@ -1409,7 +1409,7 @@ mod tests {
 
         let expected = [
             Parameter {
-                passed_by: ParameterPassedBy::Reference,
+                passed_by: PassedBy::Reference,
                 parameter_type: Node {
                     value: Type::I64,
                     position: default_position(),
@@ -1424,7 +1424,7 @@ mod tests {
                 }),
             },
             Parameter {
-                passed_by: ParameterPassedBy::Value,
+                passed_by: PassedBy::Value,
                 parameter_type: Node {
                     value: Type::I64,
                     position: default_position(),
@@ -2055,7 +2055,7 @@ mod tests {
             vec![Node {
                 value: Argument {
                     value: Expression::Literal(Literal::I64(1)),
-                    passed_by: ArgumentPassedBy::Value,
+                    passed_by: PassedBy::Value,
                 },
                 position: default_position(),
             }],
@@ -2063,14 +2063,14 @@ mod tests {
                 Node {
                     value: Argument {
                         value: Expression::Literal(Literal::I64(1)),
-                        passed_by: ArgumentPassedBy::Reference,
+                        passed_by: PassedBy::Reference,
                     },
                     position: default_position(),
                 },
                 Node {
                     value: Argument {
                         value: Expression::Literal(Literal::I64(2)),
-                        passed_by: ArgumentPassedBy::Value,
+                        passed_by: PassedBy::Value,
                     },
                     position: default_position(),
                 },
@@ -2108,11 +2108,11 @@ mod tests {
         let expected = [
             Argument {
                 value: Expression::Literal(Literal::I64(1)),
-                passed_by: ArgumentPassedBy::Value,
+                passed_by: PassedBy::Value,
             },
             Argument {
                 value: Expression::Variable(Identifier("x".to_owned())),
-                passed_by: ArgumentPassedBy::Reference,
+                passed_by: PassedBy::Reference,
             },
         ];
 
@@ -2681,7 +2681,7 @@ mod tests {
                 arguments: vec![Box::new(Node {
                     value: Argument {
                         value: Expression::Literal(Literal::I64(5)),
-                        passed_by: ArgumentPassedBy::Value,
+                        passed_by: PassedBy::Value,
                     },
                     position: default_position(),
                 })],
@@ -2692,14 +2692,14 @@ mod tests {
                     Box::new(Node {
                         value: Argument {
                             value: Expression::Literal(Literal::I64(5)),
-                            passed_by: ArgumentPassedBy::Reference,
+                            passed_by: PassedBy::Reference,
                         },
                         position: default_position(),
                     }),
                     Box::new(Node {
                         value: Argument {
                             value: Expression::Variable(Identifier("x".to_owned())),
-                            passed_by: ArgumentPassedBy::Value,
+                            passed_by: PassedBy::Value,
                         },
                         position: default_position(),
                     }),

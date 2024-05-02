@@ -12,7 +12,7 @@ type BNode<T> = Box<Node<T>>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
-    // Boolean operations (non-unary)
+    // Boolean operations
     Alternative(BNode<Expression>, BNode<Expression>),
     Concatenation(BNode<Expression>, BNode<Expression>),
     // Relations
@@ -22,7 +22,7 @@ pub enum Expression {
     LessEqual(BNode<Expression>, BNode<Expression>),
     Equal(BNode<Expression>, BNode<Expression>),
     NotEqual(BNode<Expression>, BNode<Expression>),
-    // Arithmetic operations (non-unary)
+    // Arithmetic operations
     Addition(BNode<Expression>, BNode<Expression>),
     Subtraction(BNode<Expression>, BNode<Expression>),
     Multiplication(BNode<Expression>, BNode<Expression>),
@@ -30,7 +30,7 @@ pub enum Expression {
     // Unary operations
     BooleanNegation(BNode<Expression>),
     ArithmeticNegation(BNode<Expression>),
-    // Casting, conversion
+    // Casting
     Casting {
         value: BNode<Expression>,
         to_type: Node<Type>,
@@ -66,7 +66,7 @@ pub enum Type {
 pub struct Identifier(pub String);
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ArgumentPassedBy {
+pub enum PassedBy {
     Reference,
     Value,
 }
@@ -74,7 +74,7 @@ pub enum ArgumentPassedBy {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Argument {
     pub value: Expression,
-    pub passed_by: ArgumentPassedBy,
+    pub passed_by: PassedBy,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -118,14 +118,8 @@ pub enum Statement {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ParameterPassedBy {
-    Reference,
-    Value,
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub struct Parameter {
-    pub passed_by: ParameterPassedBy,
+    pub passed_by: PassedBy,
     pub parameter_type: Node<Type>,
     pub identifier: Node<Identifier>,
     pub value: Option<Node<Expression>>,
