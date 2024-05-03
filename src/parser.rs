@@ -4,7 +4,6 @@ use crate::{
         Statement, SwitchCase, SwitchExpression, Type,
     },
     errors::{Issue, IssueLevel, ParserIssue},
-    lazy_stream_reader::Position,
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
 };
@@ -1001,34 +1000,19 @@ impl<L: ILexer> Parser<L> {
         let token = self.current_token();
         let position = token.position;
 
-        fn create_literal_node(
-            value: Literal,
-            position: Position,
-        ) -> Result<Option<Node<Literal>>, Box<dyn Issue>> {
-            Ok(Some(Node { value, position }))
-        }
+        let literal = match (token.category, token.value) {
+            (TokenCategory::True, _) => Literal::True,
+            (TokenCategory::False, _) => Literal::False,
+            (TokenCategory::I64Value, TokenValue::I64(int)) => Literal::I64(int),
+            (TokenCategory::F64Value, TokenValue::F64(float)) => Literal::F64(float),
+            (TokenCategory::StringValue, TokenValue::String(string)) => Literal::String(string),
+            _ => return Ok(None),
+        };
 
-        if self.consume_if_matches(TokenCategory::True)?.is_some() {
-            return create_literal_node(Literal::True, position);
-        } else if self.consume_if_matches(TokenCategory::False)?.is_some() {
-            return create_literal_node(Literal::False, position);
-        } else if self
-            .consume_if_matches(TokenCategory::StringValue)?
-            .is_some()
-        {
-            if let TokenValue::String(string) = token.value {
-                return create_literal_node(Literal::String(string), position);
-            }
-        } else if self.consume_if_matches(TokenCategory::I64Value)?.is_some() {
-            if let TokenValue::I64(int) = token.value {
-                return create_literal_node(Literal::I64(int), position);
-            }
-        } else if self.consume_if_matches(TokenCategory::F64Value)?.is_some() {
-            if let TokenValue::F64(float) = token.value {
-                return create_literal_node(Literal::F64(float), position);
-            }
-        }
-        return Ok(None);
+        let _ = self.next_token();
+
+        let node = Node { value: literal, position };
+        Ok(Some(node))
     }
 
     fn parse_identifier(&mut self) -> Result<Option<Node<Identifier>>, Box<dyn Issue>> {
