@@ -93,14 +93,11 @@ impl<L: ILexer> Parser<L> {
         ];
 
         for generator in &generators {
-            match generator(self) {
-                Ok(statement_option) => match statement_option {
-                    Some(statement) => {
-                        return Ok(Some(statement));
-                    }
-                    None => {}
-                },
-                Err(err) => return Err(err),
+            match generator(self)? {
+                Some(statement) => {
+                    return Ok(Some(statement));
+                }
+                None => {}
             }
         }
 
@@ -397,16 +394,11 @@ impl<L: ILexer> Parser<L> {
         ];
 
         for generator in &generators {
-            match generator(self) {
-                Ok(statement_option) => match statement_option {
-                    Some(statement) => {
-                        return Ok(Some(statement));
-                    }
-                    None => {}
-                },
-                Err(err) => {
-                    return Err(err);
+            match generator(self)? {
+                Some(statement) => {
+                    return Ok(Some(statement));
                 }
+                None => {}
             }
         }
 
