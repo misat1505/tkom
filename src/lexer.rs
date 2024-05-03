@@ -65,12 +65,9 @@ impl<T: BufRead> Lexer<T> {
         ];
 
         for generator in &result_methods {
-            match generator(self)? {
-                Some(token) => {
-                    self.current = Some(token.clone());
-                    return Ok(token);
-                },
-                None => {}
+            if let Some(token) = generator(self)? {
+                self.current = Some(token.clone());
+                return Ok(token);
             }
         }
         

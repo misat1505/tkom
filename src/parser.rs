@@ -93,11 +93,8 @@ impl<L: ILexer> Parser<L> {
         ];
 
         for generator in &generators {
-            match generator(self)? {
-                Some(statement) => {
-                    return Ok(Some(statement));
-                }
-                None => {}
+            if let Some(statement) = generator(self)? {
+                return Ok(Some(statement));
             }
         }
 
@@ -394,11 +391,8 @@ impl<L: ILexer> Parser<L> {
         ];
 
         for generator in &generators {
-            match generator(self)? {
-                Some(statement) => {
-                    return Ok(Some(statement));
-                }
-                None => {}
+            if let Some(statement) = generator(self)? {
+                return Ok(Some(statement));
             }
         }
 
