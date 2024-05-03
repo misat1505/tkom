@@ -55,8 +55,6 @@ impl<T: BufRead> Lexer<T> {
         self.skip_whitespaces();
         self.position = self.src.position().clone();
 
-        let mut result: Option<Token> = None;
-
         let result_methods = [
             Self::try_generating_sign,
             Self::try_generating_operator,
@@ -67,29 +65,16 @@ impl<T: BufRead> Lexer<T> {
         ];
 
         for generator in &result_methods {
-            if let op_result = generator(self) {
-                match op_result {
-                    Ok(token_option) => match token_option {
-                        Some(token) => {
-                            result = Some(token);
-                            break;
-                        }
-                        None => {}
-                    },
-                    Err(err) => {
-                        return Err(err);
-                    }
-                }
+            match generator(self)? {
+                Some(token) => {
+                    self.current = Some(token.clone());
+                    return Ok(token);
+                },
+                None => {}
             }
         }
-
-        match result {
-            Some(token) => {
-                self.current = Some(token.clone());
-                return Ok(token);
-            }
-            None => return Err(self.create_lexer_issue("Unexpected token".to_owned())),
-        }
+        
+        Err(self.create_lexer_issue("Unexpected token".to_owned()))
     }
 
     fn skip_whitespaces(&mut self) {
