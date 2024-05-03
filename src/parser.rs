@@ -966,27 +966,12 @@ impl<L: ILexer> Parser<L> {
     fn parse_type(&mut self) -> Result<Option<Node<Type>>, Box<dyn Issue>> {
         let token = self.current_token();
 
-        let valid_types = [
-            TokenCategory::Bool,
-            TokenCategory::String,
-            TokenCategory::I64,
-            TokenCategory::F64,
-        ];
-
-        if !valid_types.contains(&token.category) {
-            return Ok(None);
-        }
-
         let result = match token.category {
             TokenCategory::Bool => Type::Bool,
             TokenCategory::String => Type::Str,
             TokenCategory::I64 => Type::I64,
             TokenCategory::F64 => Type::F64,
-            _ => {
-                return Err(
-                    self.create_parser_error(format!("Can't cast to type: {:?}.", token.category))
-                );
-            }
+            _ => return Ok(None)
         };
 
         let _ = self.next_token()?;
