@@ -660,12 +660,12 @@ impl<L: ILexer> Parser<L> {
         let box_r = Box::new(right_side);
 
         let expr = match current_token.category {
-            TokenCategory::Equal => Expression::Equal(box_l.clone(), box_r.clone()),
-            TokenCategory::NotEqual => Expression::NotEqual(box_l.clone(), box_r.clone()),
-            TokenCategory::Greater => Expression::Greater(box_l.clone(), box_r.clone()),
-            TokenCategory::GreaterOrEqual => Expression::GreaterEqual(box_l.clone(), box_r.clone()),
-            TokenCategory::Less => Expression::Less(box_l.clone(), box_r.clone()),
-            TokenCategory::LessOrEqual => Expression::LessEqual(box_l.clone(), box_r.clone()),
+            TokenCategory::Equal => Expression::Equal(box_l, box_r),
+            TokenCategory::NotEqual => Expression::NotEqual(box_l, box_r),
+            TokenCategory::Greater => Expression::Greater(box_l, box_r),
+            TokenCategory::GreaterOrEqual => Expression::GreaterEqual(box_l, box_r),
+            TokenCategory::Less => Expression::Less(box_l, box_r),
+            TokenCategory::LessOrEqual => Expression::LessEqual(box_l, box_r),
             _ => return Err(self.create_parser_error("Couldn't create additive term while parsing relation term.".to_owned()))
         };
 
