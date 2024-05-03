@@ -29,14 +29,8 @@ impl<L: ILexer> IParser<L> for Parser<L> {
 
         let mut statements: Vec<Node<Statement>> = vec![];
 
-        loop {
-            match self.parse_program_statement() {
-                Ok(result) => match result {
-                    Some(statement) => statements.push(statement),
-                    None => break,
-                },
-                Err(err) => return Err(err),
-            }
+        while let Some(statement) = self.parse_program_statement()? {
+            statements.push(statement);
         }
 
         self.consume_must_be(TokenCategory::ETX)?;
@@ -653,7 +647,11 @@ impl<L: ILexer> Parser<L> {
         let _ = self.next_token()?;
         let right_side = match self.parse_additive_term()? {
             Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create additive term while parsing relation term.".to_owned()))
+            None => {
+                return Err(self.create_parser_error(
+                    "Couldn't create additive term while parsing relation term.".to_owned(),
+                ))
+            }
         };
 
         let box_l = Box::new(left_side.clone());
@@ -666,10 +664,17 @@ impl<L: ILexer> Parser<L> {
             TokenCategory::GreaterOrEqual => Expression::GreaterEqual(box_l, box_r),
             TokenCategory::Less => Expression::Less(box_l, box_r),
             TokenCategory::LessOrEqual => Expression::LessEqual(box_l, box_r),
-            _ => return Err(self.create_parser_error("Couldn't create additive term while parsing relation term.".to_owned()))
+            _ => {
+                return Err(self.create_parser_error(
+                    "Couldn't create additive term while parsing relation term.".to_owned(),
+                ))
+            }
         };
 
-        let node = Node { value: expr, position: left_side.position };
+        let node = Node {
+            value: expr,
+            position: left_side.position,
+        };
         Ok(Some(node))
     }
 
@@ -971,7 +976,7 @@ impl<L: ILexer> Parser<L> {
             TokenCategory::String => Type::Str,
             TokenCategory::I64 => Type::I64,
             TokenCategory::F64 => Type::F64,
-            _ => return Ok(None)
+            _ => return Ok(None),
         };
 
         let _ = self.next_token()?;
@@ -996,7 +1001,10 @@ impl<L: ILexer> Parser<L> {
 
         let _ = self.next_token();
 
-        let node = Node { value: literal, position };
+        let node = Node {
+            value: literal,
+            position,
+        };
         Ok(Some(node))
     }
 
