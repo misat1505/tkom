@@ -122,7 +122,7 @@ impl<L: ILexer> Parser<L> {
             Ok(t) => t,
             Err(_) => return Ok(None),
         };
-        
+
         let identifier = match self.parse_identifier()? {
             Some(t) => t,
             None => {
@@ -484,7 +484,7 @@ impl<L: ILexer> Parser<L> {
         // return_statement = "return", [ expression ], ";";
         let token = match self.consume_must_be(TokenCategory::Return) {
             Ok(t) => t,
-            Err(_) => return Ok(None)
+            Err(_) => return Ok(None),
         };
 
         let returned_value = self.parse_expression()?;
@@ -500,7 +500,7 @@ impl<L: ILexer> Parser<L> {
         // break_statement = "break", ";";
         let token = match self.consume_must_be(TokenCategory::Break) {
             Ok(t) => t,
-            Err(_) => return Ok(None)
+            Err(_) => return Ok(None),
         };
 
         let _ = self.consume_must_be(TokenCategory::Semicolon)?;
@@ -939,9 +939,9 @@ impl<L: ILexer> Parser<L> {
         // switch_case = "(", expression, ")", "->", statement_block;
         let paren_open_token = match self.consume_must_be(TokenCategory::ParenOpen) {
             Ok(t) => t,
-            Err(_) => return Ok(None)
+            Err(_) => return Ok(None),
         };
-        
+
         let condition = match self.parse_expression()? {
             Some(t) => t,
             None => {
@@ -1011,7 +1011,7 @@ impl<L: ILexer> Parser<L> {
     fn parse_identifier(&mut self) -> Result<Option<Node<Identifier>>, Box<dyn Issue>> {
         let token = match self.consume_must_be(TokenCategory::Identifier) {
             Ok(t) => t,
-            Err(_) => return Ok(None)
+            Err(_) => return Ok(None),
         };
 
         if let TokenValue::String(name) = token.value {

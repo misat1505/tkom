@@ -15,5 +15,9 @@ fn is_pseudo_prime(): void {
   return true;
 }
 
+fn add(i64 x, i64 y): i64 {
+  return x + y;
+}
+
 print(is_pseudo_prime(5, 1));
 i64 x = a && b && c;

@@ -1,9 +1,4 @@
-use std::{
-    env::args,
-    fs::File,
-    io::{BufReader, Error},
-    time::Instant,
-};
+use std::{env::args, fs::File, io::BufReader, time::Instant};
 
 use errors::Issue;
 use lexer::Lexer;
@@ -11,12 +6,15 @@ mod lazy_stream_reader;
 use lazy_stream_reader::LazyStreamReader;
 
 use crate::{
+    functions_manager::FunctionsManager,
     lexer::LexerOptions,
     parser::{IParser, Parser},
 };
 
 mod ast;
+mod ast_visitor;
 mod errors;
+mod functions_manager;
 mod lexer;
 mod parser;
 mod tokens;
@@ -35,10 +33,10 @@ fn on_warning(warning: Box<dyn Issue>) {
     println!("{}", warning.message());
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), Box<dyn Issue>> {
     let path = parse_filename();
 
-    let file = File::open(path.as_str())?;
+    let file = File::open(path.as_str()).unwrap();
     let code = BufReader::new(file);
     let reader = LazyStreamReader::new(code);
 
@@ -54,7 +52,10 @@ fn main() -> Result<(), Error> {
     let finish = Instant::now();
     match parser_result {
         Ok(program) => {
-            println!("{:?}", program);
+            let functions_manager = FunctionsManager::new(&program)?;
+            println!("{:?}", functions_manager.functions);
+            println!("{:?}", functions_manager.functions.len());
+            // println!("{:?}", program);
         }
         Err(err) => {
             println!("{}", err.message());

@@ -70,7 +70,7 @@ impl<T: BufRead> Lexer<T> {
                 return Ok(token);
             }
         }
-        
+
         Err(self.create_lexer_issue("Unexpected token".to_owned()))
     }
 
