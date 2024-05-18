@@ -39,7 +39,7 @@ pub enum Expression {
     Literal(Literal),
     Variable(Identifier),
     FunctionCall {
-        identifier: Identifier,
+        identifier: Node<Identifier>,
         arguments: Vec<BNode<Argument>>,
     },
 }

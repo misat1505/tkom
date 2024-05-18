@@ -844,7 +844,7 @@ impl<L: ILexer> Parser<L> {
                 let args = self.parse_arguments()?.into_iter().map(Box::new).collect();
                 let _ = self.consume_must_be(TokenCategory::ParenClose)?;
                 Expression::FunctionCall {
-                    identifier: identifier.value,
+                    identifier: identifier,
                     arguments: args,
                 }
             }
@@ -2909,11 +2909,17 @@ mod tests {
         let expected = [
             Expression::Variable(Identifier("print".to_owned())),
             Expression::FunctionCall {
-                identifier: Identifier("print".to_owned()),
+                identifier: Node {
+                    value: Identifier("print".to_owned()),
+                    position: default_position(),
+                },
                 arguments: vec![],
             },
             Expression::FunctionCall {
-                identifier: Identifier("print".to_owned()),
+                identifier: Node {
+                    value: Identifier("print".to_owned()),
+                    position: default_position(),
+                },
                 arguments: vec![Box::new(Node {
                     value: Argument {
                         value: Expression::Literal(Literal::I64(5)),
@@ -2923,7 +2929,10 @@ mod tests {
                 })],
             },
             Expression::FunctionCall {
-                identifier: Identifier("print".to_owned()),
+                identifier: Node {
+                    value: Identifier("print".to_owned()),
+                    position: default_position(),
+                },
                 arguments: vec![
                     Box::new(Node {
                         value: Argument {

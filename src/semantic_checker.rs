@@ -3,8 +3,12 @@ use crate::{
     ast_visitor::AstVisitor,
     errors::Issue,
     functions_manager::FunctionsManager,
-    lazy_stream_reader::Position,
 };
+
+enum FunctionCallType {
+    Statement(Node<Statement>),
+    Expression(Node<Expression>),
+}
 
 #[derive(Debug)]
 pub struct SemanticCheckerIssue {
@@ -38,19 +42,56 @@ impl SemanticChecker {
         self.visit_program(&self.program.clone());
     }
 
-    fn check_function_call(&mut self, name: String, arguments_count: usize, position: Position) {
-        match self.functions_manager.clone().get(name.clone()) {
-            None => self.errors.push(SemanticCheckerIssue {
-                message: format!("Use of undeclared function '{}' at {:?}.\n", name, position),
-            }),
-            Some(function_declaration) => {
-                if let Statement::FunctionDeclaration { parameters, .. } = function_declaration {
-                    if arguments_count != parameters.len() {
-                        self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}'. Expected {}, given {}. at {:?}.\n", name, parameters.len(), arguments_count, position) })
+    fn check_function_call(&mut self, function: FunctionCallType) {
+        match function {
+            FunctionCallType::Statement(Node {
+                value:
+                    Statement::FunctionCall {
+                        identifier,
+                        arguments,
+                    },
+                position,
+            })
+            | FunctionCallType::Expression(Node {
+                value:
+                    Expression::FunctionCall {
+                        identifier,
+                        arguments,
+                    },
+                position,
+            }) => {
+                let name = &identifier.value.0;
+                match self.functions_manager.clone().get(name.clone()) {
+                    None => self.errors.push(SemanticCheckerIssue {
+                        message: format!(
+                            "Use of undeclared function '{}'.\nAt {:?}.\n",
+                            name, position
+                        ),
+                    }),
+                    Some(function_declaration) => {
+                        if let Statement::FunctionDeclaration { parameters, .. } =
+                            function_declaration
+                        {
+                            if arguments.len() != parameters.len() {
+                                self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n", name, parameters.len(), arguments.len(), position) })
+                            }
+
+                            for idx in 0..parameters.len() {
+                                let parameter = parameters.get(idx).unwrap();
+                                match arguments.get(idx) {
+                                    None => {}
+                                    Some(argument) => {
+                                        if argument.value.passed_by != parameter.value.passed_by {
+                                            self.errors.push(SemanticCheckerIssue { message: format!("Parameter '{}' in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n", parameter.value.identifier.value.0, identifier.value.0, argument.value.passed_by, parameter.value.passed_by, argument.position) });
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                    
                 }
             }
+            _ => {}
         }
     }
 }
@@ -64,12 +105,8 @@ impl AstVisitor for SemanticChecker {
 
     fn visit_statement(&mut self, statement: &Node<Statement>) {
         match &statement.value {
-            Statement::FunctionCall {
-                identifier,
-                arguments,
-            } => {
-                let function_name = identifier.value.0.to_string();
-                self.check_function_call(function_name, arguments.len(), statement.position);
+            Statement::FunctionCall { .. } => {
+                self.check_function_call(FunctionCallType::Statement(statement.clone()));
             }
             _ => {}
         }
@@ -162,12 +199,8 @@ impl AstVisitor for SemanticChecker {
 
     fn visit_expression(&mut self, expression: &Node<Expression>) {
         match &expression.value {
-            Expression::FunctionCall {
-                identifier,
-                arguments,
-            } => {
-                let function_name = identifier.0.to_string();
-                self.check_function_call(function_name, arguments.len(), expression.position);
+            Expression::FunctionCall { .. } => {
+                self.check_function_call(FunctionCallType::Expression(expression.clone()));
             }
             _ => {}
         }
