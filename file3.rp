@@ -1,4 +1,5 @@
-is_pseudo_prime(5, 1);
+i64 x = 10 + 20;
+add(is_pseudo_prime(5, 1));
 
 fn is_pseudo_prime(): void {
   if (x <= 1) {

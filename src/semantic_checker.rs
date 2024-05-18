@@ -114,6 +114,39 @@ impl Visitor for SemanticChecker {
             _ => {}
         }
 
+        match expression.value.clone() {
+            Expression::Alternative(lhs, rhs)
+            | Expression::Concatenation(lhs, rhs)
+            | Expression::Greater(lhs, rhs)
+            | Expression::GreaterEqual(lhs, rhs)
+            | Expression::Less(lhs, rhs)
+            | Expression::LessEqual(lhs, rhs)
+            | Expression::Equal(lhs, rhs)
+            | Expression::NotEqual(lhs, rhs)
+            | Expression::Addition(lhs, rhs)
+            | Expression::Subtraction(lhs, rhs)
+            | Expression::Multiplication(lhs, rhs)
+            | Expression::Division(lhs, rhs) => {
+                lhs.accept(self);
+                rhs.accept(self);
+            }
+            Expression::BooleanNegation(value)
+            | Expression::ArithmeticNegation(value)
+            | Expression::Casting { value, .. } => {
+                value.accept(self);
+            },
+            Expression::Literal(literal) => literal.accept(self),
+            Expression::Variable(variable) => variable.accept(self),
+            Expression::FunctionCall {
+                identifier: _,
+                arguments,
+            } => {
+                for arg in arguments {
+                    arg.accept(self);
+                }
+            }
+        }
+
         // expression.accept(self);
     }
 
@@ -128,7 +161,7 @@ impl Visitor for SemanticChecker {
 
     fn visit_argument(&mut self, argument: &Node<Argument>) {
         self.visit_expression(&argument.value.value);
-        argument.value.value.accept(self);
+        // argument.value.value.accept(self);
     }
 
     fn visit_block(&mut self, block: &Node<Block>) {

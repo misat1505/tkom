@@ -60,6 +60,18 @@ impl Node<SwitchCase> {
     }
 }
 
+impl Literal {
+    pub fn accept<V: Visitor>(&self, visitor: &mut V) {
+        visitor.visit_literal(self.clone());
+    }
+}
+
+impl Identifier {
+    pub fn accept<V: Visitor>(&self, visitor: &mut V) {
+        visitor.visit_variable(self.clone());
+    }
+}
+
 impl Node<Expression> {
     pub fn accept<V: Visitor>(&self, visitor: &mut V) {
         match self.value.clone() {
@@ -77,25 +89,15 @@ impl Node<Expression> {
             | Expression::Division(lhs, rhs) => {
                 visitor.visit_expression(&lhs);
                 visitor.visit_expression(&rhs);
-                lhs.accept(visitor);
-                rhs.accept(visitor);
             }
             Expression::BooleanNegation(value)
             | Expression::ArithmeticNegation(value)
             | Expression::Casting { value, .. } => {
                 visitor.visit_expression(&value);
-                value.accept(visitor);
             }
             Expression::Literal(literal) => visitor.visit_literal(literal),
             Expression::Variable(variable) => visitor.visit_variable(variable),
-            Expression::FunctionCall {
-                identifier: _,
-                arguments,
-            } => {
-                for arg in arguments {
-                    visitor.visit_argument(&arg);
-                }
-            }
+            Expression::FunctionCall {..} => {}
         }
     }
 }
