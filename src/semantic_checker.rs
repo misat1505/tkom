@@ -38,12 +38,7 @@ impl SemanticChecker {
         self.visit_program(&self.program.clone());
     }
 
-    fn check_function_call(
-        &mut self,
-        name: String,
-        arguments: Vec<Node<Statement>>,
-        position: Position,
-    ) {
+    fn check_function_call(&mut self, name: String, arguments_count: usize, position: Position) {
         match self.functions_manager.clone().get(name.clone()) {
             None => self.errors.push(SemanticCheckerIssue {
                 message: format!("Use of undeclared function '{}' at {:?}.\n", name, position),
@@ -53,10 +48,7 @@ impl SemanticChecker {
                     if arguments_count != parameters.len() {
                         self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}'. Expected {}, given {}. at {:?}.\n", name, parameters.len(), arguments_count, position) })
                     }
-                    for idx in 0..parameters.len() {
-                        let parameter_passed_by = parameters.get(idx).unwrap().value.passed_by;
-                        match arguments_count {}
-                    }
+                    
                 }
             }
         }
@@ -77,7 +69,7 @@ impl AstVisitor for SemanticChecker {
                 arguments,
             } => {
                 let function_name = identifier.value.0.to_string();
-                self.check_function_call(function_name, arguments.clone(), statement.position);
+                self.check_function_call(function_name, arguments.len(), statement.position);
             }
             _ => {}
         }
