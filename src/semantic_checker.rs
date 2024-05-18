@@ -1,8 +1,11 @@
 use crate::{
-    ast::{Expression, Node, Program, Statement},
-    ast_visitor::AstVisitor,
+    ast::{
+        Argument, Block, Expression, Identifier, Literal, Node, Parameter, Program, Statement,
+        SwitchCase, SwitchExpression, Type,
+    },
     errors::Issue,
     functions_manager::FunctionsManager,
+    visitor::Visitor,
 };
 
 enum FunctionCallType {
@@ -96,104 +99,10 @@ impl SemanticChecker {
     }
 }
 
-impl AstVisitor for SemanticChecker {
+impl Visitor for SemanticChecker {
     fn visit_program(&mut self, program: &Program) {
-        for statement in &program.statements {
-            self.visit_statement(statement);
-        }
-    }
-
-    fn visit_statement(&mut self, statement: &Node<Statement>) {
-        match &statement.value {
-            Statement::FunctionCall { .. } => {
-                self.check_function_call(FunctionCallType::Statement(statement.clone()));
-            }
-            _ => {}
-        }
-
-        match &statement.value {
-            Statement::FunctionDeclaration { block, .. } => {
-                for statement in block.value.0.clone() {
-                    self.visit_statement(&statement);
-                }
-            }
-            Statement::FunctionCall { arguments, .. } => {
-                for argument in arguments.clone() {
-                    let arg_node = Node {
-                        value: argument.value.value,
-                        position: argument.position,
-                    };
-                    self.visit_expression(&arg_node);
-                }
-            }
-            Statement::Declaration { value, .. } => match value {
-                Some(expr) => self.visit_expression(expr),
-                None => {}
-            },
-            Statement::Assignment { value, .. } => {
-                self.visit_expression(value);
-            }
-            Statement::Conditional {
-                condition,
-                if_block,
-                else_block,
-            } => {
-                self.visit_expression(condition);
-                for statement in if_block.value.0.clone() {
-                    self.visit_statement(&statement);
-                }
-                match else_block {
-                    Some(block) => {
-                        for statement in block.value.0.clone() {
-                            self.visit_statement(&statement);
-                        }
-                    }
-                    None => {}
-                }
-            }
-            Statement::ForLoop {
-                declaration,
-                condition,
-                assignment,
-                block,
-            } => {
-                match declaration {
-                    None => {}
-                    Some(decl) => {
-                        self.visit_statement(decl);
-                    }
-                }
-                self.visit_expression(condition);
-                match assignment {
-                    None => {}
-                    Some(assign) => {
-                        self.visit_statement(assign);
-                    }
-                }
-                for statement in block.value.0.clone() {
-                    self.visit_statement(&statement);
-                }
-            }
-            Statement::Switch { expressions, cases } => {
-                for switch_expr in expressions {
-                    self.visit_expression(&switch_expr.value.expression);
-                }
-
-                for case in cases {
-                    self.visit_expression(&case.value.condition);
-
-                    for statement in case.value.block.value.0.clone() {
-                        self.visit_statement(&statement);
-                    }
-                }
-            }
-            Statement::Return(value) => match value {
-                None => {}
-                Some(val) => {
-                    self.visit_expression(val);
-                }
-            },
-            _ => {}
+        for statement in program.statements.clone() {
+            statement.accept(self);
         }
     }
 
@@ -205,38 +114,47 @@ impl AstVisitor for SemanticChecker {
             _ => {}
         }
 
-        match &expression.value {
-            Expression::Alternative(lhs, rhs)
-            | Expression::Concatenation(lhs, rhs)
-            | Expression::Greater(lhs, rhs)
-            | Expression::GreaterEqual(lhs, rhs)
-            | Expression::Less(lhs, rhs)
-            | Expression::LessEqual(lhs, rhs)
-            | Expression::Equal(lhs, rhs)
-            | Expression::NotEqual(lhs, rhs)
-            | Expression::Addition(lhs, rhs)
-            | Expression::Subtraction(lhs, rhs)
-            | Expression::Multiplication(lhs, rhs)
-            | Expression::Division(lhs, rhs) => {
-                self.visit_expression(lhs);
-                self.visit_expression(rhs);
-            }
-            Expression::BooleanNegation(inner) | Expression::ArithmeticNegation(inner) => {
-                self.visit_expression(inner);
-            }
-            Expression::Casting { value, .. } => {
-                self.visit_expression(value);
-            }
-            Expression::FunctionCall { arguments, .. } => {
-                for argument in arguments {
-                    let arg_node = Node {
-                        value: argument.value.value.clone(),
-                        position: argument.position,
-                    };
-                    self.visit_expression(&arg_node);
-                }
+        // expression.accept(self);
+    }
+
+    fn visit_statement(&mut self, statement: &Node<Statement>) {
+        match &statement.value {
+            &Statement::FunctionCall { .. } => {
+                self.check_function_call(FunctionCallType::Statement(statement.clone()));
             }
             _ => {}
         }
     }
+
+    fn visit_argument(&mut self, argument: &Node<Argument>) {
+        self.visit_expression(&argument.value.value);
+        argument.value.value.accept(self);
+    }
+
+    fn visit_block(&mut self, block: &Node<Block>) {
+        for statement in &block.value.0 {
+            statement.accept(self);
+        }
+    }
+
+    fn visit_identifier(&mut self, _identifier: &Node<Identifier>) {}
+
+    fn visit_parameter(&mut self, _parameter: &Node<Parameter>) {}
+
+    fn visit_switch_case(&mut self, switch_case: &Node<SwitchCase>) {
+        switch_case.value.condition.accept(self);
+        switch_case.value.block.accept(self);
+    }
+
+    fn visit_switch_expression(&mut self, switch_expression: &Node<SwitchExpression>) {
+        switch_expression.value.expression.accept(self);
+    }
+
+    fn visit_type(&mut self, _node_type: &Node<Type>) {}
+
+    fn visit_literal(&mut self, _literal: Literal) {
+        println!("{:?}", _literal);
+    }
+
+    fn visit_variable(&mut self, _variable: Identifier) {}
 }

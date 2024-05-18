@@ -73,7 +73,7 @@ pub enum PassedBy {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Argument {
-    pub value: Expression,
+    pub value: Node<Expression>,
     pub passed_by: PassedBy,
 }
 

@@ -545,7 +545,7 @@ impl<L: ILexer> Parser<L> {
             None => return Ok(None),
         };
         let argument = Argument {
-            value: expression.value,
+            value: expression.clone(),
             passed_by: passed_by,
         };
         Ok(Some(Node {
@@ -2290,7 +2290,10 @@ mod tests {
             vec![],
             vec![Node {
                 value: Argument {
-                    value: Expression::Literal(Literal::I64(1)),
+                    value: Node {
+                        value: Expression::Literal(Literal::I64(1)),
+                        position: default_position(),
+                    },
                     passed_by: PassedBy::Value,
                 },
                 position: default_position(),
@@ -2298,14 +2301,20 @@ mod tests {
             vec![
                 Node {
                     value: Argument {
-                        value: Expression::Literal(Literal::I64(1)),
+                        value: Node {
+                            value: Expression::Literal(Literal::I64(1)),
+                            position: default_position(),
+                        },
                         passed_by: PassedBy::Reference,
                     },
                     position: default_position(),
                 },
                 Node {
                     value: Argument {
-                        value: Expression::Literal(Literal::I64(2)),
+                        value: Node {
+                            value: Expression::Literal(Literal::I64(2)),
+                            position: default_position(),
+                        },
                         passed_by: PassedBy::Value,
                     },
                     position: default_position(),
@@ -2343,11 +2352,17 @@ mod tests {
 
         let expected = [
             Argument {
-                value: Expression::Literal(Literal::I64(1)),
+                value: Node {
+                    value: Expression::Literal(Literal::I64(1)),
+                    position: default_position(),
+                },
                 passed_by: PassedBy::Value,
             },
             Argument {
-                value: Expression::Variable(Identifier("x".to_owned())),
+                value: Node {
+                    value: Expression::Variable(Identifier("x".to_owned())),
+                    position: default_position(),
+                },
                 passed_by: PassedBy::Reference,
             },
         ];
@@ -2922,7 +2937,10 @@ mod tests {
                 },
                 arguments: vec![Box::new(Node {
                     value: Argument {
-                        value: Expression::Literal(Literal::I64(5)),
+                        value: Node {
+                            value: Expression::Literal(Literal::I64(5)),
+                            position: default_position(),
+                        },
                         passed_by: PassedBy::Value,
                     },
                     position: default_position(),
@@ -2936,14 +2954,20 @@ mod tests {
                 arguments: vec![
                     Box::new(Node {
                         value: Argument {
-                            value: Expression::Literal(Literal::I64(5)),
+                            value: Node {
+                                value: Expression::Literal(Literal::I64(5)),
+                                position: default_position(),
+                            },
                             passed_by: PassedBy::Reference,
                         },
                         position: default_position(),
                     }),
                     Box::new(Node {
                         value: Argument {
-                            value: Expression::Variable(Identifier("x".to_owned())),
+                            value: Node {
+                                value: Expression::Variable(Identifier("x".to_owned())),
+                                position: default_position(),
+                            },
                             passed_by: PassedBy::Value,
                         },
                         position: default_position(),

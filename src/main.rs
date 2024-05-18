@@ -12,13 +12,13 @@ use crate::{
 };
 
 mod ast;
-mod ast_visitor;
 mod errors;
 mod functions_manager;
 mod lexer;
 mod parser;
 mod semantic_checker;
 mod tokens;
+mod visitor;
 
 mod tests;
 
