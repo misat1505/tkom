@@ -32,7 +32,7 @@ impl FunctionsManager {
                     if functions.contains_key(function_name) {
                         return Err(Box::new(FunctionManagerIssue {
                             message: format!(
-                                "Redeclaration of function '{}' in {:?}",
+                                "Redeclaration of function '{}' in {:?}\n",
                                 function_name, statement.position
                             ),
                         }));

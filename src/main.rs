@@ -6,7 +6,6 @@ mod lazy_stream_reader;
 use lazy_stream_reader::LazyStreamReader;
 
 use crate::{
-    functions_manager::FunctionsManager,
     lexer::LexerOptions,
     parser::{IParser, Parser},
     semantic_checker::{SemanticChecker, SemanticCheckerIssue},
