@@ -104,9 +104,9 @@ pub enum Statement {
         else_block: Option<Node<Block>>,
     },
     ForLoop {
-        declaration: Option<Node<Box<Statement>>>,
+        declaration: Option<Box<Node<Statement>>>,
         condition: Node<Expression>,
-        assignment: Option<Node<Box<Statement>>>,
+        assignment: Option<Box<Node<Statement>>>,
         block: Node<Block>,
     },
     Switch {

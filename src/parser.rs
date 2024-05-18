@@ -233,10 +233,10 @@ impl<L: ILexer> Parser<L> {
                 Some(t) => {
                     let position = t.position;
                     let node = Node {
-                        value: Box::new(t.value),
+                        value: t.value,
                         position,
                     };
-                    Some(node)
+                    Some(Box::new(node))
                 }
                 None => None,
             },
@@ -252,7 +252,7 @@ impl<L: ILexer> Parser<L> {
             }
         };
         self.consume_must_be(TokenCategory::Semicolon)?;
-        let mut assignment: Option<Node<Box<Statement>>> = None;
+        let mut assignment: Option<Box<Node<Statement>>> = None;
         if self.current_token().category == TokenCategory::Identifier {
             let identifier = match self.parse_identifier()? {
                 Some(t) => t,
@@ -272,13 +272,13 @@ impl<L: ILexer> Parser<L> {
                     ))
                 }
             };
-            let assign = Node {
-                value: Box::new(Statement::Assignment {
+            let assign = Box::new(Node {
+                value: Statement::Assignment {
                     identifier,
                     value: expr,
-                }),
+                },
                 position,
-            };
+            });
             assignment = Some(assign);
         };
         self.consume_must_be(TokenCategory::ParenClose)?;
@@ -1804,8 +1804,8 @@ mod tests {
 
         let expected = vec![
             Statement::ForLoop {
-                declaration: Some(Node {
-                    value: Box::new(Statement::Declaration {
+                declaration: Some(Box::new(Node {
+                    value: Statement::Declaration {
                         var_type: Node {
                             value: Type::I64,
                             position: default_position(),
@@ -1818,9 +1818,9 @@ mod tests {
                             value: Expression::Literal(Literal::I64(0)),
                             position: default_position(),
                         }),
-                    }),
+                    },
                     position: default_position(),
-                }),
+                })),
                 condition: Node {
                     value: Expression::Less(
                         Box::new(Node {
@@ -1834,8 +1834,8 @@ mod tests {
                     ),
                     position: default_position(),
                 },
-                assignment: Some(Node {
-                    value: Box::new(Statement::Assignment {
+                assignment: Some(Box::new(Node {
+                    value: Statement::Assignment {
                         identifier: Node {
                             value: Identifier("x".to_owned()),
                             position: default_position(),
@@ -1853,9 +1853,9 @@ mod tests {
                             ),
                             position: default_position(),
                         },
-                    }),
+                    },
                     position: default_position(),
-                }),
+                })),
                 block: Node {
                     value: Block(vec![]),
                     position: default_position(),

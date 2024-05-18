@@ -16,6 +16,7 @@ impl Issue for FunctionManagerIssue {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct FunctionsManager {
     pub functions: HashMap<String, Statement>,
 }
@@ -26,12 +27,7 @@ impl FunctionsManager {
 
         for statement in &program.statements {
             match &statement.value {
-                Statement::FunctionDeclaration {
-                    identifier,
-                    parameters: _,
-                    return_type: _,
-                    block: _,
-                } => {
+                Statement::FunctionDeclaration { identifier, .. } => {
                     let function_name = &identifier.value.0;
                     if functions.contains_key(function_name) {
                         return Err(Box::new(FunctionManagerIssue {
@@ -49,5 +45,9 @@ impl FunctionsManager {
         }
 
         Ok(Self { functions })
+    }
+
+    pub fn get(self, function_name: String) -> Option<Statement> {
+        self.functions.get(&function_name).cloned()
     }
 }

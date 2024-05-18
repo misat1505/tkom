@@ -9,6 +9,7 @@ use crate::{
     functions_manager::FunctionsManager,
     lexer::LexerOptions,
     parser::{IParser, Parser},
+    semantic_checker::SemanticChecker,
 };
 
 mod ast;
@@ -17,6 +18,7 @@ mod errors;
 mod functions_manager;
 mod lexer;
 mod parser;
+mod semantic_checker;
 mod tokens;
 
 mod tests;
@@ -47,21 +49,17 @@ fn main() -> Result<(), Box<dyn Issue>> {
 
     let lexer = Lexer::new(reader, lexer_options, on_warning);
     let mut parser = Parser::new(lexer);
+
     let start = Instant::now();
-    let parser_result = parser.parse();
-    let finish = Instant::now();
-    match parser_result {
-        Ok(program) => {
-            let functions_manager = FunctionsManager::new(&program)?;
-            println!("{:?}", functions_manager.functions);
-            println!("{:?}", functions_manager.functions.len());
-            // println!("{:?}", program);
-        }
-        Err(err) => {
-            println!("{}", err.message());
-        }
+    let program = parser.parse()?;
+    println!("Parsed in: {:?}", Instant::now() - start);
+
+    let mut semantic_checker = SemanticChecker::new(program.clone())?;
+    semantic_checker.check();
+
+    for error in semantic_checker.errors {
+        println!("{}", error.message());
     }
-    println!("Parsed in: {:?}", finish - start);
 
     Ok(())
 }
