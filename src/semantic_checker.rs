@@ -134,13 +134,14 @@ impl Visitor for SemanticChecker {
             | Expression::ArithmeticNegation(value)
             | Expression::Casting { value, .. } => {
                 value.accept(self);
-            },
+            }
             Expression::Literal(literal) => literal.accept(self),
             Expression::Variable(variable) => variable.accept(self),
             Expression::FunctionCall {
-                identifier: _,
+                identifier,
                 arguments,
             } => {
+                identifier.accept(self);
                 for arg in arguments {
                     arg.accept(self);
                 }
@@ -238,7 +239,8 @@ impl Visitor for SemanticChecker {
     }
 
     fn visit_argument(&mut self, argument: &Node<Argument>) {
-        self.visit_expression(&argument.value.value);
+        // self.visit_expression(&argument.value.value);
+        argument.value.value.accept(self);
     }
 
     fn visit_block(&mut self, block: &Node<Block>) {

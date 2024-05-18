@@ -90,14 +90,16 @@ impl Node<Expression> {
                 visitor.visit_expression(&lhs);
                 visitor.visit_expression(&rhs);
             }
-            Expression::BooleanNegation(value)
-            | Expression::ArithmeticNegation(value)
-            | Expression::Casting { value, .. } => {
+            Expression::BooleanNegation(value) | Expression::ArithmeticNegation(value) => {
+                visitor.visit_expression(&value);
+            }
+            Expression::Casting { value, to_type } => {
+                visitor.visit_type(&to_type);
                 visitor.visit_expression(&value);
             }
             Expression::Literal(literal) => visitor.visit_literal(literal),
             Expression::Variable(variable) => visitor.visit_variable(variable),
-            Expression::FunctionCall {..} => {}
+            Expression::FunctionCall { .. } => visitor.visit_expression(self),
         }
     }
 }
