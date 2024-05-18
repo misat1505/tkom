@@ -3,11 +3,12 @@ use crate::{
     ast_visitor::AstVisitor,
     errors::Issue,
     functions_manager::FunctionsManager,
+    lazy_stream_reader::Position,
 };
 
 #[derive(Debug)]
 pub struct SemanticCheckerIssue {
-    message: String,
+    pub message: String,
 }
 
 impl Issue for SemanticCheckerIssue {
@@ -36,6 +37,21 @@ impl SemanticChecker {
     pub fn check(&mut self) {
         self.visit_program(&self.program.clone());
     }
+
+    fn check_function_call(&mut self, name: String, arguments_count: usize, position: Position) {
+        match self.functions_manager.clone().get(name.clone()) {
+            None => self.errors.push(SemanticCheckerIssue {
+                message: format!("Use of undeclared function '{}' at {:?}.", name, position),
+            }),
+            Some(function_declaration) => {
+                if let Statement::FunctionDeclaration { parameters, .. } = function_declaration {
+                    if arguments_count != parameters.len() {
+                        self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}'. Expected {}, given {}. at {:?}.", name, parameters.len(), arguments_count, position) })
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl AstVisitor for SemanticChecker {
@@ -51,25 +67,8 @@ impl AstVisitor for SemanticChecker {
                 identifier,
                 arguments,
             } => {
-                let function_name = identifier.value.0.to_string();
-                println!("Function '{}' at {:?}", function_name, statement.position);
-                match self.functions_manager.clone().get(function_name.clone()) {
-                    None => self.errors.push(SemanticCheckerIssue {
-                        message: format!(
-                            "Use of undeclared function '{}' at {:?}.",
-                            function_name, statement.position
-                        ),
-                    }),
-                    Some(function_declaration) => {
-                        if let Statement::FunctionDeclaration { parameters, .. } =
-                            function_declaration
-                        {
-                            if arguments.len() != parameters.len() {
-                                self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}' Expected {}, given {}. at {:?}.", function_name, parameters.len(), arguments.len(), statement.position) })
-                            }
-                        }
-                    }
-                }
+              let function_name = identifier.value.0.to_string();
+              self.check_function_call(function_name, arguments.len(), statement.position);
             }
             _ => {}
         }
@@ -166,59 +165,44 @@ impl AstVisitor for SemanticChecker {
                 identifier,
                 arguments,
             } => {
-                let function_name = identifier.0.to_string();
-                println!("Function '{}' at {:?}", function_name, expression.position);
-                match self.functions_manager.clone().get(function_name.clone()) {
-                    None => self.errors.push(SemanticCheckerIssue {
-                        message: format!(
-                            "Use of undeclared function '{}' at {:?}.",
-                            function_name, expression.position
-                        ),
-                    }),
-                    Some(function_declaration) => {
-                        if let Statement::FunctionDeclaration { parameters, .. } =
-                            function_declaration
-                        {
-                            if arguments.len() != parameters.len() {
-                                self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}' Expected {}, given {}. at {:?}.", function_name, parameters.len(), arguments.len(), expression.position) })
-                            }
-                        }
-                    }
-                }
+              let function_name = identifier.0.to_string();
+              self.check_function_call(function_name, arguments.len(), expression.position);
             }
             _ => {}
         }
 
         match &expression.value {
-          Expression::Alternative(lhs, rhs)
-          | Expression::Concatenation(lhs, rhs)
-          | Expression::Greater(lhs, rhs)
-          | Expression::GreaterEqual(lhs, rhs)
-          | Expression::Less(lhs, rhs)
-          | Expression::LessEqual(lhs, rhs)
-          | Expression::Equal(lhs, rhs)
-          | Expression::NotEqual(lhs, rhs)
-          | Expression::Addition(lhs, rhs)
-          | Expression::Subtraction(lhs, rhs)
-          | Expression::Multiplication(lhs, rhs)
-          | Expression::Division(lhs, rhs) => {
-              self.visit_expression(lhs);
-              self.visit_expression(rhs);
-          },
-          Expression::BooleanNegation(inner)
-          | Expression::ArithmeticNegation(inner) => {
-              self.visit_expression(inner);
-          },
-          Expression::Casting { value, .. } => {
-              self.visit_expression(value);
-          },
-          Expression::FunctionCall { arguments, .. } => {
-              for argument in arguments {
-                let arg_node = Node { value: argument.value.value.clone(), position: argument.position };
-                  self.visit_expression(&arg_node);
-              }
-          },
-          _ => {},
-      }
+            Expression::Alternative(lhs, rhs)
+            | Expression::Concatenation(lhs, rhs)
+            | Expression::Greater(lhs, rhs)
+            | Expression::GreaterEqual(lhs, rhs)
+            | Expression::Less(lhs, rhs)
+            | Expression::LessEqual(lhs, rhs)
+            | Expression::Equal(lhs, rhs)
+            | Expression::NotEqual(lhs, rhs)
+            | Expression::Addition(lhs, rhs)
+            | Expression::Subtraction(lhs, rhs)
+            | Expression::Multiplication(lhs, rhs)
+            | Expression::Division(lhs, rhs) => {
+                self.visit_expression(lhs);
+                self.visit_expression(rhs);
+            }
+            Expression::BooleanNegation(inner) | Expression::ArithmeticNegation(inner) => {
+                self.visit_expression(inner);
+            }
+            Expression::Casting { value, .. } => {
+                self.visit_expression(value);
+            }
+            Expression::FunctionCall { arguments, .. } => {
+                for argument in arguments {
+                    let arg_node = Node {
+                        value: argument.value.value.clone(),
+                        position: argument.position,
+                    };
+                    self.visit_expression(&arg_node);
+                }
+            }
+            _ => {}
+        }
     }
 }

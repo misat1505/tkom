@@ -9,7 +9,7 @@ use crate::{
     functions_manager::FunctionsManager,
     lexer::LexerOptions,
     parser::{IParser, Parser},
-    semantic_checker::SemanticChecker,
+    semantic_checker::{SemanticChecker, SemanticCheckerIssue},
 };
 
 mod ast;
@@ -57,8 +57,15 @@ fn main() -> Result<(), Box<dyn Issue>> {
     let mut semantic_checker = SemanticChecker::new(program.clone())?;
     semantic_checker.check();
 
-    for error in semantic_checker.errors {
+    for error in &semantic_checker.errors {
         println!("{}", error.message());
+    }
+
+    if semantic_checker.errors.len() > 0 {
+        let first_error = SemanticCheckerIssue {
+            message: semantic_checker.errors.get(0).unwrap().message(),
+        };
+        return Err(Box::new(first_error));
     }
 
     Ok(())
