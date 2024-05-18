@@ -146,8 +146,6 @@ impl Visitor for SemanticChecker {
                 }
             }
         }
-
-        // expression.accept(self);
     }
 
     fn visit_statement(&mut self, statement: &Node<Statement>) {
@@ -157,11 +155,90 @@ impl Visitor for SemanticChecker {
             }
             _ => {}
         }
+
+        match statement.value.clone() {
+            Statement::FunctionDeclaration {
+                identifier,
+                parameters,
+                return_type,
+                block,
+            } => {
+                identifier.accept(self);
+                for param in parameters {
+                    param.accept(self);
+                }
+                return_type.accept(self);
+                block.accept(self);
+            }
+            Statement::FunctionCall {
+                identifier,
+                arguments,
+            } => {
+                identifier.accept(self);
+                for arg in arguments {
+                    arg.accept(self);
+                }
+            }
+            Statement::Declaration {
+                var_type,
+                identifier,
+                value,
+            } => {
+                var_type.accept(self);
+                identifier.accept(self);
+                if let Some(val) = value {
+                    val.accept(self);
+                }
+            }
+            Statement::Assignment { identifier, value } => {
+                identifier.accept(self);
+                value.accept(self);
+            }
+            Statement::Conditional {
+                condition,
+                if_block,
+                else_block,
+            } => {
+                condition.accept(self);
+                if_block.accept(self);
+                if let Some(else_blk) = else_block {
+                    else_blk.accept(self);
+                }
+            }
+            Statement::ForLoop {
+                declaration,
+                condition,
+                assignment,
+                block,
+            } => {
+                if let Some(decl) = declaration {
+                    decl.accept(self);
+                }
+                condition.accept(self);
+                if let Some(assign) = assignment {
+                    assign.accept(self);
+                }
+                block.accept(self);
+            }
+            Statement::Switch { expressions, cases } => {
+                for expr in expressions {
+                    expr.accept(self);
+                }
+                for case in cases {
+                    case.accept(self);
+                }
+            }
+            Statement::Return(value) => {
+                if let Some(val) = value {
+                    val.accept(self);
+                }
+            }
+            Statement::Break => {}
+        }
     }
 
     fn visit_argument(&mut self, argument: &Node<Argument>) {
         self.visit_expression(&argument.value.value);
-        // argument.value.value.accept(self);
     }
 
     fn visit_block(&mut self, block: &Node<Block>) {
