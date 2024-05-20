@@ -1,13 +1,10 @@
 #i64 age = 21;
 #str text = "I am " + age as str + " years old.";
 
-#for (i64 i = 0; i < 3; i = i + 1) {
-#  for (i64 j = 0; j <= i; j = j + 1) {
-#    if (i != 0 && j != 0) {
-#      i64 mul = i * j;
-#    }
-#  }
-#}
-
-i64 x = 1;
-x = "hello world";
+for (i64 i = 0; i < 3; i = i + 1) {
+  for (i64 j = 0; j <= i; j = j + 1) {
+    if (i != 0 && j != 0) {
+      i64 mul = i * j;
+    }
+  }
+}

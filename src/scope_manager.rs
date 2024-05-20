@@ -59,7 +59,7 @@ impl ScopeManager {
                     match scope.get_variable(name.clone()) {
                         None => {}
                         Some(_) => {
-                            scope.assign_variable(name.clone(), value.clone());
+                            return scope.assign_variable(name.clone(), value.clone());
                         }
                     }
                 }
@@ -84,7 +84,7 @@ impl ScopeManager {
         }
 
         if let Some(last_scope) = self.scopes.last_mut() {
-            last_scope.declare_variable(name, value);
+            let _ = last_scope.declare_variable(name, value);
             Ok(())
         } else {
             Err(ScopeManagerIssue {
@@ -115,10 +115,18 @@ impl Scope {
             None => Err(ScopeManagerIssue {
                 message: format!("Variable '{}' not declared.", name),
             }),
-            Some(_) => {
-                self.variables.insert(name, value);
-                Ok(())
-            }
+            Some(prev_val) => match (prev_val, value.clone()) {
+                (Value::I64(_), Value::I64(_))
+                | (Value::F64(_), Value::F64(_))
+                | (Value::String(_), Value::String(_))
+                | (Value::Bool(_), Value::Bool(_)) => {
+                    self.variables.insert(name, value);
+                    Ok(())
+                }
+                (a, b) => Err(ScopeManagerIssue {
+                    message: format!("Cannot assign {:?} to variable {:?}.", b, a),
+                }),
+            },
         }
     }
 
@@ -213,5 +221,13 @@ mod tests {
         assert!(manager.get_variable("y".to_owned()).unwrap().clone() == Value::I64(3));
 
         manager.pop_scope();
+    }
+
+    #[test]
+    fn bad_assign_type() {
+        let mut manager = ScopeManager::new();
+
+        let _ = manager.declare_variable("x".to_owned(), Value::I64(1));
+        assert!(manager.assign_variable("x".to_owned(), Value::Bool(true)).is_err());
     }
 }
