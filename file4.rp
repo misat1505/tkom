@@ -2,5 +2,4 @@ i64 age = 21;
 str text = "I am " + age as str + " years old.";
 
 
-bool x = true;
-bool y = !x || 1;
+bool x = ("5" + "3") as i64 == 53;

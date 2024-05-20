@@ -204,4 +204,56 @@ impl Value {
           (a, b) => Err(ComputationIssue { message: format!("Cannot perform concatenation between {:?} and {:?}.", a, b) })
       }
     }
+
+    pub fn greater(&self, other: Value) -> Result<Value, ComputationIssue> {
+      match (self, other) {
+          (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 > val2)),
+          (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 > val2)),
+          (a, b) => Err(ComputationIssue { message: format!("Cannot perform greater between {:?} and {:?}.", a, b) })
+      }
+    }
+
+    pub fn greater_or_equal(&self, other: Value) -> Result<Value, ComputationIssue> {
+      match (self, other) {
+          (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 >= val2)),
+          (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 >= val2)),
+          (a, b) => Err(ComputationIssue { message: format!("Cannot perform greater or equal between {:?} and {:?}.", a, b) })
+      }
+    }
+
+    pub fn less(&self, other: Value) -> Result<Value, ComputationIssue> {
+      match (self, other) {
+          (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 < val2)),
+          (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 < val2)),
+          (a, b) => Err(ComputationIssue { message: format!("Cannot perform less between {:?} and {:?}.", a, b) })
+      }
+    }
+
+    pub fn less_or_equal(&self, other: Value) -> Result<Value, ComputationIssue> {
+      match (self, other) {
+          (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 <= val2)),
+          (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 <= val2)),
+          (a, b) => Err(ComputationIssue { message: format!("Cannot perform less or equal between {:?} and {:?}.", a, b) })
+      }
+    }
+
+    pub fn equal(&self, other: Value) -> Result<Value, ComputationIssue> {
+      match (self, other) {
+          (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 == val2)),
+          (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 == val2)),
+          (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(*val1 == val2)),
+          (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(*val1 == val2)),
+          (a, b) => Err(ComputationIssue { message: format!("Cannot perform equal between {:?} and {:?}.", a, b) })
+      }
+    }
+
+    pub fn not_equal(&self, other: Value) -> Result<Value, ComputationIssue> {
+      match (self, other) {
+          (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 != val2)),
+          (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 != val2)),
+          (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(*val1 != val2)),
+          (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(*val1 != val2)),
+          (a, b) => Err(ComputationIssue { message: format!("Cannot perform not equal between {:?} and {:?}.", a, b) })
+      }
+    }
 }

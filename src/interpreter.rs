@@ -86,15 +86,12 @@ impl Visitor for Interpreter {
             Expression::Division(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::division),
             Expression::Alternative(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::alternative),
             Expression::Concatenation(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::concatenation),
-            Expression::Greater(lhs, rhs)
-            | Expression::GreaterEqual(lhs, rhs)
-            | Expression::Less(lhs, rhs)
-            | Expression::LessEqual(lhs, rhs)
-            | Expression::Equal(lhs, rhs)
-            | Expression::NotEqual(lhs, rhs) => {
-                self.visit_expression(&lhs);
-                self.visit_expression(&rhs);
-            },
+            Expression::Greater(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::greater),
+            Expression::GreaterEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::greater_or_equal),
+            Expression::Less(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::less),
+            Expression::LessEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::less_or_equal),
+            Expression::Equal(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::equal),
+            Expression::NotEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::not_equal),
             Expression::Literal(literal) => self.visit_literal(literal),
             Expression::Variable(variable) => self.visit_variable(variable),
             Expression::FunctionCall {
