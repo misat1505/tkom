@@ -167,9 +167,17 @@ impl Visitor for Interpreter {
                 else_block,
             } => {
                 self.visit_expression(&condition);
-                self.visit_block(&if_block);
-                if let Some(else_blk) = else_block {
-                    self.visit_block(&else_blk);
+                let computed_condition = self.read_last_result();
+                let boolean_value = match computed_condition {
+                    Value::Bool(bool) => bool,
+                    _ => panic!("bad types in if condition")
+                };
+                if boolean_value {
+                    self.visit_block(&if_block);
+                } else {
+                    if let Some(else_blk) = else_block {
+                        self.visit_block(&else_blk);
+                    }
                 }
             }
             Statement::ForLoop {

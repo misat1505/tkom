@@ -1,5 +1,11 @@
 i64 age = 21;
 str text = "I am " + age as str + " years old.";
 
-
-bool x = ("5" + "3") as i64 == 53;
+bool is_adult;
+if (age >= 18) {
+  is_adult = true;
+  str text2 = "I AM ADULT.";
+} else {
+  is_adult = false;
+  str text2 = "I AM NOT ADULT.";
+}
