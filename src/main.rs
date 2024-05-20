@@ -19,6 +19,8 @@ mod parser;
 mod semantic_checker;
 mod tokens;
 mod visitor;
+mod scope_manager;
+mod value;
 
 mod tests;
 
@@ -51,10 +53,11 @@ fn main() -> Result<(), Box<dyn Issue>> {
 
     let start = Instant::now();
     let program = parser.parse()?;
-    println!("Parsed in: {:?}", Instant::now() - start);
 
     let mut semantic_checker = SemanticChecker::new(program.clone())?;
     semantic_checker.check();
+
+    println!("Execution time: {:?}", Instant::now() - start);
 
     for error in &semantic_checker.errors {
         println!("{}", error.message());

@@ -102,7 +102,7 @@ impl SemanticChecker {
 impl Visitor for SemanticChecker {
     fn visit_program(&mut self, program: &Program) {
         for statement in program.statements.clone() {
-            statement.accept(self);
+            self.visit_statement(&statement);
         }
     }
 
@@ -127,23 +127,23 @@ impl Visitor for SemanticChecker {
             | Expression::Subtraction(lhs, rhs)
             | Expression::Multiplication(lhs, rhs)
             | Expression::Division(lhs, rhs) => {
-                lhs.accept(self);
-                rhs.accept(self);
+                self.visit_expression(&lhs);
+                self.visit_expression(&rhs);
             }
             Expression::BooleanNegation(value)
             | Expression::ArithmeticNegation(value)
             | Expression::Casting { value, .. } => {
-                value.accept(self);
+                self.visit_expression(&value);
             }
-            Expression::Literal(literal) => literal.accept(self),
-            Expression::Variable(variable) => variable.accept(self),
+            Expression::Literal(literal) => self.visit_literal(literal),
+            Expression::Variable(variable) => self.visit_variable(variable),
             Expression::FunctionCall {
                 identifier,
                 arguments,
             } => {
-                identifier.accept(self);
+                self.visit_identifier(&identifier);
                 for arg in arguments {
-                    arg.accept(self);
+                    self.visit_argument(&arg);
                 }
             }
         }
@@ -164,20 +164,20 @@ impl Visitor for SemanticChecker {
                 return_type,
                 block,
             } => {
-                identifier.accept(self);
+                self.visit_identifier(&identifier);
                 for param in parameters {
-                    param.accept(self);
+                    self.visit_parameter(&param)
                 }
-                return_type.accept(self);
-                block.accept(self);
+                self.visit_type(&return_type);
+                self.visit_block(&block);
             }
             Statement::FunctionCall {
                 identifier,
                 arguments,
             } => {
-                identifier.accept(self);
+                self.visit_identifier(&identifier);
                 for arg in arguments {
-                    arg.accept(self);
+                    self.visit_argument(&arg);
                 }
             }
             Statement::Declaration {
@@ -185,25 +185,25 @@ impl Visitor for SemanticChecker {
                 identifier,
                 value,
             } => {
-                var_type.accept(self);
-                identifier.accept(self);
+                self.visit_type(&var_type);
+                self.visit_identifier(&identifier);
                 if let Some(val) = value {
-                    val.accept(self);
+                    self.visit_expression(&val)
                 }
             }
             Statement::Assignment { identifier, value } => {
-                identifier.accept(self);
-                value.accept(self);
+                self.visit_identifier(&identifier);
+                self.visit_expression(&value);
             }
             Statement::Conditional {
                 condition,
                 if_block,
                 else_block,
             } => {
-                condition.accept(self);
-                if_block.accept(self);
+                self.visit_expression(&condition);
+                self.visit_block(&if_block);
                 if let Some(else_blk) = else_block {
-                    else_blk.accept(self);
+                    self.visit_block(&else_blk);
                 }
             }
             Statement::ForLoop {
@@ -213,25 +213,25 @@ impl Visitor for SemanticChecker {
                 block,
             } => {
                 if let Some(decl) = declaration {
-                    decl.accept(self);
+                    self.visit_statement(&decl);
                 }
-                condition.accept(self);
+                self.visit_expression(&condition);
                 if let Some(assign) = assignment {
-                    assign.accept(self);
+                    self.visit_statement(&assign);
                 }
-                block.accept(self);
+                self.visit_block(&block);
             }
             Statement::Switch { expressions, cases } => {
                 for expr in expressions {
-                    expr.accept(self);
+                    self.visit_switch_expression(&expr);
                 }
                 for case in cases {
-                    case.accept(self);
+                    self.visit_switch_case(&case);
                 }
             }
             Statement::Return(value) => {
                 if let Some(val) = value {
-                    val.accept(self);
+                    self.visit_expression(&val);
                 }
             }
             Statement::Break => {}
@@ -239,34 +239,42 @@ impl Visitor for SemanticChecker {
     }
 
     fn visit_argument(&mut self, argument: &Node<Argument>) {
-        // self.visit_expression(&argument.value.value);
-        argument.value.value.accept(self);
+        self.visit_expression(&argument.value.value);
     }
 
     fn visit_block(&mut self, block: &Node<Block>) {
         for statement in &block.value.0 {
-            statement.accept(self);
+            self.visit_statement(statement);
         }
     }
 
-    fn visit_identifier(&mut self, _identifier: &Node<Identifier>) {}
-
-    fn visit_parameter(&mut self, _parameter: &Node<Parameter>) {}
+    fn visit_parameter(&mut self, parameter: &Node<Parameter>) {
+        self.visit_type(&parameter.value.parameter_type);
+        self.visit_identifier(&parameter.value.identifier);
+    }
 
     fn visit_switch_case(&mut self, switch_case: &Node<SwitchCase>) {
-        switch_case.value.condition.accept(self);
-        switch_case.value.block.accept(self);
+        self.visit_expression(&switch_case.value.condition);
+        self.visit_block(&switch_case.value.block);
     }
 
     fn visit_switch_expression(&mut self, switch_expression: &Node<SwitchExpression>) {
-        switch_expression.value.expression.accept(self);
+        self.visit_expression(&switch_expression.value.expression);
     }
 
-    fn visit_type(&mut self, _node_type: &Node<Type>) {}
+    fn visit_identifier(&mut self, _identifier: &Node<Identifier>) {
+        // println!("{:?}", _identifier);
+    }
+
+    fn visit_type(&mut self, _node_type: &Node<Type>) {
+        // println!("{:?}", _node_type);
+    }
 
     fn visit_literal(&mut self, _literal: Literal) {
-        println!("{:?}", _literal);
+        // println!("{:?}", _literal);
     }
 
-    fn visit_variable(&mut self, _variable: Identifier) {}
+    fn visit_variable(&mut self, _variable: Identifier) {
+        // println!("{:?}", _variable);
+    }
 }
