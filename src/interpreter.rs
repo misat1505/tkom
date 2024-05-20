@@ -61,12 +61,29 @@ impl Visitor for Interpreter {
 
     fn visit_expression(&mut self, expression: &Node<Expression>) {
         match expression.value.clone() {
-            Expression::Casting { value, .. } => {
+            Expression::Casting { value, to_type } => {
                 self.visit_expression(&value);
+                let computed_value = self.read_last_result();
+                let casted_value = computed_value.cast_to_type(to_type.value).unwrap();
+                self.last_result = Some(casted_value);
+            },
+            Expression::BooleanNegation(value) => {
+                self.visit_expression(&value);
+                let computed_value = self.read_last_result();
+                let casted_value = computed_value.boolean_negate().unwrap();
+                self.last_result = Some(casted_value);
+            },
+            Expression::ArithmeticNegation(value) => {
+                self.visit_expression(&value);
+                let computed_value = self.read_last_result();
+                let casted_value = computed_value.arithmetic_negate().unwrap();
+                self.last_result = Some(casted_value);
             }
             Expression::Addition(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::add),
             Expression::Subtraction(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::subtract),
-            Expression::Multiplication(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::multiplication),
+            Expression::Multiplication(lhs, rhs) => {
+                self.evaluate_binary_op(lhs, rhs, Value::multiplication)
+            }
             Expression::Division(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::division),
             Expression::Alternative(lhs, rhs)
             | Expression::Concatenation(lhs, rhs)
@@ -78,11 +95,7 @@ impl Visitor for Interpreter {
             | Expression::NotEqual(lhs, rhs) => {
                 self.visit_expression(&lhs);
                 self.visit_expression(&rhs);
-            }
-            Expression::BooleanNegation(value)
-            | Expression::ArithmeticNegation(value) => {
-                self.visit_expression(&value);
-            }
+            },
             Expression::Literal(literal) => self.visit_literal(literal),
             Expression::Variable(variable) => self.visit_variable(variable),
             Expression::FunctionCall {

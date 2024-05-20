@@ -76,6 +76,52 @@ impl Value {
 }
 
 impl Value {
+    pub fn cast_to_type(&self, to_type: Type) -> Result<Value, ComputationIssue> {
+        match (self, to_type) {
+            (Value::I64(i64), Type::Str) => Ok(Value::String(i64.to_string())),
+            (Value::F64(f64), Type::Str) => Ok(Value::String(f64.to_string())),
+            (Value::I64(i64), Type::F64) => Ok(Value::F64(*i64 as f64)),
+            (Value::F64(f64), Type::I64) => Ok(Value::I64(*f64 as i64)),
+            (Value::String(string), Type::I64) => match string.parse::<i64>() {
+                Ok(i64) => Ok(Value::I64(i64)),
+                Err(_) => Err(ComputationIssue {
+                    message: format!("Cannot cast String '{}' to i64.", string),
+                }),
+            },
+            (Value::String(string), Type::F64) => match string.parse::<f64>() {
+                Ok(f64) => Ok(Value::F64(f64)),
+                Err(_) => Err(ComputationIssue {
+                    message: format!("Cannot cast String '{}' to f64.", string),
+                }),
+            },
+            (Value::String(string), Type::Bool) => match string.as_str() {
+                "true" => Ok(Value::Bool(true)),
+                "false" => Ok(Value::Bool(false)),
+                _ => Err(ComputationIssue {
+                    message: format!("Cannot cast String '{}' to bool.", string),
+                }),
+            },
+            (value, target_type) => Err(ComputationIssue {
+              message: format!("Cannot cast {:?} to {:?}.", value, target_type),
+          }),
+        }
+    }
+
+    pub fn boolean_negate(&self) -> Result<Value, ComputationIssue> {
+      match self {
+          Value::Bool(bool) => Ok(Value::Bool(!bool)),
+          val => Err(ComputationIssue { message: format!("Cannot perform boolean negation on {:?}.", val) })
+      }
+    }
+
+    pub fn arithmetic_negate(&self) -> Result<Value, ComputationIssue> {
+      match self {
+        Value::I64(i64) => Ok(Value::I64(-i64)),
+          Value::F64(f64) => Ok(Value::F64(-f64)),
+          val => Err(ComputationIssue { message: format!("Cannot perform arithmetic negation on {:?}.", val) })
+      }
+    }
+
     pub fn default_value(var_type: Type) -> Result<Value, ComputationIssue> {
         match var_type {
             Type::Bool => Ok(Value::Bool(false)),
@@ -118,31 +164,30 @@ impl Value {
     }
 
     pub fn multiplication(&self, other: Value) -> Result<Value, ComputationIssue> {
-      match (self, &other) {
-          (Value::I64(_), Value::I64(_)) => {
-              self.check_int_operation(other, i64::checked_mul, "multiplication")
-          }
-          (Value::F64(_), Value::F64(_)) => {
-              self.check_float_operation(other, |a, b| a * b, "multiplication")
-          }
-          (a, b) => Err(ComputationIssue {
-              message: format!("Cannot perform multiplication between {:?} and {:?}.", a, b),
-          }),
-      }
-  }
-
-
-  pub fn division(&self, other: Value) -> Result<Value, ComputationIssue> {
-    match (self, &other) {
-        (Value::I64(_), Value::I64(_)) => {
-            self.check_int_operation(other, i64::checked_div, "division")
+        match (self, &other) {
+            (Value::I64(_), Value::I64(_)) => {
+                self.check_int_operation(other, i64::checked_mul, "multiplication")
+            }
+            (Value::F64(_), Value::F64(_)) => {
+                self.check_float_operation(other, |a, b| a * b, "multiplication")
+            }
+            (a, b) => Err(ComputationIssue {
+                message: format!("Cannot perform multiplication between {:?} and {:?}.", a, b),
+            }),
         }
-        (Value::F64(_), Value::F64(_)) => {
-            self.check_float_operation(other, |a, b| a / b, "division")
-        }
-        (a, b) => Err(ComputationIssue {
-            message: format!("Cannot perform division between {:?} and {:?}.", a, b),
-        }),
     }
-}
+
+    pub fn division(&self, other: Value) -> Result<Value, ComputationIssue> {
+        match (self, &other) {
+            (Value::I64(_), Value::I64(_)) => {
+                self.check_int_operation(other, i64::checked_div, "division")
+            }
+            (Value::F64(_), Value::F64(_)) => {
+                self.check_float_operation(other, |a, b| a / b, "division")
+            }
+            (a, b) => Err(ComputationIssue {
+                message: format!("Cannot perform division between {:?} and {:?}.", a, b),
+            }),
+        }
+    }
 }
