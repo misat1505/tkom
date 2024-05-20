@@ -228,6 +228,8 @@ mod tests {
         let mut manager = ScopeManager::new();
 
         let _ = manager.declare_variable("x".to_owned(), Value::I64(1));
-        assert!(manager.assign_variable("x".to_owned(), Value::Bool(true)).is_err());
+        assert!(manager
+            .assign_variable("x".to_owned(), Value::Bool(true))
+            .is_err());
     }
 }

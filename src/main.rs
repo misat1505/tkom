@@ -73,7 +73,7 @@ fn main() -> Result<(), Box<dyn Issue>> {
     }
 
     let mut interpreter = Interpreter::new(program.clone());
-    interpreter.interpret();
+    let _ = interpreter.interpret();
 
     Ok(())
 }
