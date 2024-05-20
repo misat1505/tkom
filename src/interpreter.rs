@@ -35,8 +35,12 @@ impl Interpreter {
         read_value
     }
 
-    fn evaluate_binary_op<F>(&mut self, lhs: Box<Node<Expression>>, rhs: Box<Node<Expression>>, op: F)
-    where
+    fn evaluate_binary_op<F>(
+        &mut self,
+        lhs: Box<Node<Expression>>,
+        rhs: Box<Node<Expression>>,
+        op: F,
+    ) where
         F: Fn(&Value, Value) -> Result<Value, ComputationIssue>,
     {
         self.visit_expression(&lhs);
@@ -57,12 +61,13 @@ impl Visitor for Interpreter {
 
     fn visit_expression(&mut self, expression: &Node<Expression>) {
         match expression.value.clone() {
-            Expression::Addition(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, Value::add)
-            },
-            Expression::Subtraction(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, Value::subtract)
-            },
+            Expression::Casting { value, .. } => {
+                self.visit_expression(&value);
+            }
+            Expression::Addition(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::add),
+            Expression::Subtraction(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::subtract),
+            Expression::Multiplication(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::multiplication),
+            Expression::Division(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::division),
             Expression::Alternative(lhs, rhs)
             | Expression::Concatenation(lhs, rhs)
             | Expression::Greater(lhs, rhs)
@@ -70,15 +75,12 @@ impl Visitor for Interpreter {
             | Expression::Less(lhs, rhs)
             | Expression::LessEqual(lhs, rhs)
             | Expression::Equal(lhs, rhs)
-            | Expression::NotEqual(lhs, rhs)
-            | Expression::Multiplication(lhs, rhs)
-            | Expression::Division(lhs, rhs) => {
+            | Expression::NotEqual(lhs, rhs) => {
                 self.visit_expression(&lhs);
                 self.visit_expression(&rhs);
             }
             Expression::BooleanNegation(value)
-            | Expression::ArithmeticNegation(value)
-            | Expression::Casting { value, .. } => {
+            | Expression::ArithmeticNegation(value) => {
                 self.visit_expression(&value);
             }
             Expression::Literal(literal) => self.visit_literal(literal),
