@@ -53,7 +53,7 @@ pub enum Literal {
     F64(f64),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum Type {
     Bool,
     Str,
