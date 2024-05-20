@@ -1,2 +1,6 @@
 i64 age = 21;
 str text = "I am " + age as str + " years old.";
+
+
+bool x = true;
+bool y = !x || 1;

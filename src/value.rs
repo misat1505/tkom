@@ -190,4 +190,18 @@ impl Value {
             }),
         }
     }
+
+    pub fn concatenation(&self, other: Value) -> Result<Value, ComputationIssue> {
+      match (self, other) {
+          (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(*bool1 && bool2)),
+          (a, b) => Err(ComputationIssue { message: format!("Cannot perform concatenation between {:?} and {:?}.", a, b) })
+      }
+    }
+
+    pub fn alternative(&self, other: Value) -> Result<Value, ComputationIssue> {
+      match (self, other) {
+          (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(*bool1 || bool2)),
+          (a, b) => Err(ComputationIssue { message: format!("Cannot perform concatenation between {:?} and {:?}.", a, b) })
+      }
+    }
 }

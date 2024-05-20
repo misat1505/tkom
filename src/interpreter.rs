@@ -50,6 +50,15 @@ impl Interpreter {
 
         self.last_result = Some(op(&left_value, right_value).unwrap());
     }
+
+    fn evaluate_unary_op<F>(&mut self, value: Box<Node<Expression>>, op: F)
+    where
+        F: Fn(&Value) -> Result<Value, ComputationIssue>,
+    {
+        self.visit_expression(&value);
+        let computed_value = self.read_last_result();
+        self.last_result = Some(op(&computed_value).unwrap());
+    }
 }
 
 impl Visitor for Interpreter {
@@ -67,27 +76,17 @@ impl Visitor for Interpreter {
                 let casted_value = computed_value.cast_to_type(to_type.value).unwrap();
                 self.last_result = Some(casted_value);
             },
-            Expression::BooleanNegation(value) => {
-                self.visit_expression(&value);
-                let computed_value = self.read_last_result();
-                let casted_value = computed_value.boolean_negate().unwrap();
-                self.last_result = Some(casted_value);
-            },
-            Expression::ArithmeticNegation(value) => {
-                self.visit_expression(&value);
-                let computed_value = self.read_last_result();
-                let casted_value = computed_value.arithmetic_negate().unwrap();
-                self.last_result = Some(casted_value);
-            }
+            Expression::BooleanNegation(value) => self.evaluate_unary_op(value, Value::boolean_negate),
+            Expression::ArithmeticNegation(value) => self.evaluate_unary_op(value, Value::arithmetic_negate),
             Expression::Addition(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::add),
             Expression::Subtraction(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::subtract),
             Expression::Multiplication(lhs, rhs) => {
                 self.evaluate_binary_op(lhs, rhs, Value::multiplication)
             }
             Expression::Division(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::division),
-            Expression::Alternative(lhs, rhs)
-            | Expression::Concatenation(lhs, rhs)
-            | Expression::Greater(lhs, rhs)
+            Expression::Alternative(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::alternative),
+            Expression::Concatenation(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::concatenation),
+            Expression::Greater(lhs, rhs)
             | Expression::GreaterEqual(lhs, rhs)
             | Expression::Less(lhs, rhs)
             | Expression::LessEqual(lhs, rhs)
