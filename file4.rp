@@ -1,11 +1,13 @@
-i64 age = 21;
-str text = "I am " + age as str + " years old.";
+#i64 age = 21;
+#str text = "I am " + age as str + " years old.";
 
-bool is_adult;
-if (age >= 18) {
-  is_adult = true;
-  str text2 = "I AM ADULT.";
-} else {
-  is_adult = false;
-  str text2 = "I AM NOT ADULT.";
+for (i64 i = 0; i < 3; i = i + 1) {
+  for (i64 j = 0; j <= i; j = j + 1) {
+    i64 mul = i * j;
+  }
+}
+
+i64 x = 0;
+for (;x < 3;) {
+  x = x + 1;
 }

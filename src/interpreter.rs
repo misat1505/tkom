@@ -186,14 +186,33 @@ impl Visitor for Interpreter {
                 assignment,
                 block,
             } => {
+                self.scope_manager.push_scope();
                 if let Some(decl) = declaration {
                     self.visit_statement(&decl);
                 }
+
                 self.visit_expression(&condition);
-                if let Some(assign) = assignment {
-                    self.visit_statement(&assign);
+                let mut computed_condition = self.read_last_result();
+                let mut boolean_value = match computed_condition {
+                    Value::Bool(bool) => bool,
+                    _ => panic!("bad types in for condition")
+                };
+
+                while boolean_value {
+                    self.visit_block(&block);
+
+                    if let Some(assign) = assignment.clone() {
+                        self.visit_statement(&assign);
+                    }
+
+                    self.visit_expression(&condition);
+                    computed_condition = self.read_last_result();
+                    boolean_value = match computed_condition {
+                        Value::Bool(bool) => bool,
+                        _ => panic!("bad types in for condition")
+                    };
                 }
-                self.visit_block(&block);
+                self.scope_manager.pop_scope();
             }
             Statement::Switch { expressions, cases } => {
                 for expr in expressions {
