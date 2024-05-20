@@ -6,20 +6,23 @@ mod lazy_stream_reader;
 use lazy_stream_reader::LazyStreamReader;
 
 use crate::{
-    interpreter::Interpreter, lexer::LexerOptions, parser::{IParser, Parser}, semantic_checker::{SemanticChecker, SemanticCheckerIssue}
+    interpreter::Interpreter,
+    lexer::LexerOptions,
+    parser::{IParser, Parser},
+    semantic_checker::{SemanticChecker, SemanticCheckerIssue},
 };
 
 mod ast;
 mod errors;
 mod functions_manager;
+mod interpreter;
 mod lexer;
 mod parser;
+mod scope_manager;
 mod semantic_checker;
 mod tokens;
-mod visitor;
-mod scope_manager;
 mod value;
-mod interpreter;
+mod visitor;
 
 mod tests;
 

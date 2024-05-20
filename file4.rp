@@ -1,6 +1,5 @@
-i64 x = 1;
-x = 2;
-if (true) {
-  x = x + 2;
-  i64 y = x + 1;
-}
+str s1 = "Hello";
+str s3 = "World";
+str s4 = s1 + " " + s3;
+
+f64 x = 6532475327647647762.0 - 5;
