@@ -75,21 +75,33 @@ impl Visitor for Interpreter {
                 let computed_value = self.read_last_result();
                 let casted_value = computed_value.cast_to_type(to_type.value).unwrap();
                 self.last_result = Some(casted_value);
-            },
-            Expression::BooleanNegation(value) => self.evaluate_unary_op(value, Value::boolean_negate),
-            Expression::ArithmeticNegation(value) => self.evaluate_unary_op(value, Value::arithmetic_negate),
+            }
+            Expression::BooleanNegation(value) => {
+                self.evaluate_unary_op(value, Value::boolean_negate)
+            }
+            Expression::ArithmeticNegation(value) => {
+                self.evaluate_unary_op(value, Value::arithmetic_negate)
+            }
             Expression::Addition(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::add),
             Expression::Subtraction(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::subtract),
             Expression::Multiplication(lhs, rhs) => {
                 self.evaluate_binary_op(lhs, rhs, Value::multiplication)
             }
             Expression::Division(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::division),
-            Expression::Alternative(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::alternative),
-            Expression::Concatenation(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::concatenation),
+            Expression::Alternative(lhs, rhs) => {
+                self.evaluate_binary_op(lhs, rhs, Value::alternative)
+            }
+            Expression::Concatenation(lhs, rhs) => {
+                self.evaluate_binary_op(lhs, rhs, Value::concatenation)
+            }
             Expression::Greater(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::greater),
-            Expression::GreaterEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::greater_or_equal),
+            Expression::GreaterEqual(lhs, rhs) => {
+                self.evaluate_binary_op(lhs, rhs, Value::greater_or_equal)
+            }
             Expression::Less(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::less),
-            Expression::LessEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::less_or_equal),
+            Expression::LessEqual(lhs, rhs) => {
+                self.evaluate_binary_op(lhs, rhs, Value::less_or_equal)
+            }
             Expression::Equal(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::equal),
             Expression::NotEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::not_equal),
             Expression::Literal(literal) => self.visit_literal(literal),
@@ -147,6 +159,17 @@ impl Visitor for Interpreter {
                     None => Value::default_value(var_type.value).unwrap(),
                 };
 
+                match (var_type.value, computed_value.clone()) {
+                    (Type::I64, Value::I64(_))
+                    | (Type::F64, Value::F64(_))
+                    | (Type::Str, Value::String(_))
+                    | (Type::Bool, Value::Bool(_)) => {}
+                    (declared_type, computed_type) => panic!(
+                        "Cannot assign variable of type {:?} to type {:?}",
+                        computed_type, declared_type
+                    ),
+                }
+
                 self.scope_manager
                     .declare_variable(identifier.value.0, computed_value)
                     .unwrap();
@@ -170,7 +193,7 @@ impl Visitor for Interpreter {
                 let computed_condition = self.read_last_result();
                 let boolean_value = match computed_condition {
                     Value::Bool(bool) => bool,
-                    _ => panic!("bad types in if condition")
+                    _ => panic!("bad types in if condition"),
                 };
                 if boolean_value {
                     self.visit_block(&if_block);
@@ -195,7 +218,7 @@ impl Visitor for Interpreter {
                 let mut computed_condition = self.read_last_result();
                 let mut boolean_value = match computed_condition {
                     Value::Bool(bool) => bool,
-                    _ => panic!("bad types in for condition")
+                    _ => panic!("bad types in for condition"),
                 };
 
                 while boolean_value {
@@ -209,7 +232,7 @@ impl Visitor for Interpreter {
                     computed_condition = self.read_last_result();
                     boolean_value = match computed_condition {
                         Value::Bool(bool) => bool,
-                        _ => panic!("bad types in for condition")
+                        _ => panic!("bad types in for condition"),
                     };
                 }
                 self.scope_manager.pop_scope();

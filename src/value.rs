@@ -114,24 +114,28 @@ impl Value {
                 }),
             },
             (value, target_type) => Err(ComputationIssue {
-              message: format!("Cannot cast {:?} to {:?}.", value, target_type),
-          }),
+                message: format!("Cannot cast {:?} to {:?}.", value, target_type),
+            }),
         }
     }
 
     pub fn boolean_negate(&self) -> Result<Value, ComputationIssue> {
-      match self {
-          Value::Bool(bool) => Ok(Value::Bool(!bool)),
-          val => Err(ComputationIssue { message: format!("Cannot perform boolean negation on {:?}.", val) })
-      }
+        match self {
+            Value::Bool(bool) => Ok(Value::Bool(!bool)),
+            val => Err(ComputationIssue {
+                message: format!("Cannot perform boolean negation on {:?}.", val),
+            }),
+        }
     }
 
     pub fn arithmetic_negate(&self) -> Result<Value, ComputationIssue> {
-      match self {
-        Value::I64(i64) => Ok(Value::I64(-i64)),
-          Value::F64(f64) => Ok(Value::F64(-f64)),
-          val => Err(ComputationIssue { message: format!("Cannot perform arithmetic negation on {:?}.", val) })
-      }
+        match self {
+            Value::I64(i64) => Ok(Value::I64(-i64)),
+            Value::F64(f64) => Ok(Value::F64(-f64)),
+            val => Err(ComputationIssue {
+                message: format!("Cannot perform arithmetic negation on {:?}.", val),
+            }),
+        }
     }
 
     pub fn add(&self, other: Value) -> Result<Value, ComputationIssue> {
@@ -192,69 +196,88 @@ impl Value {
     }
 
     pub fn concatenation(&self, other: Value) -> Result<Value, ComputationIssue> {
-      match (self, other) {
-          (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(*bool1 && bool2)),
-          (a, b) => Err(ComputationIssue { message: format!("Cannot perform concatenation between {:?} and {:?}.", a, b) })
-      }
+        match (self, other) {
+            (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(*bool1 && bool2)),
+            (a, b) => Err(ComputationIssue {
+                message: format!("Cannot perform concatenation between {:?} and {:?}.", a, b),
+            }),
+        }
     }
 
     pub fn alternative(&self, other: Value) -> Result<Value, ComputationIssue> {
-      match (self, other) {
-          (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(*bool1 || bool2)),
-          (a, b) => Err(ComputationIssue { message: format!("Cannot perform concatenation between {:?} and {:?}.", a, b) })
-      }
+        match (self, other) {
+            (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(*bool1 || bool2)),
+            (a, b) => Err(ComputationIssue {
+                message: format!("Cannot perform concatenation between {:?} and {:?}.", a, b),
+            }),
+        }
     }
 
     pub fn greater(&self, other: Value) -> Result<Value, ComputationIssue> {
-      match (self, other) {
-          (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 > val2)),
-          (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 > val2)),
-          (a, b) => Err(ComputationIssue { message: format!("Cannot perform greater between {:?} and {:?}.", a, b) })
-      }
+        match (self, other) {
+            (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 > val2)),
+            (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 > val2)),
+            (a, b) => Err(ComputationIssue {
+                message: format!("Cannot perform greater between {:?} and {:?}.", a, b),
+            }),
+        }
     }
 
     pub fn greater_or_equal(&self, other: Value) -> Result<Value, ComputationIssue> {
-      match (self, other) {
-          (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 >= val2)),
-          (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 >= val2)),
-          (a, b) => Err(ComputationIssue { message: format!("Cannot perform greater or equal between {:?} and {:?}.", a, b) })
-      }
+        match (self, other) {
+            (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 >= val2)),
+            (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 >= val2)),
+            (a, b) => Err(ComputationIssue {
+                message: format!(
+                    "Cannot perform greater or equal between {:?} and {:?}.",
+                    a, b
+                ),
+            }),
+        }
     }
 
     pub fn less(&self, other: Value) -> Result<Value, ComputationIssue> {
-      match (self, other) {
-          (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 < val2)),
-          (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 < val2)),
-          (a, b) => Err(ComputationIssue { message: format!("Cannot perform less between {:?} and {:?}.", a, b) })
-      }
+        match (self, other) {
+            (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 < val2)),
+            (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 < val2)),
+            (a, b) => Err(ComputationIssue {
+                message: format!("Cannot perform less between {:?} and {:?}.", a, b),
+            }),
+        }
     }
 
     pub fn less_or_equal(&self, other: Value) -> Result<Value, ComputationIssue> {
-      match (self, other) {
-          (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 <= val2)),
-          (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 <= val2)),
-          (a, b) => Err(ComputationIssue { message: format!("Cannot perform less or equal between {:?} and {:?}.", a, b) })
-      }
+        match (self, other) {
+            (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 <= val2)),
+            (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 <= val2)),
+            (a, b) => Err(ComputationIssue {
+                message: format!("Cannot perform less or equal between {:?} and {:?}.", a, b),
+            }),
+        }
     }
 
     pub fn equal(&self, other: Value) -> Result<Value, ComputationIssue> {
-      match (self, other) {
-          (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 == val2)),
-          (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 == val2)),
-          (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(*val1 == val2)),
-          (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(*val1 == val2)),
-          (a, b) => Err(ComputationIssue { message: format!("Cannot perform equal between {:?} and {:?}.", a, b) })
-      }
+        match (self, other) {
+            (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 == val2)),
+            (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 == val2)),
+            (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(*val1 == val2)),
+            (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(*val1 == val2)),
+            (a, b) => Err(ComputationIssue {
+                message: format!("Cannot perform equal between {:?} and {:?}.", a, b),
+            }),
+        }
     }
 
     pub fn not_equal(&self, other: Value) -> Result<Value, ComputationIssue> {
-      match (self, other) {
-          (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 != val2)),
-          (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 != val2)),
-          (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(*val1 != val2)),
-          (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(*val1 != val2)),
-          (a, b) => Err(ComputationIssue { message: format!("Cannot perform not equal between {:?} and {:?}.", a, b) })
-      }
+        match (self, other) {
+            (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(*val1 != val2)),
+            (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(*val1 != val2)),
+            (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(*val1 != val2)),
+            (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(*val1 != val2)),
+            (a, b) => Err(ComputationIssue {
+                message: format!("Cannot perform not equal between {:?} and {:?}.", a, b),
+            }),
+        }
     }
 }
 
@@ -264,18 +287,13 @@ mod tests {
 
     #[test]
     fn default_values() {
-        let data = [
-            Type::Bool,
-            Type::I64,
-            Type::F64,
-            Type::Str
-        ];
+        let data = [Type::Bool, Type::I64, Type::F64, Type::Str];
 
         let expected = [
             Value::Bool(false),
             Value::I64(0),
             Value::F64(0.0),
-            Value::String(String::from(""))
+            Value::String(String::from("")),
         ];
 
         for idx in 0..data.len() {
@@ -309,7 +327,7 @@ mod tests {
             Value::I64(1),
             Value::F64(1.2),
             Value::Bool(true),
-            Value::Bool(false)
+            Value::Bool(false),
         ];
 
         for idx in 0..data.len() {
@@ -344,7 +362,9 @@ mod tests {
     fn arithmetic_negation() {
         assert!(Value::I64(1).arithmetic_negate().unwrap() == Value::I64(-1));
         assert!(Value::F64(-21.37).arithmetic_negate().unwrap() == Value::F64(21.37));
-        assert!(Value::String(String::from("abc")).arithmetic_negate().is_err());
+        assert!(Value::String(String::from("abc"))
+            .arithmetic_negate()
+            .is_err());
     }
 
     #[test]
@@ -352,13 +372,16 @@ mod tests {
         let data = [
             (Value::I64(1), Value::I64(2)),
             (Value::F64(1.5), Value::F64(2.5)),
-            (Value::String(String::from("Papollo")), Value::String(String::from("2137"))),
+            (
+                Value::String(String::from("Papollo")),
+                Value::String(String::from("2137")),
+            ),
         ];
 
         let expected = [
             Value::I64(3),
             Value::F64(4.0),
-            Value::String(String::from("Papollo2137"))
+            Value::String(String::from("Papollo2137")),
         ];
 
         for idx in 0..data.len() {
@@ -369,7 +392,9 @@ mod tests {
 
     #[test]
     fn add_fail() {
-        assert!(Value::I64(6532475327647647762).add(Value::I64(6532475327647647762)).is_err());
+        assert!(Value::I64(6532475327647647762)
+            .add(Value::I64(6532475327647647762))
+            .is_err());
         assert!(Value::I64(1).add(Value::F64(2.0)).is_err());
     }
 
@@ -380,10 +405,7 @@ mod tests {
             (Value::F64(1.5), Value::F64(2.5)),
         ];
 
-        let expected = [
-            Value::I64(-1),
-            Value::F64(-1.0),
-        ];
+        let expected = [Value::I64(-1), Value::F64(-1.0)];
 
         for idx in 0..data.len() {
             let (val1, val2) = &data[idx];
@@ -393,9 +415,13 @@ mod tests {
 
     #[test]
     fn subtract_fail() {
-        assert!(Value::I64(-6532475327647647762).subtract(Value::I64(6532475327647647762)).is_err());
+        assert!(Value::I64(-6532475327647647762)
+            .subtract(Value::I64(6532475327647647762))
+            .is_err());
         assert!(Value::I64(1).subtract(Value::F64(2.0)).is_err());
-        assert!(Value::String(String::from("a")).subtract(Value::String(String::from("a"))).is_err());
+        assert!(Value::String(String::from("a"))
+            .subtract(Value::String(String::from("a")))
+            .is_err());
     }
 
     #[test]
@@ -405,10 +431,7 @@ mod tests {
             (Value::F64(1.5), Value::F64(2.5)),
         ];
 
-        let expected = [
-            Value::I64(2),
-            Value::F64(3.75),
-        ];
+        let expected = [Value::I64(2), Value::F64(3.75)];
 
         for idx in 0..data.len() {
             let (val1, val2) = &data[idx];
@@ -418,9 +441,13 @@ mod tests {
 
     #[test]
     fn multiplication_fail() {
-        assert!(Value::I64(6532475327647647762).multiplication(Value::I64(6532475327647647762)).is_err());
+        assert!(Value::I64(6532475327647647762)
+            .multiplication(Value::I64(6532475327647647762))
+            .is_err());
         assert!(Value::I64(1).multiplication(Value::F64(2.0)).is_err());
-        assert!(Value::String(String::from("a")).multiplication(Value::String(String::from("a"))).is_err());
+        assert!(Value::String(String::from("a"))
+            .multiplication(Value::String(String::from("a")))
+            .is_err());
     }
 
     #[test]
@@ -430,10 +457,7 @@ mod tests {
             (Value::F64(1.5), Value::F64(2.5)),
         ];
 
-        let expected = [
-            Value::I64(0),
-            Value::F64(0.6),
-        ];
+        let expected = [Value::I64(0), Value::F64(0.6)];
 
         for idx in 0..data.len() {
             let (val1, val2) = &data[idx];
@@ -443,9 +467,13 @@ mod tests {
 
     #[test]
     fn division_fail() {
-        assert!(Value::I64(6532475327647647762).division(Value::I64(0)).is_err());
+        assert!(Value::I64(6532475327647647762)
+            .division(Value::I64(0))
+            .is_err());
         assert!(Value::I64(1).division(Value::F64(2.0)).is_err());
-        assert!(Value::String(String::from("a")).division(Value::String(String::from("a"))).is_err());
+        assert!(Value::String(String::from("a"))
+            .division(Value::String(String::from("a")))
+            .is_err());
     }
 
     #[test]
@@ -453,7 +481,12 @@ mod tests {
         assert!(Value::Bool(true).concatenation(Value::Bool(true)).unwrap() == Value::Bool(true));
         assert!(Value::Bool(false).concatenation(Value::Bool(true)).unwrap() == Value::Bool(false));
         assert!(Value::Bool(true).concatenation(Value::Bool(false)).unwrap() == Value::Bool(false));
-        assert!(Value::Bool(false).concatenation(Value::Bool(false)).unwrap() == Value::Bool(false));
+        assert!(
+            Value::Bool(false)
+                .concatenation(Value::Bool(false))
+                .unwrap()
+                == Value::Bool(false)
+        );
         assert!(Value::Bool(true).concatenation(Value::I64(1)).is_err());
     }
 
@@ -516,8 +549,18 @@ mod tests {
         assert!(Value::I64(2).equal(Value::I64(2)).unwrap() == Value::Bool(true));
         assert!(Value::F64(1.0).equal(Value::F64(2.0)).unwrap() == Value::Bool(false));
         assert!(Value::F64(2.0).equal(Value::F64(2.0)).unwrap() == Value::Bool(true));
-        assert!(Value::String(String::from("a")).equal(Value::String(String::from("b"))).unwrap() == Value::Bool(false));
-        assert!(Value::String(String::from("a")).equal(Value::String(String::from("a"))).unwrap() == Value::Bool(true));
+        assert!(
+            Value::String(String::from("a"))
+                .equal(Value::String(String::from("b")))
+                .unwrap()
+                == Value::Bool(false)
+        );
+        assert!(
+            Value::String(String::from("a"))
+                .equal(Value::String(String::from("a")))
+                .unwrap()
+                == Value::Bool(true)
+        );
         assert!(Value::Bool(true).equal(Value::Bool(false)).unwrap() == Value::Bool(false));
         assert!(Value::Bool(true).equal(Value::Bool(true)).unwrap() == Value::Bool(true));
         assert!(Value::Bool(true).equal(Value::I64(1)).is_err());
