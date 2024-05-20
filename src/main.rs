@@ -6,9 +6,7 @@ mod lazy_stream_reader;
 use lazy_stream_reader::LazyStreamReader;
 
 use crate::{
-    lexer::LexerOptions,
-    parser::{IParser, Parser},
-    semantic_checker::{SemanticChecker, SemanticCheckerIssue},
+    interpreter::Interpreter, lexer::LexerOptions, parser::{IParser, Parser}, semantic_checker::{SemanticChecker, SemanticCheckerIssue}
 };
 
 mod ast;
@@ -21,6 +19,7 @@ mod tokens;
 mod visitor;
 mod scope_manager;
 mod value;
+mod interpreter;
 
 mod tests;
 
@@ -69,6 +68,9 @@ fn main() -> Result<(), Box<dyn Issue>> {
         };
         return Err(Box::new(first_error));
     }
+
+    let mut interpreter = Interpreter::new(program.clone());
+    interpreter.interpret();
 
     Ok(())
 }

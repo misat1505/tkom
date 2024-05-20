@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{errors::Issue, value::Value};
 
 #[derive(Debug)]
-struct ScopeManagerIssue {
+pub struct ScopeManagerIssue {
   message: String
 }
 
