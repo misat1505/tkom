@@ -20,6 +20,25 @@ pub enum Value {
 }
 
 impl Value {
+  fn check_int_operation<F>(&self, other: Value, op: F, op_name: &str) -> Result<Value, ComputationIssue>
+    where
+        F: Fn(i64, i64) -> Option<i64>,
+    {
+        match (self, other.clone()) {
+            (Value::I64(a), Value::I64(b)) => match op(*a, b) {
+                Some(result) => Ok(Value::I64(result)),
+                None => Err(ComputationIssue {
+                    message: format!("Overflow occurred when performing {} on i64s.", op_name),
+                }),
+            },
+            _ => Err(ComputationIssue {
+                message: format!("Cannot perform {} between {:?} and {:?}.", op_name, self, other),
+            }),
+        }
+    }
+}
+
+impl Value {
   pub fn default_value(var_type: Type) -> Result<Value, ComputationIssue> {
     match var_type {
       Type::Bool => Ok(Value::Bool(false)),
@@ -31,13 +50,8 @@ impl Value {
   }
 
   pub fn add(&self, other: Value) -> Result<Value, ComputationIssue> {
-    match (self, other) {
-        (Value::I64(a), Value::I64(b)) => {
-          match a.checked_add(b) {
-            Some(_) => Ok(Value::I64(a + b)),
-            None => Err(ComputationIssue {message: format!("Overflow occured when performing addition on i64s.")})
-          }
-        },
+    match (self, &other) {
+        (Value::I64(_), Value::I64(_)) => self.check_int_operation(other, i64::checked_add, "addition"),
         (Value::F64(a), Value::F64(b)) => Ok(Value::F64(a + b)),
         (Value::String(a), Value::String(b)) => Ok(Value::String(a.clone() + &b.clone())),
         (a, b) => Err(ComputationIssue { message: format!("Cannot perform addition between {:?} and {:?}.", a, b) })
@@ -45,13 +59,8 @@ impl Value {
   }
 
   pub fn subtract(&self, other: Value) -> Result<Value, ComputationIssue> {
-    match (self, other) {
-        (Value::I64(a), Value::I64(b)) => {
-          match a.checked_sub(b) {
-            Some(_) => Ok(Value::I64(a - b)),
-            None => Err(ComputationIssue {message: format!("Overflow occured when performing subtraction on i64s.")})
-          }
-        },
+    match (self, &other) {
+        (Value::I64(_), Value::I64(_)) => self.check_int_operation(other, i64::checked_sub, "subtraction"),
         (Value::F64(a), Value::F64(b)) => Ok(Value::F64(a - b)),
         (a, b) => Err(ComputationIssue { message: format!("Cannot perform subtraction between {:?} and {:?}.", a, b) })
     }

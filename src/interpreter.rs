@@ -5,7 +5,7 @@ use crate::{
     },
     errors::Issue,
     scope_manager::ScopeManager,
-    value::Value,
+    value::{ComputationIssue, Value},
     visitor::Visitor,
 };
 
@@ -34,6 +34,18 @@ impl Interpreter {
         self.last_result = None;
         read_value
     }
+
+    fn evaluate_binary_op<F>(&mut self, lhs: Box<Node<Expression>>, rhs: Box<Node<Expression>>, op: F)
+    where
+        F: Fn(&Value, Value) -> Result<Value, ComputationIssue>,
+    {
+        self.visit_expression(&lhs);
+        let left_value = self.read_last_result();
+        self.visit_expression(&rhs);
+        let right_value = self.read_last_result();
+
+        self.last_result = Some(op(&left_value, right_value).unwrap());
+    }
 }
 
 impl Visitor for Interpreter {
@@ -46,20 +58,10 @@ impl Visitor for Interpreter {
     fn visit_expression(&mut self, expression: &Node<Expression>) {
         match expression.value.clone() {
             Expression::Addition(lhs, rhs) => {
-                self.visit_expression(&lhs);
-                let left_value = self.read_last_result();
-                self.visit_expression(&rhs);
-                let right_value = self.read_last_result();
-
-                self.last_result = Some(left_value.add(right_value).unwrap());
+                self.evaluate_binary_op(lhs, rhs, Value::add)
             },
             Expression::Subtraction(lhs, rhs) => {
-                self.visit_expression(&lhs);
-                let left_value = self.read_last_result();
-                self.visit_expression(&rhs);
-                let right_value = self.read_last_result();
-
-                self.last_result = Some(left_value.subtract(right_value).unwrap());
+                self.evaluate_binary_op(lhs, rhs, Value::subtract)
             },
             Expression::Alternative(lhs, rhs)
             | Expression::Concatenation(lhs, rhs)
