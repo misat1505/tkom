@@ -25,7 +25,7 @@ pub struct Interpreter {
     program: Program,
     scope_manager: ScopeManager,
     last_result: Option<Value>,
-    is_breaking: bool
+    is_breaking: bool,
 }
 
 impl Interpreter {
@@ -34,7 +34,7 @@ impl Interpreter {
             program,
             scope_manager: ScopeManager::new(),
             last_result: None,
-            is_breaking: false
+            is_breaking: false,
         }
     }
 
@@ -96,7 +96,9 @@ impl Visitor for Interpreter {
         for statement in program.statements.clone() {
             self.visit_statement(&statement)?;
             if self.is_breaking && self.scope_manager.len() == 1 {
-                return Err(Box::new(InterpreterIssue {message: format!("Break called outside for or switch.")}));
+                return Err(Box::new(InterpreterIssue {
+                    message: format!("Break called outside for or switch."),
+                }));
             }
         }
         Ok(())
@@ -337,9 +339,10 @@ impl Visitor for Interpreter {
         self.scope_manager.push_scope();
         println!("{:?}", self.scope_manager.clone());
         for statement in &block.value.0 {
-            println!("{}", self.scope_manager.len());
             if self.is_breaking && self.scope_manager.len() == 1 {
-                return Err(Box::new(InterpreterIssue {message: format!("Break called outside for or switch.")}));
+                return Err(Box::new(InterpreterIssue {
+                    message: format!("Break called outside for or switch."),
+                }));
             }
 
             if self.is_breaking {
@@ -363,7 +366,14 @@ impl Visitor for Interpreter {
         let computed_value = self.read_last_result();
         let boolean_value = match computed_value {
             Value::Bool(bool) => bool,
-            a => return Err(Box::new(InterpreterIssue {message: format!("Condition in switch case has to evaluate to boolean - got {:?}.", a)}))
+            a => {
+                return Err(Box::new(InterpreterIssue {
+                    message: format!(
+                        "Condition in switch case has to evaluate to boolean - got {:?}.",
+                        a
+                    ),
+                }))
+            }
         };
         if boolean_value {
             self.visit_block(&switch_case.value.block)?;
@@ -375,7 +385,17 @@ impl Visitor for Interpreter {
         &mut self,
         switch_expression: &Node<SwitchExpression>,
     ) -> Result<(), Box<dyn Issue>> {
-        self.visit_expression(&switch_expression.value.expression)?;
+        match &switch_expression.value.alias {
+            None => {},
+            Some(alias) => {
+                self.visit_expression(&switch_expression.value.expression)?;
+                let computed_value = self.read_last_result();
+                match self.scope_manager.declare_variable(alias.value.0.clone(), computed_value) {
+                    Ok(_) => {},
+                    Err(err) => return Err(Box::new(err))
+                }
+            }
+        }
         Ok(())
     }
 

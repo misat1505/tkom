@@ -2,11 +2,11 @@ i64 x = 8;
 f64 y = 4.0;
 str text;
 
-switch (x, y) {
+switch (x + 5: temp, y) {
   (x < 10 && y < 5.0) -> {
     text = "Less than 5.";
   }
-  (x < 10 && y < 10.0) -> {
+  (temp < 10 && y < 10.0) -> {
     text = "Less than 10.";
     break;
   }
