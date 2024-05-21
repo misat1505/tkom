@@ -7,6 +7,5 @@ if (true) {
       break;
     }
   }
-  break;
   age = 22;
 }

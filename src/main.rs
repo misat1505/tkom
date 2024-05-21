@@ -24,6 +24,7 @@ mod semantic_checker;
 mod tokens;
 mod value;
 mod visitor;
+mod stack;
 
 mod tests;
 

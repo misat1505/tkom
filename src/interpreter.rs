@@ -2,7 +2,7 @@ use crate::{
     ast::{
         Argument, Block, Expression, Identifier, Literal, Node, Parameter, Program, Statement,
         SwitchCase, SwitchExpression, Type,
-    }, errors::Issue, functions_manager::FunctionsManager, scope_manager::ScopeManager, value::{ComputationIssue, Value}, visitor::Visitor, ALU::ALU
+    }, errors::Issue, functions_manager::FunctionsManager, scope_manager::ScopeManager, stack::Stack, value::{ComputationIssue, Value}, visitor::Visitor, ALU::ALU
 };
 
 #[derive(Debug)]
@@ -19,7 +19,7 @@ impl Issue for InterpreterIssue {
 pub struct Interpreter {
     program: Program,
     functions_manager: FunctionsManager,
-    scope_manager: ScopeManager,
+    stack: Stack,
     last_result: Option<Value>,
     is_breaking: bool,
 }
@@ -29,7 +29,7 @@ impl Interpreter {
         Interpreter {
             program: program.clone(),
             functions_manager: FunctionsManager::new(&program).unwrap(),
-            scope_manager: ScopeManager::new(),
+            stack: Stack::new(program.statements),
             last_result: None,
             is_breaking: false,
         }
@@ -95,7 +95,7 @@ impl Visitor for Interpreter {
                 Statement::FunctionDeclaration { .. } => {},
                 _ => {
                     self.visit_statement(&statement)?;
-                    if self.is_breaking && self.scope_manager.len() == 1 {
+                    if self.is_breaking && self.stack.0.get(self.stack.0.len() - 1).unwrap().scope_manager.len() == 1 {
                         return Err(Box::new(InterpreterIssue {
                             message: format!("Break called outside for or switch."),
                         }));
@@ -227,26 +227,26 @@ impl Visitor for Interpreter {
                 }
 
                 match self
-                    .scope_manager
+                    .stack
                     .declare_variable(identifier.value.0, computed_value)
                 {
                     Ok(_) => {}
                     Err(err) => return Err(Box::new(err)),
                 }
-                println!("{:?}", self.scope_manager.clone());
+                println!("{:?}", self.stack.0.get(self.stack.0.len() - 1).unwrap().scope_manager.clone());
             }
             Statement::Assignment { identifier, value } => {
                 self.visit_identifier(&identifier)?;
                 self.visit_expression(&value)?;
                 let value = self.read_last_result();
                 match self
-                    .scope_manager
+                    .stack
                     .assign_variable(identifier.value.0, value)
                 {
                     Ok(_) => {}
                     Err(err) => return Err(Box::new(err)),
                 }
-                println!("{:?}", self.scope_manager.clone());
+                println!("{:?}", self.stack.0.get(self.stack.0.len() - 1).unwrap().scope_manager.clone());
             }
             Statement::Conditional {
                 condition,
@@ -273,7 +273,7 @@ impl Visitor for Interpreter {
                 assignment,
                 block,
             } => {
-                self.scope_manager.push_scope();
+                self.stack.push_scope();
                 if let Some(decl) = declaration {
                     self.visit_statement(&decl)?;
                 }
@@ -304,10 +304,10 @@ impl Visitor for Interpreter {
                         a => return Err(Box::new(InterpreterIssue {message: format!("Bad value for condition in for statement. Given {:?}, expected a boolean.", a)})),
                     };
                 }
-                self.scope_manager.pop_scope();
+                self.stack.pop_scope();
             }
             Statement::Switch { expressions, cases } => {
-                self.scope_manager.push_scope();
+                self.stack.push_scope();
                 for expr in expressions {
                     self.visit_switch_expression(&expr)?;
                 }
@@ -318,7 +318,7 @@ impl Visitor for Interpreter {
                         break;
                     }
                 }
-                self.scope_manager.pop_scope();
+                self.stack.pop_scope();
             }
             Statement::Return(value) => {
                 if let Some(val) = value {
@@ -338,10 +338,10 @@ impl Visitor for Interpreter {
     }
 
     fn visit_block(&mut self, block: &Node<Block>) -> Result<(), Box<dyn Issue>> {
-        self.scope_manager.push_scope();
-        println!("{:?}", self.scope_manager.clone());
+        self.stack.push_scope();
+        println!("{:?}", self.stack.0.get(self.stack.0.len() - 1).unwrap().scope_manager.clone());
         for statement in &block.value.0 {
-            if self.is_breaking && self.scope_manager.len() == 1 {
+            if self.is_breaking && self.stack.0.get(self.stack.0.len() - 1).unwrap().scope_manager.len() == 1 {
                 return Err(Box::new(InterpreterIssue {
                     message: format!("Break called outside for or switch."),
                 }));
@@ -352,8 +352,8 @@ impl Visitor for Interpreter {
             }
             self.visit_statement(statement)?;
         }
-        self.scope_manager.pop_scope();
-        println!("{:?}", self.scope_manager.clone());
+        self.stack.pop_scope();
+        println!("{:?}", self.stack.0.get(self.stack.0.len() - 1).unwrap().scope_manager.clone());
         Ok(())
     }
 
@@ -392,7 +392,7 @@ impl Visitor for Interpreter {
             Some(alias) => {
                 self.visit_expression(&switch_expression.value.expression)?;
                 let computed_value = self.read_last_result();
-                match self.scope_manager.declare_variable(alias.value.0.clone(), computed_value) {
+                match self.stack.declare_variable(alias.value.0.clone(), computed_value) {
                     Ok(_) => {},
                     Err(err) => return Err(Box::new(err))
                 }
@@ -427,7 +427,7 @@ impl Visitor for Interpreter {
 
     fn visit_variable(&mut self, variable: Identifier) -> Result<(), Box<dyn Issue>> {
         // read value of variable
-        let value = match self.scope_manager.get_variable(variable.0) {
+        let value = match self.stack.get_variable(variable.0) {
             Ok(val) => val,
             Err(err) => return Err(Box::new(err)),
         };
