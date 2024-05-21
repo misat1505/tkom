@@ -5,21 +5,6 @@ fn max(i64 a, i64 b): i64 {
   return b;
 }
 
-fn fib(i64 x): i64 {
-  if (x == 1) {
-    return 1;
-  }
-
-  if (x == 2) {
-    return 1;
-  }
-
-  i64 a = fib(x - 1);
-  i64 b = fib(x - 2);
-  return a + b;
-  #return fib(x - 1) + fib(x - 2);
-}
-
 fn sum(i64 x): i64 {
   if (x == 1) {
     return 1;
@@ -28,4 +13,5 @@ fn sum(i64 x): i64 {
   return x + sum(x - 1);
 }
 
-i64 x = sum(4);
+i64 x = max(3, 6);
+print("The sum of " + x as str + " first integers is " + sum(x) as str + ".");

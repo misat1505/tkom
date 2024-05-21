@@ -267,7 +267,7 @@ impl Visitor for Interpreter {
                     Ok(_) => {}
                     Err(err) => return Err(Box::new(err)),
                 }
-                println!("{:?}", self.stack.0);
+                // println!("{:?}", self.stack.0);
             }
             Statement::Assignment { identifier, value } => {
                 self.visit_identifier(&identifier)?;
@@ -277,7 +277,7 @@ impl Visitor for Interpreter {
                     Ok(_) => {}
                     Err(err) => return Err(Box::new(err)),
                 }
-                println!("{:?}", self.stack.0);
+                // println!("{:?}", self.stack.0);
             }
             Statement::Conditional {
                 condition,
@@ -376,7 +376,7 @@ impl Visitor for Interpreter {
 
     fn visit_block(&mut self, block: &Node<Block>) -> Result<(), Box<dyn Issue>> {
         self.stack.push_scope();
-        println!("{:?}", self.stack.0);
+        // println!("{:?}", self.stack.0);
         for statement in &block.value.0 {
             if self.is_breaking
                 && self
@@ -399,7 +399,7 @@ impl Visitor for Interpreter {
             self.visit_statement(statement)?;
         }
         self.stack.pop_scope();
-        println!("{:?}", self.stack.0);
+        // println!("{:?}", self.stack.0);
         Ok(())
     }
 
@@ -491,6 +491,11 @@ impl Interpreter {
         name: String,
         arguments: Vec<Value>,
     ) -> Result<(), Box<dyn Issue>> {
+        if name == "print".to_owned() {
+            if let Value::String(text) = arguments.get(0).unwrap() {
+                println!("{}", text);
+            }
+        }
         match self.functions_manager.clone().get(name.clone()) {
             None => {
                 // built in function?

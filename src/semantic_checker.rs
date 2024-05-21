@@ -65,6 +65,7 @@ impl SemanticChecker {
                 position,
             }) => {
                 let name = &identifier.value.0;
+                if name == "print" {return;}
                 match self.functions_manager.clone().get(name.clone()) {
                     None => self.errors.push(SemanticCheckerIssue {
                         message: format!(

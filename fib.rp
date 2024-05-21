@@ -12,3 +12,20 @@ for (i64 i = 2; i < x; i = i + 1) {
   prev2 = prev1;
   prev1 = current;
 }
+
+print(current as str);
+
+fn fib(i64 x): i64 {
+  if (x == 1) {
+    return 1;
+  }
+
+  if (x == 2) {
+    return 1;
+  }
+
+  i64 a = fib(x - 1);
+  i64 b = fib(x - 2);
+  return a + b;
+  #return fib(x - 1) + fib(x - 2);
+}
