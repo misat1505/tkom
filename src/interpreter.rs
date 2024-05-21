@@ -303,12 +303,18 @@ impl Visitor for Interpreter {
                 self.scope_manager.pop_scope();
             }
             Statement::Switch { expressions, cases } => {
+                self.scope_manager.push_scope();
                 for expr in expressions {
                     self.visit_switch_expression(&expr)?;
                 }
                 for case in cases {
                     self.visit_switch_case(&case)?;
+                    if self.is_breaking {
+                        self.is_breaking = false;
+                        break;
+                    }
                 }
+                self.scope_manager.pop_scope();
             }
             Statement::Return(value) => {
                 if let Some(val) = value {
@@ -354,7 +360,14 @@ impl Visitor for Interpreter {
 
     fn visit_switch_case(&mut self, switch_case: &Node<SwitchCase>) -> Result<(), Box<dyn Issue>> {
         self.visit_expression(&switch_case.value.condition)?;
-        self.visit_block(&switch_case.value.block)?;
+        let computed_value = self.read_last_result();
+        let boolean_value = match computed_value {
+            Value::Bool(bool) => bool,
+            a => return Err(Box::new(InterpreterIssue {message: format!("Condition in switch case has to evaluate to boolean - got {:?}.", a)}))
+        };
+        if boolean_value {
+            self.visit_block(&switch_case.value.block)?;
+        }
         Ok(())
     }
 

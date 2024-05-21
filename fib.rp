@@ -1,0 +1,10 @@
+i64 x = 10;
+i64 prev2 = 1;
+i64 prev1 = 1;
+i64 current;
+
+for (i64 i = 2; i < x; i = i + 1) {
+  current = prev1 + prev2;
+  prev2 = prev1;
+  prev1 = current;
+}
