@@ -3,6 +3,10 @@ i64 prev2 = 1;
 i64 prev1 = 1;
 i64 current;
 
+fn add(i64 x): void {
+  i64 xh = 5;
+}
+
 for (i64 i = 2; i < x; i = i + 1) {
   current = prev1 + prev2;
   prev2 = prev1;

@@ -2,12 +2,7 @@ use crate::{
     ast::{
         Argument, Block, Expression, Identifier, Literal, Node, Parameter, Program, Statement,
         SwitchCase, SwitchExpression, Type,
-    },
-    errors::Issue,
-    scope_manager::ScopeManager,
-    value::{ComputationIssue, Value},
-    visitor::Visitor,
-    ALU::ALU,
+    }, errors::Issue, functions_manager::FunctionsManager, scope_manager::ScopeManager, value::{ComputationIssue, Value}, visitor::Visitor, ALU::ALU
 };
 
 #[derive(Debug)]
@@ -23,6 +18,7 @@ impl Issue for InterpreterIssue {
 
 pub struct Interpreter {
     program: Program,
+    functions_manager: FunctionsManager,
     scope_manager: ScopeManager,
     last_result: Option<Value>,
     is_breaking: bool,
@@ -31,7 +27,8 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new(program: Program) -> Self {
         Interpreter {
-            program,
+            program: program.clone(),
+            functions_manager: FunctionsManager::new(&program).unwrap(),
             scope_manager: ScopeManager::new(),
             last_result: None,
             is_breaking: false,
@@ -94,11 +91,16 @@ impl Interpreter {
 impl Visitor for Interpreter {
     fn visit_program(&mut self, program: &Program) -> Result<(), Box<dyn Issue>> {
         for statement in program.statements.clone() {
-            self.visit_statement(&statement)?;
-            if self.is_breaking && self.scope_manager.len() == 1 {
-                return Err(Box::new(InterpreterIssue {
-                    message: format!("Break called outside for or switch."),
-                }));
+            match statement.value {
+                Statement::FunctionDeclaration { .. } => {},
+                _ => {
+                    self.visit_statement(&statement)?;
+                    if self.is_breaking && self.scope_manager.len() == 1 {
+                        return Err(Box::new(InterpreterIssue {
+                            message: format!("Break called outside for or switch."),
+                        }));
+                    }
+                }
             }
         }
         Ok(())
