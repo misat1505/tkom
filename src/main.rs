@@ -21,10 +21,10 @@ mod lexer;
 mod parser;
 mod scope_manager;
 mod semantic_checker;
+mod stack;
 mod tokens;
 mod value;
 mod visitor;
-mod stack;
 
 mod tests;
 
