@@ -25,6 +25,7 @@ pub struct Interpreter {
     program: Program,
     scope_manager: ScopeManager,
     last_result: Option<Value>,
+    is_breaking: bool
 }
 
 impl Interpreter {
@@ -33,6 +34,7 @@ impl Interpreter {
             program,
             scope_manager: ScopeManager::new(),
             last_result: None,
+            is_breaking: false
         }
     }
 
@@ -93,6 +95,9 @@ impl Visitor for Interpreter {
     fn visit_program(&mut self, program: &Program) -> Result<(), Box<dyn Issue>> {
         for statement in program.statements.clone() {
             self.visit_statement(&statement)?;
+            if self.is_breaking && self.scope_manager.len() == 1 {
+                return Err(Box::new(InterpreterIssue {message: format!("Break called outside for or switch.")}));
+            }
         }
         Ok(())
     }
@@ -279,6 +284,11 @@ impl Visitor for Interpreter {
                 while boolean_value {
                     self.visit_block(&block)?;
 
+                    if self.is_breaking {
+                        self.is_breaking = false;
+                        break;
+                    }
+
                     if let Some(assign) = assignment.clone() {
                         self.visit_statement(&assign)?;
                     }
@@ -305,7 +315,9 @@ impl Visitor for Interpreter {
                     self.visit_expression(&val)?;
                 }
             }
-            Statement::Break => {}
+            Statement::Break => {
+                self.is_breaking = true;
+            }
         }
         Ok(())
     }
@@ -319,6 +331,14 @@ impl Visitor for Interpreter {
         self.scope_manager.push_scope();
         println!("{:?}", self.scope_manager.clone());
         for statement in &block.value.0 {
+            println!("{}", self.scope_manager.len());
+            if self.is_breaking && self.scope_manager.len() == 1 {
+                return Err(Box::new(InterpreterIssue {message: format!("Break called outside for or switch.")}));
+            }
+
+            if self.is_breaking {
+                break;
+            }
             self.visit_statement(statement)?;
         }
         self.scope_manager.pop_scope();

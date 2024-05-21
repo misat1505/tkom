@@ -1,4 +1,12 @@
 i64 age = 21;
 str text = "I am " + age as str + " years old.";
 
-for (i64 i = 0; i < 100000; i=i+1) {}
+if (true) {
+  for (i64 i = 0; i < 5; i=i+1) {
+    if (i == 1) {
+      break;
+    }
+  }
+  break;
+  age = 22;
+}

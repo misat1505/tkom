@@ -92,6 +92,10 @@ impl ScopeManager {
             })
         }
     }
+
+    pub fn len(&self) -> u32 {
+        self.scopes.len() as u32
+    }
 }
 
 #[derive(Debug, Clone)]
