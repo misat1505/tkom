@@ -68,6 +68,8 @@ impl ALU {
             (Value::F64(f64), Type::Str) => Ok(Value::String(f64.to_string())),
             (Value::I64(i64), Type::F64) => Ok(Value::F64(i64 as f64)),
             (Value::F64(f64), Type::I64) => Ok(Value::I64(f64 as i64)),
+            (Value::I64(i64), Type::Bool) => Ok(Value::Bool(i64 > 0)),
+            (Value::F64(f64), Type::Bool) => Ok(Value::Bool(f64 > 0.0)),
             (Value::String(string), Type::I64) => match string.parse::<i64>() {
                 Ok(i64) => Ok(Value::I64(i64)),
                 Err(_) => Err(ComputationIssue {
@@ -81,11 +83,7 @@ impl ALU {
                 }),
             },
             (Value::String(string), Type::Bool) => match string.as_str() {
-                "true" => Ok(Value::Bool(true)),
-                "false" => Ok(Value::Bool(false)),
-                _ => Err(ComputationIssue {
-                    message: format!("Cannot cast String '{}' to bool.", string),
-                }),
+                string => Ok(Value::Bool(string != "")),
             },
             (value, target_type) => Err(ComputationIssue {
                 message: format!("Cannot cast {:?} to {:?}.", value, target_type),
@@ -266,10 +264,14 @@ mod tests {
             (Value::F64(1.2), Type::Str),
             (Value::I64(1), Type::F64),
             (Value::F64(1.2), Type::I64),
+            (Value::I64(1), Type::Bool),
+            (Value::I64(0), Type::Bool),
+            (Value::F64(1.2), Type::Bool),
+            (Value::F64(0.0), Type::Bool),
             (Value::String(String::from("1")), Type::I64),
             (Value::String(String::from("1.2")), Type::F64),
-            (Value::String(String::from("true")), Type::Bool),
-            (Value::String(String::from("false")), Type::Bool),
+            (Value::String(String::from("some string")), Type::Bool),
+            (Value::String(String::from("")), Type::Bool),
         ];
 
         let expected = [
@@ -277,6 +279,10 @@ mod tests {
             Value::String(String::from("1.2")),
             Value::F64(1.0),
             Value::I64(1),
+            Value::Bool(true),
+            Value::Bool(false),
+            Value::Bool(true),
+            Value::Bool(false),
             Value::I64(1),
             Value::F64(1.2),
             Value::Bool(true),
@@ -295,8 +301,6 @@ mod tests {
         let data = [
             (Value::String(String::from("abc")), Type::I64),
             (Value::String(String::from("abc")), Type::F64),
-            (Value::String(String::from("1")), Type::Bool),
-            (Value::I64(1), Type::Bool),
         ];
 
         for (val, to_type) in data {

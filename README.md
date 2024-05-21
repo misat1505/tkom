@@ -21,7 +21,7 @@ Język silnie i statycznie typowany. Wszystkie zmienne są mutowalne. Argumenty 
 8. Operacje na Zmiennych:
    - Dostępne są operacje przypisania (=), operatory arytmetyczne (+, -, \*, /), porównania (==, <, <=, >, >=, !=), oraz operatory logiczne (np. !=).
 9. Operacje na Tekście:
-   - Wprowadzenie tekstu i wyświetlenie go na konsoli.
+   - Wprowadzenie tekstu, konkatenacja i wyświetlenie go na konsoli.
 10. Castowanie:
     - i64 i f64 mogą być castowane na siebie nawzajem, na stringa i na boolean (jeżeli są <= 0 to będzie false inaczej prawda)
     - string może być castowany na i64 i na f64, ze zgłoszeniem błędów, oraz na boolean (pusty string oznacza false inaczej true)
