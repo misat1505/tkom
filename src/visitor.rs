@@ -3,6 +3,7 @@ use crate::ast::{
     SwitchCase, SwitchExpression, Type,
 };
 
+// returnować błąd
 pub trait Visitor {
     fn visit_program(&mut self, program: &Program);
     fn visit_statement(&mut self, statement: &Node<Statement>);

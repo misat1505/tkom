@@ -21,6 +21,7 @@ impl Interpreter {
             program,
             scope_manager: ScopeManager::new(),
             last_result: None,
+            // skladnica błędów
         }
     }
 
@@ -121,6 +122,7 @@ impl Visitor for Interpreter {
     fn visit_statement(&mut self, statement: &Node<Statement>) {
         match statement.value.clone() {
             Statement::FunctionDeclaration {
+                // wykonanie funckji
                 identifier,
                 parameters,
                 return_type,
@@ -141,6 +143,8 @@ impl Visitor for Interpreter {
                 for arg in arguments {
                     self.visit_argument(&arg);
                 }
+                // przygotowqanie wywolania funckji
+                // sprawdzenie czy funckja uzytkownika czy wbudowana
             }
             Statement::Declaration {
                 var_type,
