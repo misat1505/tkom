@@ -9,9 +9,10 @@ use crate::{
     interpreter::Interpreter,
     lexer::LexerOptions,
     parser::{IParser, Parser},
-    semantic_checker::{SemanticChecker, SemanticCheckerIssue},
+    semantic_checker::SemanticChecker,
 };
 
+mod ALU;
 mod ast;
 mod errors;
 mod functions_manager;

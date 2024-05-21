@@ -1,11 +1,4 @@
 i64 age = 21;
 str text = "I am " + age as str + " years old.";
 
-bool is_adult = false;
-if (age >= 18) {
-  is_adult = true;
-}
-
-for (i64 i = 0; i < 5; i=i+1) {
-  i64 a = i;
-}
+for (i64 i = 0; i < 100000; i=i+1) {}

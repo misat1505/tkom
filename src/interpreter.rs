@@ -7,6 +7,7 @@ use crate::{
     scope_manager::ScopeManager,
     value::{ComputationIssue, Value},
     visitor::Visitor,
+    ALU::ALU,
 };
 
 #[derive(Debug)]
@@ -52,14 +53,14 @@ impl Interpreter {
         op: F,
     ) -> Result<(), Box<dyn Issue>>
     where
-        F: Fn(&Value, Value) -> Result<Value, ComputationIssue>,
+        F: Fn(Value, Value) -> Result<Value, ComputationIssue>,
     {
         self.visit_expression(&lhs)?;
         let left_value = self.read_last_result();
         self.visit_expression(&rhs)?;
         let right_value = self.read_last_result();
 
-        match op(&left_value, right_value) {
+        match op(left_value, right_value) {
             Ok(val) => {
                 self.last_result = Some(val);
                 Ok(())
@@ -74,11 +75,11 @@ impl Interpreter {
         op: F,
     ) -> Result<(), Box<dyn Issue>>
     where
-        F: Fn(&Value) -> Result<Value, ComputationIssue>,
+        F: Fn(Value) -> Result<Value, ComputationIssue>,
     {
         self.visit_expression(&value)?;
         let computed_value = self.read_last_result();
-        match op(&computed_value) {
+        match op(computed_value) {
             Ok(val) => {
                 self.last_result = Some(val);
                 Ok(())
@@ -101,7 +102,7 @@ impl Visitor for Interpreter {
             Expression::Casting { value, to_type } => {
                 self.visit_expression(&value)?;
                 let computed_value = self.read_last_result();
-                match computed_value.cast_to_type(to_type.value) {
+                match ALU::cast_to_type(computed_value, to_type.value) {
                     Ok(val) => {
                         self.last_result = Some(val);
                         return Ok(());
@@ -110,37 +111,35 @@ impl Visitor for Interpreter {
                 }
             }
             Expression::BooleanNegation(value) => {
-                self.evaluate_unary_op(value, Value::boolean_negate)?
+                self.evaluate_unary_op(value, ALU::boolean_negate)?
             }
             Expression::ArithmeticNegation(value) => {
-                self.evaluate_unary_op(value, Value::arithmetic_negate)?
+                self.evaluate_unary_op(value, ALU::arithmetic_negate)?
             }
-            Expression::Addition(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::add)?,
+            Expression::Addition(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::add)?,
             Expression::Subtraction(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, Value::subtract)?
+                self.evaluate_binary_op(lhs, rhs, ALU::subtract)?
             }
             Expression::Multiplication(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, Value::multiplication)?
+                self.evaluate_binary_op(lhs, rhs, ALU::multiplication)?
             }
-            Expression::Division(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::division)?,
+            Expression::Division(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::division)?,
             Expression::Alternative(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, Value::alternative)?
+                self.evaluate_binary_op(lhs, rhs, ALU::alternative)?
             }
             Expression::Concatenation(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, Value::concatenation)?
+                self.evaluate_binary_op(lhs, rhs, ALU::concatenation)?
             }
-            Expression::Greater(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::greater)?,
+            Expression::Greater(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::greater)?,
             Expression::GreaterEqual(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, Value::greater_or_equal)?
+                self.evaluate_binary_op(lhs, rhs, ALU::greater_or_equal)?
             }
-            Expression::Less(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::less)?,
+            Expression::Less(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::less)?,
             Expression::LessEqual(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, Value::less_or_equal)?
+                self.evaluate_binary_op(lhs, rhs, ALU::less_or_equal)?
             }
-            Expression::Equal(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, Value::equal)?,
-            Expression::NotEqual(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, Value::not_equal)?
-            }
+            Expression::Equal(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::equal)?,
+            Expression::NotEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::not_equal)?,
             Expression::Literal(literal) => self.visit_literal(literal)?,
             Expression::Variable(variable) => self.visit_variable(variable)?,
             Expression::FunctionCall {
@@ -225,7 +224,7 @@ impl Visitor for Interpreter {
                     Ok(_) => {}
                     Err(err) => return Err(Box::new(err)),
                 }
-                // println!("{:?}", self.scope_manager.clone());
+                println!("{:?}", self.scope_manager.clone());
             }
             Statement::Assignment { identifier, value } => {
                 self.visit_identifier(&identifier)?;
@@ -238,7 +237,7 @@ impl Visitor for Interpreter {
                     Ok(_) => {}
                     Err(err) => return Err(Box::new(err)),
                 }
-                // println!("{:?}", self.scope_manager.clone());
+                println!("{:?}", self.scope_manager.clone());
             }
             Statement::Conditional {
                 condition,
@@ -318,12 +317,12 @@ impl Visitor for Interpreter {
 
     fn visit_block(&mut self, block: &Node<Block>) -> Result<(), Box<dyn Issue>> {
         self.scope_manager.push_scope();
-        // println!("{:?}", self.scope_manager.clone());
+        println!("{:?}", self.scope_manager.clone());
         for statement in &block.value.0 {
             self.visit_statement(statement)?;
         }
         self.scope_manager.pop_scope();
-        // println!("{:?}", self.scope_manager.clone());
+        println!("{:?}", self.scope_manager.clone());
         Ok(())
     }
 
