@@ -59,21 +59,23 @@ fn main() -> Result<(), Box<dyn Issue>> {
     let mut semantic_checker = SemanticChecker::new(program.clone())?;
     semantic_checker.check();
 
-    println!("Execution time: {:?}", Instant::now() - start);
-
     for error in &semantic_checker.errors {
         println!("{}", error.message());
     }
 
     if semantic_checker.errors.len() > 0 {
-        let first_error = SemanticCheckerIssue {
-            message: semantic_checker.errors.get(0).unwrap().message(),
-        };
-        return Err(Box::new(first_error));
+        return Ok(());
     }
 
     let mut interpreter = Interpreter::new(program.clone());
-    let _ = interpreter.interpret();
+    match interpreter.interpret() {
+        Ok(_) => {}
+        Err(err) => {
+            println!("{}", err.message())
+        }
+    };
+
+    println!("Execution time: {:?}", Instant::now() - start);
 
     Ok(())
 }
