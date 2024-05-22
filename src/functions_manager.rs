@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use crate::{
     ast::{Program, Statement},
-    errors::Issue, std_functions::StdFunction,
+    errors::Issue,
+    std_functions::StdFunction,
 };
 
 #[derive(Debug)]
@@ -19,7 +20,7 @@ impl Issue for FunctionManagerIssue {
 #[derive(Debug, Clone)]
 pub struct FunctionsManager {
     pub functions: HashMap<String, Statement>,
-    pub std_functions: HashMap<String, StdFunction>
+    pub std_functions: HashMap<String, StdFunction>,
 }
 
 impl FunctionsManager {
@@ -31,7 +32,9 @@ impl FunctionsManager {
             match &statement.value {
                 Statement::FunctionDeclaration { identifier, .. } => {
                     let function_name = &identifier.value.0;
-                    if functions.contains_key(function_name) || std_functions.contains_key(function_name) {
+                    if functions.contains_key(function_name)
+                        || std_functions.contains_key(function_name)
+                    {
                         return Err(Box::new(FunctionManagerIssue {
                             message: format!(
                                 "Redeclaration of function '{}' in {:?}\n",
@@ -46,7 +49,10 @@ impl FunctionsManager {
             }
         }
 
-        Ok(Self { functions, std_functions })
+        Ok(Self {
+            functions,
+            std_functions,
+        })
     }
 
     fn init_std() -> HashMap<String, StdFunction> {

@@ -65,7 +65,11 @@ impl SemanticChecker {
                 position,
             }) => {
                 let name = &identifier.value.0;
-                if let Some(std_function) = self.functions_manager.std_functions.get(&String::from(name)) {
+                if let Some(std_function) = self
+                    .functions_manager
+                    .std_functions
+                    .get(&String::from(name))
+                {
                     if arguments.len() != std_function.params.len() {
                         self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n", name, std_function.params.len(), arguments.len(), position) });
                     }

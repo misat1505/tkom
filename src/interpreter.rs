@@ -6,6 +6,7 @@ use crate::{
     errors::Issue,
     functions_manager::FunctionsManager,
     stack::Stack,
+    std_functions::StdFunction,
     value::{ComputationIssue, Value},
     visitor::Visitor,
     ALU::ALU,
@@ -173,13 +174,24 @@ impl Visitor for Interpreter {
                 arguments,
             } => {
                 let name = identifier.value.0;
+
                 let mut args: Vec<Value> = vec![];
                 for arg in arguments {
                     self.visit_expression(&arg.value.value)?;
                     let value = self.read_last_result();
                     args.push(value);
                 }
-                self.execute_function(name, args)?;
+
+                if let Some(std_function) = self.functions_manager.std_functions.get(&name) {
+                    Self::execute_std_function(std_function, args.clone())?;
+                }
+
+                if let Some(function_declaration) =
+                    self.functions_manager.functions.clone().get(&name)
+                {
+                    self.execute_function(function_declaration, args)?;
+                }
+
                 if self.is_returning {
                     self.is_returning = false;
                 }
@@ -209,20 +221,27 @@ impl Visitor for Interpreter {
                 arguments,
             } => {
                 let name = identifier.value.0;
+
                 let mut args: Vec<Value> = vec![];
                 for arg in arguments {
                     self.visit_expression(&arg.value.value)?;
                     let value = self.read_last_result();
                     args.push(value);
                 }
-                self.execute_function(name, args)?;
+
+                if let Some(std_function) = self.functions_manager.std_functions.get(&name) {
+                    Self::execute_std_function(std_function, args.clone())?;
+                }
+
+                if let Some(function_declaration) =
+                    self.functions_manager.functions.clone().get(&name)
+                {
+                    self.execute_function(function_declaration, args)?;
+                }
+
                 if self.is_returning {
                     self.is_returning = false;
                 }
-                // self.visit_identifier(&identifier)?;
-                // for arg in arguments {
-                //     self.visit_argument(&arg)?;
-                // }
                 // przygotowqanie wywolania funckji
                 // sprawdzenie czy funckja uzytkownika czy wbudowana
             }
@@ -481,109 +500,109 @@ impl Visitor for Interpreter {
 }
 
 impl Interpreter {
-    pub fn execute_function(
-        &mut self,
-        name: String,
+    fn execute_std_function(
+        std_function: &StdFunction,
         arguments: Vec<Value>,
     ) -> Result<(), Box<dyn Issue>> {
-        if let Some(std_function) = self.functions_manager.std_functions.get(&name) {
-            return match (std_function.execute)(arguments) {
-                Ok(_) => Ok(()),
-                Err(err) => Err(Box::new(err))
-            }
-        }
-        if let Some(function_declaration) = self.functions_manager.functions.clone().get(&name) {
-            if let Statement::FunctionDeclaration {
-                identifier: _,
-                parameters,
-                return_type,
-                block,
-            } = function_declaration
-            {
-                let statements = &block.value.0;
-                match self.stack.push_stack_frame() {
-                    Ok(_) => {}
-                    Err(err) => return Err(Box::new(err)),
-                };
+        return match (std_function.execute)(arguments) {
+            Ok(_) => Ok(()),
+            Err(err) => Err(Box::new(err)),
+        };
+    }
 
-                // args
-                for idx in 0..arguments.len() {
-                    let desired_type = parameters.get(idx).unwrap().value.parameter_type.value;
-                    let param_name = parameters
-                        .get(idx)
-                        .unwrap()
-                        .value
-                        .identifier
-                        .value
-                        .0
-                        .clone();
-                    let value = arguments.get(idx).unwrap().clone();
-                    match (desired_type, value.clone()) {
-                        (Type::Bool, Value::Bool(_))
-                        | (Type::F64, Value::F64(_))
-                        | (Type::I64, Value::I64(_))
-                        | (Type::Str, Value::String(_)) => {}
-                        (des, got) => {
-                            return Err(Box::new(InterpreterIssue {
-                                message: format!(
-                                    "Function '{}' expected {:?} but got {:?}",
-                                    name, des, got
-                                ),
-                            }))
-                        }
-                    }
-                    match self.stack.declare_variable(param_name, value) {
-                        Ok(_) => {}
-                        Err(err) => return Err(Box::new(err)),
-                    };
-                }
+    fn execute_function(
+        &mut self,
+        function_declaration: &Statement,
+        arguments: Vec<Value>,
+    ) -> Result<(), Box<dyn Issue>> {
+        if let Statement::FunctionDeclaration {
+            identifier,
+            parameters,
+            return_type,
+            block,
+        } = function_declaration
+        {
+            let name = identifier.value.0.clone();
+            let statements = &block.value.0;
+            match self.stack.push_stack_frame() {
+                Ok(_) => {}
+                Err(err) => return Err(Box::new(err)),
+            };
 
-                // execute
-                for statement in statements.clone() {
-                    if self.is_returning {
-                        self.is_returning = false;
-                        break;
-                    }
-                    match statement.value {
-                        Statement::FunctionDeclaration { .. } => {}
-                        _ => {
-                            self.visit_statement(&statement)?;
-                            if self.is_breaking
-                                && self
-                                    .stack
-                                    .0
-                                    .get(self.stack.0.len() - 1)
-                                    .unwrap()
-                                    .scope_manager
-                                    .len()
-                                    == 1
-                            {
-                                return Err(Box::new(InterpreterIssue {
-                                    message: format!("Break called outside for or switch."),
-                                }));
-                            }
-                        }
-                    }
-                }
-                // check return type
-                match (self.last_result.clone(), return_type.value) {
-                    (None, Type::Void)
-                    | (Some(Value::I64(_)), Type::I64)
-                    | (Some(Value::F64(_)), Type::F64)
-                    | (Some(Value::String(_)), Type::Str)
-                    | (Some(Value::Bool(_)), Type::Bool) => {}
-                    (res, exp) => {
+            // args
+            for idx in 0..arguments.len() {
+                let desired_type = parameters.get(idx).unwrap().value.parameter_type.value;
+                let param_name = parameters
+                    .get(idx)
+                    .unwrap()
+                    .value
+                    .identifier
+                    .value
+                    .0
+                    .clone();
+                let value = arguments.get(idx).unwrap().clone();
+                match (desired_type, value.clone()) {
+                    (Type::Bool, Value::Bool(_))
+                    | (Type::F64, Value::F64(_))
+                    | (Type::I64, Value::I64(_))
+                    | (Type::Str, Value::String(_)) => {}
+                    (des, got) => {
                         return Err(Box::new(InterpreterIssue {
                             message: format!(
-                                "Bad return type. Expected: {:?} but got {:?}.",
-                                exp, res
+                                "Function '{}' expected {:?} but got {:?}",
+                                name, des, got
                             ),
                         }))
                     }
                 }
-
-                self.stack.pop_stack_frame();
+                match self.stack.declare_variable(param_name, value) {
+                    Ok(_) => {}
+                    Err(err) => return Err(Box::new(err)),
+                };
             }
+
+            // execute
+            for statement in statements.clone() {
+                if self.is_returning {
+                    self.is_returning = false;
+                    break;
+                }
+                match statement.value {
+                    Statement::FunctionDeclaration { .. } => {}
+                    _ => {
+                        self.visit_statement(&statement)?;
+                        if self.is_breaking
+                            && self
+                                .stack
+                                .0
+                                .get(self.stack.0.len() - 1)
+                                .unwrap()
+                                .scope_manager
+                                .len()
+                                == 1
+                        {
+                            return Err(Box::new(InterpreterIssue {
+                                message: format!("Break called outside for or switch."),
+                            }));
+                        }
+                    }
+                }
+            }
+            // check return type
+            match (self.last_result.clone(), return_type.value) {
+                (None, Type::Void)
+                | (Some(Value::I64(_)), Type::I64)
+                | (Some(Value::F64(_)), Type::F64)
+                | (Some(Value::String(_)), Type::Str)
+                | (Some(Value::Bool(_)), Type::Bool) => {}
+                (res, exp) => {
+                    return Err(Box::new(InterpreterIssue {
+                        message: format!("Bad return type. Expected: {:?} but got {:?}.", exp, res),
+                    }))
+                }
+            }
+
+            self.stack.pop_stack_frame();
         }
         Ok(())
     }
