@@ -94,6 +94,10 @@ impl Stack {
         }
         Ok(())
     }
+
+    pub fn is_last_scope(&self) -> bool {
+        self.0.get(self.0.len() - 1).unwrap().scope_manager.len() == 1
+    }
 }
 
 #[cfg(test)]

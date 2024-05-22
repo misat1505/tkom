@@ -38,9 +38,8 @@ impl ScopeManager {
 
     pub fn get_variable(&self, searched: String) -> Result<&Value, ScopeManagerIssue> {
         for scope in &self.scopes {
-            match scope.get_variable(searched.clone()) {
-                Some(var) => return Ok(var),
-                None => {}
+            if let Some(var) = scope.get_variable(searched.clone()) {
+                return Ok(var);
             }
         }
 
@@ -56,11 +55,8 @@ impl ScopeManager {
             }),
             Ok(_) => {
                 for scope in &mut self.scopes {
-                    match scope.get_variable(name.clone()) {
-                        None => {}
-                        Some(_) => {
-                            return scope.assign_variable(name.clone(), value.clone());
-                        }
+                    if let Some(_) = scope.get_variable(name.clone()) {
+                        return scope.assign_variable(name.clone(), value.clone());
                     }
                 }
 
@@ -74,13 +70,10 @@ impl ScopeManager {
         name: String,
         value: Value,
     ) -> Result<(), ScopeManagerIssue> {
-        match self.get_variable(name.clone()) {
-            Ok(_) => {
-                return Err(ScopeManagerIssue {
-                    message: format!("Cannot redeclare variable '{}'.", name.clone()),
-                })
-            }
-            Err(_) => {}
+        if let Ok(_) = self.get_variable(name.clone()) {
+            return Err(ScopeManagerIssue {
+                message: format!("Cannot redeclare variable '{}'.", name.clone()),
+            });
         }
 
         if let Some(last_scope) = self.scopes.last_mut() {

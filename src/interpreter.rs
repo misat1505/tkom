@@ -60,12 +60,14 @@ impl Interpreter {
             Some(result) => {
                 self.last_result = None;
                 Ok(result)
-            },
-            None => Err(Box::new(InterpreterIssue {message: format!("No value produced where it is needed.\nAt {:?}.", self.position)}))
+            }
+            None => Err(Box::new(InterpreterIssue {
+                message: format!(
+                    "No value produced where it is needed.\nAt {:?}.",
+                    self.position
+                ),
+            })),
         }
-        // let read_value = self.last_result.clone().unwrap();
-        // self.last_result = None;
-        // Ok(read_value)
     }
 
     fn evaluate_binary_op<F>(
@@ -120,28 +122,18 @@ impl Interpreter {
 impl Visitor for Interpreter {
     fn visit_program(&mut self, program: &Program) -> Result<(), Box<dyn Issue>> {
         for statement in program.statements.clone() {
-            match statement.value {
-                Statement::FunctionDeclaration { .. } => {}
-                _ => {
-                    self.visit_statement(&statement)?;
-                    if self.is_breaking
-                        && self
-                            .stack
-                            .0
-                            .get(self.stack.0.len() - 1)
-                            .unwrap()
-                            .scope_manager
-                            .len()
-                            == 1
-                    {
-                        return Err(Box::new(InterpreterIssue {
-                            message: format!(
-                                "Break called outside for or switch.\nAt {:?}.",
-                                self.position
-                            ),
-                        }));
-                    }
-                }
+            if let Statement::FunctionDeclaration { .. } = statement.value {
+                continue;
+            }
+
+            self.visit_statement(&statement)?;
+            if self.is_breaking && self.stack.is_last_scope() {
+                return Err(Box::new(InterpreterIssue {
+                    message: format!(
+                        "Break called outside for or switch.\nAt {:?}.",
+                        self.position
+                    ),
+                }));
             }
         }
         Ok(())
@@ -312,7 +304,7 @@ impl Visitor for Interpreter {
                     Ok(_) => {}
                     Err(mut err) => {
                         err.message = format!("{}\nAt {:?}.", err.message, self.position);
-                        return Err(Box::new(err))
+                        return Err(Box::new(err));
                     }
                 }
             }
@@ -324,8 +316,8 @@ impl Visitor for Interpreter {
                     Ok(_) => {}
                     Err(mut err) => {
                         err.message = format!("{}\nAt {:?}.", err.message, self.position);
-                        return Err(Box::new(err))
-                    },
+                        return Err(Box::new(err));
+                    }
                 }
             }
             Statement::Conditional {
@@ -426,16 +418,7 @@ impl Visitor for Interpreter {
     fn visit_block(&mut self, block: &Node<Block>) -> Result<(), Box<dyn Issue>> {
         self.stack.push_scope();
         for statement in &block.value.0 {
-            if self.is_breaking
-                && self
-                    .stack
-                    .0
-                    .get(self.stack.0.len() - 1)
-                    .unwrap()
-                    .scope_manager
-                    .len()
-                    == 1
-            {
+            if self.is_breaking && self.stack.is_last_scope() {
                 return Err(Box::new(InterpreterIssue {
                     message: format!(
                         "Break called outside for or switch.\nAt {:?}.",
@@ -483,18 +466,15 @@ impl Visitor for Interpreter {
         &mut self,
         switch_expression: &Node<SwitchExpression>,
     ) -> Result<(), Box<dyn Issue>> {
-        match &switch_expression.value.alias {
-            None => {}
-            Some(alias) => {
-                self.visit_expression(&switch_expression.value.expression)?;
-                let computed_value = self.read_last_result()?;
-                match self
-                    .stack
-                    .declare_variable(alias.value.0.clone(), computed_value)
-                {
-                    Ok(_) => {}
-                    Err(err) => return Err(Box::new(err)),
-                }
+        if let Some(alias) = &switch_expression.value.alias {
+            self.visit_expression(&switch_expression.value.expression)?;
+            let computed_value = self.read_last_result()?;
+            if let Err(mut err) = self
+                .stack
+                .declare_variable(alias.value.0.clone(), computed_value)
+            {
+                err.message = format!("{}\nAt {:?}.", err.message, self.position);
+                return Err(Box::new(err));
             }
         }
         Ok(())
@@ -558,9 +538,8 @@ impl Interpreter {
         {
             let name = identifier.value.0.clone();
             let statements = &block.value.0;
-            match self.stack.push_stack_frame() {
-                Ok(_) => {}
-                Err(err) => return Err(Box::new(err)),
+            if let Err(err) = self.stack.push_stack_frame() {
+                return Err(Box::new(err));
             };
 
             // args
@@ -589,9 +568,9 @@ impl Interpreter {
                         }))
                     }
                 }
-                match self.stack.declare_variable(param_name, value) {
-                    Ok(_) => {}
-                    Err(err) => return Err(Box::new(err)),
+                if let Err(mut err) = self.stack.declare_variable(param_name, value) {
+                    err.message = format!("{}\nAt {:?}.", err.message, self.position);
+                    return Err(Box::new(err));
                 };
             }
 
@@ -601,28 +580,28 @@ impl Interpreter {
                     self.is_returning = false;
                     break;
                 }
-                match statement.value {
-                    Statement::FunctionDeclaration { .. } => {}
-                    _ => {
-                        self.visit_statement(&statement)?;
-                        if self.is_breaking
-                            && self
-                                .stack
-                                .0
-                                .get(self.stack.0.len() - 1)
-                                .unwrap()
-                                .scope_manager
-                                .len()
-                                == 1
-                        {
-                            return Err(Box::new(InterpreterIssue {
-                                message: format!(
-                                    "Break called outside for or switch.\nAt {:?}.",
-                                    self.position
-                                ),
-                            }));
-                        }
-                    }
+
+                if let Statement::FunctionDeclaration { .. } = statement.value {
+                    continue;
+                }
+
+                self.visit_statement(&statement)?;
+                if self.is_breaking
+                    && self
+                        .stack
+                        .0
+                        .get(self.stack.0.len() - 1)
+                        .unwrap()
+                        .scope_manager
+                        .len()
+                        == 1
+                {
+                    return Err(Box::new(InterpreterIssue {
+                        message: format!(
+                            "Break called outside for or switch.\nAt {:?}.",
+                            self.position
+                        ),
+                    }));
                 }
             }
             // check return type
