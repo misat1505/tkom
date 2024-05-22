@@ -1,12 +1,14 @@
 use std::fmt::Debug;
 
 use crate::{
-    ast::{Node, Statement}, errors::Issue, scope_manager::{ScopeManager, ScopeManagerIssue}, value::Value
+    errors::Issue,
+    scope_manager::{ScopeManager, ScopeManagerIssue},
+    value::Value,
 };
 
 #[derive(Debug)]
 pub struct StackOverflowIssue {
-    message: String
+    message: String,
 }
 
 impl Issue for StackOverflowIssue {
@@ -21,34 +23,34 @@ pub struct Stack(pub Vec<StackFrame>);
 #[derive(Clone)]
 pub struct StackFrame {
     pub scope_manager: ScopeManager,
-    statements: Vec<Node<Statement>>,
 }
 
 impl Debug for StackFrame {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-      write!(f, "{:?}", self.scope_manager)
-  }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.scope_manager)
+    }
 }
 
 impl StackFrame {
-    pub fn new(statements: Vec<Node<Statement>>) -> Self {
+    pub fn new() -> Self {
         StackFrame {
             scope_manager: ScopeManager::new(),
-            statements,
         }
     }
 }
 
 impl Stack {
-    pub fn new(statements: Vec<Node<Statement>>) -> Self {
-        Stack(vec![StackFrame::new(statements)])
+    pub fn new() -> Self {
+        Stack(vec![StackFrame::new()])
     }
 
-    pub fn push_stack_frame(&mut self, statements: Vec<Node<Statement>>) -> Result<(), StackOverflowIssue> {
+    pub fn push_stack_frame(&mut self) -> Result<(), StackOverflowIssue> {
         if self.0.len() == 50 {
-            return Err(StackOverflowIssue { message: "Stack overflow.".to_owned() })
+            return Err(StackOverflowIssue {
+                message: "Stack overflow.".to_owned(),
+            });
         }
-        self.0.push(StackFrame::new(statements));
+        self.0.push(StackFrame::new());
         Ok(())
     }
 
@@ -91,5 +93,76 @@ impl Stack {
             last_frame.scope_manager.declare_variable(name, value)?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_stack_push_pop_frame() {
+        let mut stack = Stack::new();
+
+        assert_eq!(stack.0.len(), 1);
+
+        stack.push_stack_frame().unwrap();
+        assert_eq!(stack.0.len(), 2);
+
+        stack.pop_stack_frame();
+        assert_eq!(stack.0.len(), 1);
+    }
+
+    #[test]
+    fn test_stack_overflow() {
+        let mut stack = Stack::new();
+
+        for _ in 0..49 {
+            stack.push_stack_frame().unwrap();
+        }
+
+        assert_eq!(stack.0.len(), 50);
+        let result = stack.push_stack_frame();
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert_eq!(e.message(), "Stack overflow.");
+        }
+    }
+
+    #[test]
+    fn test_scope_push_pop() {
+        let mut stack = Stack::new();
+
+        stack.push_scope();
+        if let Some(last_frame) = stack.0.last() {
+            assert_eq!(last_frame.scope_manager.len(), 2);
+        }
+
+        stack.pop_scope();
+        if let Some(last_frame) = stack.0.last() {
+            assert_eq!(last_frame.scope_manager.len(), 1);
+        }
+    }
+
+    #[test]
+    fn test_variable_operations() {
+        let mut stack = Stack::new();
+
+        let var_name = "x".to_string();
+        let var_value = Value::I64(42);
+
+        stack
+            .declare_variable(var_name.clone(), var_value.clone())
+            .unwrap();
+        let retrieved_value = stack.get_variable(var_name.clone()).unwrap();
+        assert_eq!(retrieved_value, &var_value);
+
+        let new_value = Value::I64(43);
+        stack
+            .assign_variable(var_name.clone(), new_value.clone())
+            .unwrap();
+        let updated_value = stack.get_variable(var_name).unwrap();
+        assert_eq!(updated_value, &new_value);
     }
 }

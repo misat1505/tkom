@@ -5,7 +5,6 @@ use crate::{
     },
     errors::Issue,
     functions_manager::FunctionsManager,
-    scope_manager::ScopeManager,
     stack::Stack,
     value::{ComputationIssue, Value},
     visitor::Visitor,
@@ -29,7 +28,7 @@ pub struct Interpreter {
     stack: Stack,
     last_result: Option<Value>,
     is_breaking: bool,
-    is_returning: bool
+    is_returning: bool,
 }
 
 impl Interpreter {
@@ -37,10 +36,10 @@ impl Interpreter {
         Interpreter {
             program: program.clone(),
             functions_manager: FunctionsManager::new(&program).unwrap(),
-            stack: Stack::new(program.statements),
+            stack: Stack::new(),
             last_result: None,
             is_breaking: false,
-            is_returning: false
+            is_returning: false,
         }
     }
 
@@ -357,7 +356,7 @@ impl Visitor for Interpreter {
                         self.visit_expression(&val)?;
                         Some(self.read_last_result())
                     }
-                    None => None
+                    None => None,
                 };
                 self.is_returning = true;
                 self.last_result = returned_value;
@@ -498,16 +497,16 @@ impl Interpreter {
             }
             Some(function_declaration) => {
                 if let Statement::FunctionDeclaration {
-                    identifier,
+                    identifier: _,
                     parameters,
                     return_type,
                     block,
                 } = function_declaration
                 {
                     let statements = block.value.0;
-                    match self.stack.push_stack_frame(statements.clone()) {
-                        Ok(_) => {},
-                        Err(err) => return Err(Box::new(err))
+                    match self.stack.push_stack_frame() {
+                        Ok(_) => {}
+                        Err(err) => return Err(Box::new(err)),
                     };
 
                     // args
@@ -571,8 +570,19 @@ impl Interpreter {
                     }
                     // check return type
                     match (self.last_result.clone(), return_type.value) {
-                        (None, Type::Void) | (Some(Value::I64(_)), Type::I64) | (Some(Value::F64(_)), Type::F64) | (Some(Value::String(_)), Type::Str) | (Some(Value::Bool(_)), Type::Bool) => {},
-                        (res, exp) => return Err(Box::new(InterpreterIssue {message: format!("Bad return type. Expected: {:?} but got {:?}.", exp, res)}))
+                        (None, Type::Void)
+                        | (Some(Value::I64(_)), Type::I64)
+                        | (Some(Value::F64(_)), Type::F64)
+                        | (Some(Value::String(_)), Type::Str)
+                        | (Some(Value::Bool(_)), Type::Bool) => {}
+                        (res, exp) => {
+                            return Err(Box::new(InterpreterIssue {
+                                message: format!(
+                                    "Bad return type. Expected: {:?} but got {:?}.",
+                                    exp, res
+                                ),
+                            }))
+                        }
                     }
 
                     self.stack.pop_stack_frame();

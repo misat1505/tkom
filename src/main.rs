@@ -12,6 +12,7 @@ use crate::{
     semantic_checker::SemanticChecker,
 };
 
+#[allow(non_snake_case)]
 mod ALU;
 mod ast;
 mod errors;
