@@ -1,7 +1,6 @@
 use crate::{
-    ast::{Identifier, Node, Parameter, Statement, Type},
+    ast::Type,
     errors::Issue,
-    lazy_stream_reader::Position,
     value::Value,
 };
 
@@ -18,14 +17,12 @@ impl Issue for StdFunctionIssue {
 
 #[derive(Debug, Clone)]
 pub struct StdFunction {
-    name: String,
     pub params: Vec<Type>,
     pub execute: fn(Vec<Value>) -> Result<(), StdFunctionIssue>,
 }
 
 impl StdFunction {
     pub fn print() -> Self {
-        let name = "print".to_owned();
         let params = vec![Type::Str];
         let execute = |params: Vec<Value>| -> Result<(), StdFunctionIssue> {
             match params.get(0).unwrap() {
@@ -35,14 +32,13 @@ impl StdFunction {
                 }
                 a => Err(StdFunctionIssue {
                     message: format!(
-                        "Std function 'print' expected a string, but given a {:?}",
+                        "Std function 'print' expected a string, but was given {:?}",
                         a
                     ),
                 }),
             }
         };
         StdFunction {
-            name,
             params,
             execute,
         }

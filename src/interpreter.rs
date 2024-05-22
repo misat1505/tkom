@@ -2,14 +2,7 @@ use crate::{
     ast::{
         Argument, Block, Expression, Identifier, Literal, Node, Parameter, Program, Statement,
         SwitchCase, SwitchExpression, Type,
-    },
-    errors::Issue,
-    functions_manager::FunctionsManager,
-    stack::Stack,
-    std_functions::StdFunction,
-    value::{ComputationIssue, Value},
-    visitor::Visitor,
-    ALU::ALU,
+    }, errors::Issue, functions_manager::FunctionsManager, lazy_stream_reader::Position, stack::Stack, std_functions::StdFunction, value::{ComputationIssue, Value}, visitor::Visitor, ALU::ALU
 };
 
 #[derive(Debug)]
@@ -30,6 +23,7 @@ pub struct Interpreter {
     last_result: Option<Value>,
     is_breaking: bool,
     is_returning: bool,
+    position: Position
 }
 
 impl Interpreter {
@@ -41,6 +35,7 @@ impl Interpreter {
             last_result: None,
             is_breaking: false,
             is_returning: false,
+            position: Position { line: 0, column: 0, offset: 0 }
         }
     }
 
@@ -73,7 +68,10 @@ impl Interpreter {
                 self.last_result = Some(val);
                 Ok(())
             }
-            Err(err) => Err(Box::new(err)),
+            Err(mut err) => {
+                err.message = format!("{}\nAt {:?}.", err.message, self.position);
+                Err(Box::new(err))
+            },
         }
     }
 
@@ -92,7 +90,10 @@ impl Interpreter {
                 self.last_result = Some(val);
                 Ok(())
             }
-            Err(err) => Err(Box::new(err)),
+            Err(mut err) => {
+                err.message = format!("{}\nAt {:?}.", err.message, self.position);
+                Err(Box::new(err))
+            },
         }
     }
 }
@@ -115,7 +116,7 @@ impl Visitor for Interpreter {
                             == 1
                     {
                         return Err(Box::new(InterpreterIssue {
-                            message: format!("Break called outside for or switch."),
+                            message: format!("Break called outside for or switch.\nAt {:?}.", self.position),
                         }));
                     }
                 }
@@ -125,6 +126,7 @@ impl Visitor for Interpreter {
     }
 
     fn visit_expression(&mut self, expression: &Node<Expression>) -> Result<(), Box<dyn Issue>> {
+        self.position = expression.position;
         match expression.value.clone() {
             Expression::Casting { value, to_type } => {
                 self.visit_expression(&value)?;
@@ -201,6 +203,7 @@ impl Visitor for Interpreter {
     }
 
     fn visit_statement(&mut self, statement: &Node<Statement>) -> Result<(), Box<dyn Issue>> {
+        self.position = statement.position;
         match statement.value.clone() {
             Statement::FunctionDeclaration {
                 // wykonanie funckji
@@ -273,8 +276,8 @@ impl Visitor for Interpreter {
                     (declared_type, computed_type) => {
                         return Err(Box::new(InterpreterIssue {
                             message: format!(
-                                "Cannot assign variable of type {:?} to type {:?}",
-                                computed_type, declared_type
+                                "Cannot assign variable of type {:?} to type {:?}.\nAt {:?}.",
+                                computed_type, declared_type, self.position
                             ),
                         }))
                     }
@@ -406,7 +409,7 @@ impl Visitor for Interpreter {
                     == 1
             {
                 return Err(Box::new(InterpreterIssue {
-                    message: format!("Break called outside for or switch."),
+                    message: format!("Break called outside for or switch.\nAt {:?}.", self.position),
                 }));
             }
 
@@ -582,7 +585,7 @@ impl Interpreter {
                                 == 1
                         {
                             return Err(Box::new(InterpreterIssue {
-                                message: format!("Break called outside for or switch."),
+                                message: format!("Break called outside for or switch.\nAt {:?}.", self.position),
                             }));
                         }
                     }

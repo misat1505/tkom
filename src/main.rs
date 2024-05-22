@@ -64,7 +64,7 @@ fn main() -> Result<(), Box<dyn Issue>> {
     semantic_checker.check();
 
     for error in &semantic_checker.errors {
-        println!("{}", error.message());
+        eprintln!("{}", error.message());
     }
 
     if semantic_checker.errors.len() > 0 {
@@ -75,7 +75,7 @@ fn main() -> Result<(), Box<dyn Issue>> {
     match interpreter.interpret() {
         Ok(_) => {}
         Err(err) => {
-            println!("{}", err.message())
+            eprintln!("{}", err.message())
         }
     };
 
