@@ -42,12 +42,12 @@ fn on_warning(warning: Box<dyn Issue>) {
 fn main() {
     let path = match parse_filename() {
         Some(p) => p,
-        None => return eprintln!("Path to file not given.")
+        None => return eprintln!("Path to file not given."),
     };
 
     let file = match File::open(path.as_str()) {
         Ok(f) => f,
-        Err(_) => return eprintln!("File '{}' not found.", path)
+        Err(_) => return eprintln!("File '{}' not found.", path),
     };
 
     let code = BufReader::new(file);
@@ -64,12 +64,12 @@ fn main() {
     let start = Instant::now();
     let program = match parser.parse() {
         Ok(p) => p,
-        Err(err) => return eprintln!("{}", err.message())
+        Err(err) => return eprintln!("{}", err.message()),
     };
 
     let mut semantic_checker = match SemanticChecker::new(program.clone()) {
         Ok(checker) => checker,
-        Err(err) => return eprintln!("{}", err.message())
+        Err(err) => return eprintln!("{}", err.message()),
     };
     semantic_checker.check();
 
@@ -84,7 +84,7 @@ fn main() {
     let mut interpreter = Interpreter::new(program.clone());
     match interpreter.interpret() {
         Ok(_) => {}
-        Err(err) => eprintln!("{}", err.message())
+        Err(err) => eprintln!("{}", err.message()),
     };
 
     println!("\nExecution time: {:?}", Instant::now() - start);

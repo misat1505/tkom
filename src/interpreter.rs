@@ -2,7 +2,15 @@ use crate::{
     ast::{
         Argument, Block, Expression, Identifier, Literal, Node, Parameter, Program, Statement,
         SwitchCase, SwitchExpression, Type,
-    }, errors::Issue, functions_manager::FunctionsManager, lazy_stream_reader::Position, stack::Stack, std_functions::StdFunction, value::{ComputationIssue, Value}, visitor::Visitor, ALU::ALU
+    },
+    errors::Issue,
+    functions_manager::FunctionsManager,
+    lazy_stream_reader::Position,
+    stack::Stack,
+    std_functions::StdFunction,
+    value::{ComputationIssue, Value},
+    visitor::Visitor,
+    ALU::ALU,
 };
 
 #[derive(Debug)]
@@ -23,7 +31,7 @@ pub struct Interpreter {
     last_result: Option<Value>,
     is_breaking: bool,
     is_returning: bool,
-    position: Position
+    position: Position,
 }
 
 impl Interpreter {
@@ -35,7 +43,11 @@ impl Interpreter {
             last_result: None,
             is_breaking: false,
             is_returning: false,
-            position: Position { line: 0, column: 0, offset: 0 }
+            position: Position {
+                line: 0,
+                column: 0,
+                offset: 0,
+            },
         }
     }
 
@@ -71,7 +83,7 @@ impl Interpreter {
             Err(mut err) => {
                 err.message = format!("{}\nAt {:?}.", err.message, self.position);
                 Err(Box::new(err))
-            },
+            }
         }
     }
 
@@ -93,7 +105,7 @@ impl Interpreter {
             Err(mut err) => {
                 err.message = format!("{}\nAt {:?}.", err.message, self.position);
                 Err(Box::new(err))
-            },
+            }
         }
     }
 }
@@ -116,7 +128,10 @@ impl Visitor for Interpreter {
                             == 1
                     {
                         return Err(Box::new(InterpreterIssue {
-                            message: format!("Break called outside for or switch.\nAt {:?}.", self.position),
+                            message: format!(
+                                "Break called outside for or switch.\nAt {:?}.",
+                                self.position
+                            ),
                         }));
                     }
                 }
@@ -309,7 +324,7 @@ impl Visitor for Interpreter {
                 let computed_condition = self.read_last_result();
                 let boolean_value = match computed_condition {
                     Value::Bool(bool) => bool,
-                    a => return Err(Box::new(InterpreterIssue {message: format!("Bad value for condition in if statement. Given {:?}, expected a boolean.", a)})),
+                    a => return Err(Box::new(InterpreterIssue {message: format!("Condition in if statement has to evaulate to boolean - got {:?}.\nAt {:?}.", a, self.position)})),
                 };
                 if boolean_value {
                     self.visit_block(&if_block)?;
@@ -334,7 +349,7 @@ impl Visitor for Interpreter {
                 let mut computed_condition = self.read_last_result();
                 let mut boolean_value = match computed_condition {
                     Value::Bool(bool) => bool,
-                    a => return Err(Box::new(InterpreterIssue {message: format!("Bad value for condition in for statement. Given {:?}, expected a boolean.", a)})),
+                    a => return Err(Box::new(InterpreterIssue {message: format!("Condition in for statement has to evaulate to boolean - got {:?}.\nAt {:?}.", a, self.position)})),
                 };
 
                 while boolean_value {
@@ -353,7 +368,7 @@ impl Visitor for Interpreter {
                     computed_condition = self.read_last_result();
                     boolean_value = match computed_condition {
                         Value::Bool(bool) => bool,
-                        a => return Err(Box::new(InterpreterIssue {message: format!("Bad value for condition in for statement. Given {:?}, expected a boolean.", a)})),
+                        a => return Err(Box::new(InterpreterIssue {message: format!("Condition in for statement has to evaulate to boolean - got {:?}.\nAt {:?}.", a, self.position)})),
                     };
                 }
                 self.stack.pop_scope();
@@ -409,7 +424,10 @@ impl Visitor for Interpreter {
                     == 1
             {
                 return Err(Box::new(InterpreterIssue {
-                    message: format!("Break called outside for or switch.\nAt {:?}.", self.position),
+                    message: format!(
+                        "Break called outside for or switch.\nAt {:?}.",
+                        self.position
+                    ),
                 }));
             }
 
@@ -436,8 +454,8 @@ impl Visitor for Interpreter {
             a => {
                 return Err(Box::new(InterpreterIssue {
                     message: format!(
-                        "Condition in switch case has to evaluate to boolean - got {:?}.",
-                        a
+                        "Condition in switch case has to evaluate to boolean - got {:?}.\nAt {:?}.",
+                        a, self.position
                     ),
                 }))
             }
@@ -552,8 +570,8 @@ impl Interpreter {
                     (des, got) => {
                         return Err(Box::new(InterpreterIssue {
                             message: format!(
-                                "Function '{}' expected {:?} but got {:?}",
-                                name, des, got
+                                "Function '{}' expected {:?} but got {:?}.\nAt {:?}.",
+                                name, des, got, self.position
                             ),
                         }))
                     }
@@ -585,7 +603,10 @@ impl Interpreter {
                                 == 1
                         {
                             return Err(Box::new(InterpreterIssue {
-                                message: format!("Break called outside for or switch.\nAt {:?}.", self.position),
+                                message: format!(
+                                    "Break called outside for or switch.\nAt {:?}.",
+                                    self.position
+                                ),
                             }));
                         }
                     }
@@ -600,7 +621,10 @@ impl Interpreter {
                 | (Some(Value::Bool(_)), Type::Bool) => {}
                 (res, exp) => {
                     return Err(Box::new(InterpreterIssue {
-                        message: format!("Bad return type. Expected: {:?} but got {:?}.", exp, res),
+                        message: format!(
+                            "Bad return type. Expected: {:?} but got {:?}.\nAt {:?}.",
+                            exp, res, self.position
+                        ),
                     }))
                 }
             }

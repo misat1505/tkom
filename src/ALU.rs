@@ -180,7 +180,7 @@ impl ALU {
         match (val1, val2) {
             (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(bool1 || bool2)),
             (a, b) => Err(ComputationIssue {
-                message: format!("Cannot perform concatenation between {:?} and {:?}.", a, b),
+                message: format!("Cannot perform alternative between {:?} and {:?}.", a, b),
             }),
         }
     }

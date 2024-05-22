@@ -1,8 +1,4 @@
-use crate::{
-    ast::Type,
-    errors::Issue,
-    value::Value,
-};
+use crate::{ast::Type, errors::Issue, value::Value};
 
 #[derive(Debug)]
 pub struct StdFunctionIssue {
@@ -38,9 +34,6 @@ impl StdFunction {
                 }),
             }
         };
-        StdFunction {
-            params,
-            execute,
-        }
+        StdFunction { params, execute }
     }
 }
