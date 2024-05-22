@@ -566,6 +566,11 @@ impl Interpreter {
                             }
                         }
                     }
+                    // check return type
+                    match (self.last_result.clone(), return_type.value) {
+                        (None, Type::Void) | (Some(Value::I64(_)), Type::I64) | (Some(Value::F64(_)), Type::F64) | (Some(Value::String(_)), Type::Str) | (Some(Value::Bool(_)), Type::Bool) => {},
+                        (res, exp) => return Err(Box::new(InterpreterIssue {message: format!("Bad return type. Expected: {:?} but got {:?}.", exp, res)}))
+                    }
 
                     self.stack.pop_stack_frame();
                 }
