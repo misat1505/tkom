@@ -180,11 +180,10 @@ impl Visitor for Interpreter {
                     let value = self.read_last_result();
                     args.push(value);
                 }
-                return self.execute_function(name, args);
-                // self.visit_identifier(&identifier)?;
-                // for arg in arguments {
-                //     self.visit_argument(&arg)?;
-                // }
+                self.execute_function(name, args)?;
+                if self.is_returning {
+                    self.is_returning = false;
+                }
             }
         }
         Ok(())
@@ -217,7 +216,10 @@ impl Visitor for Interpreter {
                     let value = self.read_last_result();
                     args.push(value);
                 }
-                return self.execute_function(name, args);
+                self.execute_function(name, args)?;
+                if self.is_returning {
+                    self.is_returning = false;
+                }
                 // self.visit_identifier(&identifier)?;
                 // for arg in arguments {
                 //     self.visit_argument(&arg)?;
@@ -267,7 +269,6 @@ impl Visitor for Interpreter {
                     Ok(_) => {}
                     Err(err) => return Err(Box::new(err)),
                 }
-                // println!("{:?}", self.stack.0);
             }
             Statement::Assignment { identifier, value } => {
                 self.visit_identifier(&identifier)?;
@@ -277,7 +278,6 @@ impl Visitor for Interpreter {
                     Ok(_) => {}
                     Err(err) => return Err(Box::new(err)),
                 }
-                // println!("{:?}", self.stack.0);
             }
             Statement::Conditional {
                 condition,
@@ -376,7 +376,6 @@ impl Visitor for Interpreter {
 
     fn visit_block(&mut self, block: &Node<Block>) -> Result<(), Box<dyn Issue>> {
         self.stack.push_scope();
-        // println!("{:?}", self.stack.0);
         for statement in &block.value.0 {
             if self.is_breaking
                 && self
@@ -399,7 +398,6 @@ impl Visitor for Interpreter {
             self.visit_statement(statement)?;
         }
         self.stack.pop_scope();
-        // println!("{:?}", self.stack.0);
         Ok(())
     }
 
@@ -452,12 +450,10 @@ impl Visitor for Interpreter {
 
     fn visit_identifier(&mut self, _identifier: &Node<Identifier>) -> Result<(), Box<dyn Issue>> {
         Ok(())
-        // println!("{:?}", _identifier);
     }
 
     fn visit_type(&mut self, _node_type: &Node<Type>) -> Result<(), Box<dyn Issue>> {
         Ok(())
-        // println!("{:?}", _node_type);
     }
 
     fn visit_literal(&mut self, literal: Literal) -> Result<(), Box<dyn Issue>> {

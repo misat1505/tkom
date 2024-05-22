@@ -1,21 +1,22 @@
-i64 x = 10;
-i64 prev2 = 1;
-i64 prev1 = 1;
-i64 current;
+fn fib_iter(i64 x): i64 {
+  i64 prev2 = 1;
+  i64 prev1 = 1;
+  i64 total;
 
-fn add(i64 x): void {
-  i64 xh = 5;
+  if (x == 1 || x == 2) {
+    return 1;
+  }
+
+  for (i64 i = 2; i < x; i = i + 1) {
+    total = prev1 + prev2;
+    prev2 = prev1;
+    prev1 = total;
+  }
+
+  return total;
 }
 
-for (i64 i = 2; i < x; i = i + 1) {
-  current = prev1 + prev2;
-  prev2 = prev1;
-  prev1 = current;
-}
-
-print(current as str);
-
-fn fib(i64 x): i64 {
+fn fib_rec(i64 x): i64 {
   if (x == 1) {
     return 1;
   }
@@ -24,8 +25,10 @@ fn fib(i64 x): i64 {
     return 1;
   }
 
-  i64 a = fib(x - 1);
-  i64 b = fib(x - 2);
-  return a + b;
-  #return fib(x - 1) + fib(x - 2);
+  return fib_rec(x - 1) + fib_rec(x - 2);
 }
+
+
+i64 num = 20;
+print("fib_iter(" + num as str + ") = " + fib_iter(num) as str);
+print("fib_rec(" + num as str + ") = " + fib_rec(num) as str);
