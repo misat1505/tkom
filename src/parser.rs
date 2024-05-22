@@ -802,19 +802,14 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_factor(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // factor = literal | ( "(", expression, ")" ) | identifier_or_call;
-        match self.parse_literal() {
-            Ok(result) => match result {
-                Some(literal) => {
-                    let node = Node {
-                        value: Expression::Literal(literal.value),
-                        position: literal.position,
-                    };
-                    return Ok(Some(node));
-                }
-                None => {}
-            },
-            Err(_) => {}
+        if let Ok(Some(literal)) = self.parse_literal() {
+            let node = Node {
+                value: Expression::Literal(literal.value),
+                position: literal.position,
+            };
+            return Ok(Some(node));
         }
+
         if self.consume_if_matches(TokenCategory::ParenOpen)?.is_some() {
             let expression = match self.parse_expression()? {
                 Some(t) => t,
@@ -1032,10 +1027,7 @@ impl<L: ILexer> Parser<L> {
         let position = self.current_token().position;
         Box::new(ParserIssue {
             level: IssueLevel::ERROR,
-            message: format!(
-                "{}\nAt line: {}, column: {}",
-                text, position.line, position.column
-            ),
+            message: format!("{}\nAt {:?}.", text, position),
         })
     }
 }

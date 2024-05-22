@@ -6,7 +6,6 @@ use crate::{
     errors::Issue,
 };
 
-// returnować błąd
 pub trait Visitor {
     fn visit_program(&mut self, program: &Program) -> Result<(), Box<dyn Issue>>;
     fn visit_statement(&mut self, statement: &Node<Statement>) -> Result<(), Box<dyn Issue>>;

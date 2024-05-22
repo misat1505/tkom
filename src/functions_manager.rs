@@ -29,23 +29,20 @@ impl FunctionsManager {
         let mut functions: HashMap<String, Statement> = HashMap::new();
 
         for statement in &program.statements {
-            match &statement.value {
-                Statement::FunctionDeclaration { identifier, .. } => {
-                    let function_name = &identifier.value.0;
-                    if functions.contains_key(function_name)
-                        || std_functions.contains_key(function_name)
-                    {
-                        return Err(Box::new(FunctionManagerIssue {
-                            message: format!(
-                                "Redeclaration of function '{}' in {:?}\n",
-                                function_name, statement.position
-                            ),
-                        }));
-                    }
-                    let function_declaration = statement.value.clone();
-                    functions.insert(function_name.to_string(), function_declaration);
+            if let Statement::FunctionDeclaration { identifier, .. } = statement.value.clone() {
+                let function_name = &identifier.value.0;
+                if functions.contains_key(function_name)
+                    || std_functions.contains_key(function_name)
+                {
+                    return Err(Box::new(FunctionManagerIssue {
+                        message: format!(
+                            "Redeclaration of function '{}' in {:?}\n",
+                            function_name, statement.position
+                        ),
+                    }));
                 }
-                _ => {}
+                let function_declaration = statement.value.clone();
+                functions.insert(function_name.to_string(), function_declaration);
             }
         }
 
