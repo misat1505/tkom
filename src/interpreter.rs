@@ -303,7 +303,10 @@ impl Visitor for Interpreter {
                     .declare_variable(identifier.value.0, computed_value)
                 {
                     Ok(_) => {}
-                    Err(err) => return Err(Box::new(err)),
+                    Err(mut err) => {
+                        err.message = format!("{}\nAt {:?}.", err.message, self.position);
+                        return Err(Box::new(err))
+                    }
                 }
             }
             Statement::Assignment { identifier, value } => {
@@ -312,7 +315,10 @@ impl Visitor for Interpreter {
                 let value = self.read_last_result();
                 match self.stack.assign_variable(identifier.value.0, value) {
                     Ok(_) => {}
-                    Err(err) => return Err(Box::new(err)),
+                    Err(mut err) => {
+                        err.message = format!("{}\nAt {:?}.", err.message, self.position);
+                        return Err(Box::new(err))
+                    },
                 }
             }
             Statement::Conditional {

@@ -4,7 +4,7 @@ use crate::{errors::Issue, value::Value};
 
 #[derive(Debug)]
 pub struct ScopeManagerIssue {
-    message: String,
+    pub message: String,
 }
 
 impl Issue for ScopeManagerIssue {
