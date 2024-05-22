@@ -6,7 +6,7 @@ fn max(i64 a, i64 b): i64 {
 }
 
 fn sum(i64 x): i64 {
-  if (x == 1) {
+  if (x) {
     return 1;
   }
 

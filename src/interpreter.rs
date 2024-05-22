@@ -300,7 +300,7 @@ impl Visitor for Interpreter {
                     (declared_type, computed_type) => {
                         return Err(Box::new(InterpreterIssue {
                             message: format!(
-                                "Cannot assign variable of type {:?} to type {:?}.\nAt {:?}.",
+                                "Cannot assign variable of type '{:?}' to type '{:?}'.\nAt {:?}.",
                                 computed_type, declared_type, self.position
                             ),
                         }))
@@ -343,7 +343,7 @@ impl Visitor for Interpreter {
                 let computed_condition = self.read_last_result()?;
                 let boolean_value = match computed_condition {
                     Value::Bool(bool) => bool,
-                    a => return Err(Box::new(InterpreterIssue {message: format!("Condition in if statement has to evaulate to boolean - got {:?}.\nAt {:?}.", a, self.position)})),
+                    a => return Err(Box::new(InterpreterIssue {message: format!("Condition in if statement has to evaulate to type '{:?}' - got '{:?}'.\nAt {:?}.", Type::Bool, a.to_type(), self.position)})),
                 };
                 if boolean_value {
                     self.visit_block(&if_block)?;
@@ -368,7 +368,7 @@ impl Visitor for Interpreter {
                 let mut computed_condition = self.read_last_result()?;
                 let mut boolean_value = match computed_condition {
                     Value::Bool(bool) => bool,
-                    a => return Err(Box::new(InterpreterIssue {message: format!("Condition in for statement has to evaulate to boolean - got {:?}.\nAt {:?}.", a, self.position)})),
+                    a => return Err(Box::new(InterpreterIssue {message: format!("Condition in for statement has to evaulate to type '{:?}' - got '{:?}'.\nAt {:?}.", Type::Bool, a.to_type(), self.position)})),
                 };
 
                 while boolean_value {
@@ -387,7 +387,7 @@ impl Visitor for Interpreter {
                     computed_condition = self.read_last_result()?;
                     boolean_value = match computed_condition {
                         Value::Bool(bool) => bool,
-                        a => return Err(Box::new(InterpreterIssue {message: format!("Condition in for statement has to evaulate to boolean - got {:?}.\nAt {:?}.", a, self.position)})),
+                        a => return Err(Box::new(InterpreterIssue {message: format!("Condition in for statement has to evaulate to '{:?}' - got '{:?}'.\nAt {:?}.", Type::Bool, a.to_type(), self.position)})),
                     };
                 }
                 self.stack.pop_scope();
@@ -435,7 +435,7 @@ impl Visitor for Interpreter {
             if self.is_breaking && self.stack.is_last_scope() {
                 return Err(Box::new(InterpreterIssue {
                     message: format!(
-                        "Break called outside for or switch.\nAt {:?}.",
+                        "Break called outside 'for' or 'switch'.\nAt {:?}.",
                         self.position
                     ),
                 }));
@@ -464,8 +464,8 @@ impl Visitor for Interpreter {
             a => {
                 return Err(Box::new(InterpreterIssue {
                     message: format!(
-                        "Condition in switch case has to evaluate to boolean - got {:?}.\nAt {:?}.",
-                        a, self.position
+                        "Condition in switch case has to evaluate to type '{:?}' - got '{:?}'.\nAt {:?}.",
+                        Type::Bool, a.to_type(), self.position
                     ),
                 }))
             }
@@ -576,8 +576,11 @@ impl Interpreter {
                     (des, got) => {
                         return Err(Box::new(InterpreterIssue {
                             message: format!(
-                                "Function '{}' expected {:?} but got {:?}.\nAt {:?}.",
-                                name, des, got, self.position
+                                "Function '{}' expected '{:?}', but got '{:?}'.\nAt {:?}.",
+                                name,
+                                des,
+                                got.to_type(),
+                                self.position
                             ),
                         }))
                     }
@@ -612,7 +615,7 @@ impl Interpreter {
                 {
                     return Err(Box::new(InterpreterIssue {
                         message: format!(
-                            "Break called outside for or switch.\nAt {:?}.",
+                            "Break called outside 'for' or 'switch'.\nAt {:?}.",
                             self.position
                         ),
                     }));
@@ -628,8 +631,8 @@ impl Interpreter {
                 (res, exp) => {
                     return Err(Box::new(InterpreterIssue {
                         message: format!(
-                            "Bad return type. Expected: {:?} but got {:?}.\nAt {:?}.",
-                            exp, res, self.position
+                            "Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.\nAt {:?}.",
+                            name, exp, res.unwrap().to_type(), self.position
                         ),
                     }))
                 }
