@@ -121,7 +121,7 @@ impl Scope {
                     Ok(())
                 }
                 (a, b) => Err(ScopeManagerIssue {
-                    message: format!("Cannot assign {:?} to variable {:?}.", b, a),
+                    message: format!("Cannot assign '{:?}' to variable '{}' which was previously declared as '{:?}'.", b.to_type(), name, a.to_type()),
                 }),
             },
         }

@@ -24,8 +24,10 @@ impl ALU {
             },
             _ => Err(ComputationIssue {
                 message: format!(
-                    "Cannot perform {} between {:?} and {:?}.",
-                    op_name, val1, val2
+                    "Cannot perform {} between values of type '{:?}' and '{:?}'.",
+                    op_name,
+                    val1.to_type(),
+                    val2.to_type()
                 ),
             }),
         }
@@ -53,8 +55,10 @@ impl ALU {
             }
             _ => Err(ComputationIssue {
                 message: format!(
-                    "Cannot perform {} between {:?} and {:?}.",
-                    op_name, val1, val2
+                    "Cannot perform {} between values of type '{:?}' and '{:?}'.",
+                    op_name,
+                    val1.to_type(),
+                    val2.to_type()
                 ),
             }),
         }
@@ -95,7 +99,10 @@ impl ALU {
         match val {
             Value::Bool(bool) => Ok(Value::Bool(!bool)),
             val => Err(ComputationIssue {
-                message: format!("Cannot perform boolean negation on {:?}.", val),
+                message: format!(
+                    "Cannot perform boolean negation on type '{:?}'.",
+                    val.to_type()
+                ),
             }),
         }
     }
@@ -105,7 +112,10 @@ impl ALU {
             Value::I64(i64) => Ok(Value::I64(-i64)),
             Value::F64(f64) => Ok(Value::F64(-f64)),
             val => Err(ComputationIssue {
-                message: format!("Cannot perform arithmetic negation on {:?}.", val),
+                message: format!(
+                    "Cannot perform arithmetic negation on type '{:?}'.",
+                    val.to_type()
+                ),
             }),
         }
     }
@@ -120,7 +130,11 @@ impl ALU {
             }
             (Value::String(a), Value::String(b)) => Ok(Value::String(a.clone() + &b.clone())),
             (a, b) => Err(ComputationIssue {
-                message: format!("Cannot perform addition between {:?} and {:?}.", a, b),
+                message: format!(
+                    "Cannot perform addition between values of type '{:?}' and '{:?}'.",
+                    a.to_type(),
+                    b.to_type()
+                ),
             }),
         }
     }
@@ -134,7 +148,11 @@ impl ALU {
                 Self::check_float_operation(val1, val2, |a, b| a - b, "subtraction")
             }
             (a, b) => Err(ComputationIssue {
-                message: format!("Cannot perform subtraction between {:?} and {:?}.", a, b),
+                message: format!(
+                    "Cannot perform subtraction between values of type '{:?}' and '{:?}'.",
+                    a.to_type(),
+                    b.to_type()
+                ),
             }),
         }
     }
@@ -148,7 +166,11 @@ impl ALU {
                 Self::check_float_operation(val1, val2, |a, b| a * b, "multiplication")
             }
             (a, b) => Err(ComputationIssue {
-                message: format!("Cannot perform multiplication between {:?} and {:?}.", a, b),
+                message: format!(
+                    "Cannot perform multiplication between values of type '{:?}' and '{:?}'.",
+                    a.to_type(),
+                    b.to_type()
+                ),
             }),
         }
     }
@@ -162,7 +184,11 @@ impl ALU {
                 Self::check_float_operation(val1, val2, |a, b| a / b, "division")
             }
             (a, b) => Err(ComputationIssue {
-                message: format!("Cannot perform division between {:?} and {:?}.", a, b),
+                message: format!(
+                    "Cannot perform division between values of type '{:?}' and '{:?}'.",
+                    a.to_type(),
+                    b.to_type()
+                ),
             }),
         }
     }
@@ -171,7 +197,11 @@ impl ALU {
         match (val1, val2) {
             (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(bool1 && bool2)),
             (a, b) => Err(ComputationIssue {
-                message: format!("Cannot perform concatenation between {:?} and {:?}.", a, b),
+                message: format!(
+                    "Cannot perform concatenation between values of type '{:?}' and '{:?}'.",
+                    a.to_type(),
+                    b.to_type()
+                ),
             }),
         }
     }
@@ -180,7 +210,11 @@ impl ALU {
         match (val1, val2) {
             (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(bool1 || bool2)),
             (a, b) => Err(ComputationIssue {
-                message: format!("Cannot perform alternative between {:?} and {:?}.", a, b),
+                message: format!(
+                    "Cannot perform alternative between values of type '{:?}' and '{:?}'.",
+                    a.to_type(),
+                    b.to_type()
+                ),
             }),
         }
     }
@@ -190,7 +224,11 @@ impl ALU {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 > val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 > val2)),
             (a, b) => Err(ComputationIssue {
-                message: format!("Cannot perform greater between {:?} and {:?}.", a, b),
+                message: format!(
+                    "Cannot perform greater between values of type '{:?}' and '{:?}'.",
+                    a.to_type(),
+                    b.to_type()
+                ),
             }),
         }
     }
@@ -201,8 +239,9 @@ impl ALU {
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 >= val2)),
             (a, b) => Err(ComputationIssue {
                 message: format!(
-                    "Cannot perform greater or equal between {:?} and {:?}.",
-                    a, b
+                    "Cannot perform greater or equal between values of type '{:?}' and '{:?}'.",
+                    a.to_type(),
+                    b.to_type()
                 ),
             }),
         }
@@ -213,7 +252,11 @@ impl ALU {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 < val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 < val2)),
             (a, b) => Err(ComputationIssue {
-                message: format!("Cannot perform less between {:?} and {:?}.", a, b),
+                message: format!(
+                    "Cannot perform less between values of type '{:?}' and '{:?}'.",
+                    a.to_type(),
+                    b.to_type()
+                ),
             }),
         }
     }
@@ -223,7 +266,11 @@ impl ALU {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 <= val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 <= val2)),
             (a, b) => Err(ComputationIssue {
-                message: format!("Cannot perform less or equal between {:?} and {:?}.", a, b),
+                message: format!(
+                    "Cannot perform less or equal between values of type '{:?}' and '{:?}'.",
+                    a.to_type(),
+                    b.to_type()
+                ),
             }),
         }
     }
@@ -235,7 +282,11 @@ impl ALU {
             (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(val1 == val2)),
             (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(val1 == val2)),
             (a, b) => Err(ComputationIssue {
-                message: format!("Cannot perform equal between {:?} and {:?}.", a, b),
+                message: format!(
+                    "Cannot perform equal between values of type '{:?}' and '{:?}'.",
+                    a.to_type(),
+                    b.to_type()
+                ),
             }),
         }
     }
@@ -247,7 +298,11 @@ impl ALU {
             (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(val1 != val2)),
             (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(val1 != val2)),
             (a, b) => Err(ComputationIssue {
-                message: format!("Cannot perform not equal between {:?} and {:?}.", a, b),
+                message: format!(
+                    "Cannot perform not equal between values of type '{:?}' and '{:?}'.",
+                    a.to_type(),
+                    b.to_type()
+                ),
             }),
         }
     }

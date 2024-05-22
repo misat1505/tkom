@@ -36,7 +36,7 @@ impl FunctionsManager {
                 {
                     return Err(Box::new(FunctionManagerIssue {
                         message: format!(
-                            "Redeclaration of function '{}' in {:?}\n",
+                            "Redeclaration of function '{}'.\nAt {:?}.\n",
                             function_name, statement.position
                         ),
                     }));

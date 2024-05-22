@@ -53,13 +53,25 @@ pub enum Literal {
     F64(f64),
 }
 
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Clone, PartialEq, Copy)]
 pub enum Type {
     Bool,
     Str,
     I64,
     F64,
     Void,
+}
+
+impl Debug for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Type::Bool => write!(f, "bool"),
+            Type::F64 => write!(f, "f64"),
+            Type::I64 => write!(f, "i64"),
+            Type::Str => write!(f, "str"),
+            Type::Void => write!(f, "void"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

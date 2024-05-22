@@ -28,8 +28,8 @@ impl StdFunction {
                 }
                 a => Err(StdFunctionIssue {
                     message: format!(
-                        "Std function 'print' expected a string, but was given {:?}",
-                        a
+                        "Std function 'print' expected '{:?}' as only argument, but was given '{:?}'.",
+                        Type::Str, a.to_type()
                     ),
                 }),
             }

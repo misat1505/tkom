@@ -1,4 +1,5 @@
-i64 age = 21;
+i64 age = 2137;
+age = "";
 str text = "I am " + age as str + " years old.";
 
 if (true) {
@@ -9,3 +10,5 @@ if (true) {
   }
   age = 22;
 }
+
+print(text);

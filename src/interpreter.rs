@@ -273,7 +273,17 @@ impl Visitor for Interpreter {
                 let computed_value = match value {
                     Some(val) => {
                         self.visit_expression(&val)?;
-                        let result = self.read_last_result()?;
+                        let result = match self.read_last_result() {
+                            Ok(val) => val,
+                            Err(_) => {
+                                return Err(Box::new(InterpreterIssue {
+                                    message: format!(
+                                        "Cannot declare variable '{}' with no value.\nAt {:?}.",
+                                        identifier.value.0, self.position
+                                    ),
+                                }))
+                            }
+                        };
                         result
                     }
                     None => match Value::default_value(var_type.value) {
@@ -308,7 +318,17 @@ impl Visitor for Interpreter {
             Statement::Assignment { identifier, value } => {
                 self.visit_identifier(&identifier)?;
                 self.visit_expression(&value)?;
-                let value = self.read_last_result()?;
+                let value = match self.read_last_result() {
+                    Ok(val) => val,
+                    Err(_) => {
+                        return Err(Box::new(InterpreterIssue {
+                            message: format!(
+                                "Cannot assign no value to variable '{}'.\nAt {:?}.",
+                                identifier.value.0, self.position
+                            ),
+                        }))
+                    }
+                };
                 if let Err(mut err) = self.stack.assign_variable(identifier.value.0, value) {
                     err.message = format!("{}\nAt {:?}.", err.message, self.position);
                     return Err(Box::new(err));
