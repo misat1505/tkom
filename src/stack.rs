@@ -1,10 +1,19 @@
 use std::fmt::Debug;
 
 use crate::{
-    ast::{Node, Statement},
-    scope_manager::{ScopeManager, ScopeManagerIssue},
-    value::Value,
+    ast::{Node, Statement}, errors::Issue, scope_manager::{ScopeManager, ScopeManagerIssue}, value::Value
 };
+
+#[derive(Debug)]
+pub struct StackOverflowIssue {
+    message: String
+}
+
+impl Issue for StackOverflowIssue {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Stack(pub Vec<StackFrame>);
@@ -35,8 +44,12 @@ impl Stack {
         Stack(vec![StackFrame::new(statements)])
     }
 
-    pub fn push_stack_frame(&mut self, statements: Vec<Node<Statement>>) {
+    pub fn push_stack_frame(&mut self, statements: Vec<Node<Statement>>) -> Result<(), StackOverflowIssue> {
+        if self.0.len() == 50 {
+            return Err(StackOverflowIssue { message: "Stack overflow.".to_owned() })
+        }
         self.0.push(StackFrame::new(statements));
+        Ok(())
     }
 
     pub fn pop_stack_frame(&mut self) {

@@ -505,7 +505,10 @@ impl Interpreter {
                 } = function_declaration
                 {
                     let statements = block.value.0;
-                    self.stack.push_stack_frame(statements.clone());
+                    match self.stack.push_stack_frame(statements.clone()) {
+                        Ok(_) => {},
+                        Err(err) => return Err(Box::new(err))
+                    };
 
                     // args
                     for idx in 0..arguments.len() {
