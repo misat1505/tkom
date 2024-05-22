@@ -24,7 +24,6 @@ fn fib_rec(i64 x): i64 {
   if (x == 2) {
     return 1;
   }
-  break;
 
   return fib_rec(x - 1) + fib_rec(x - 2);
 }

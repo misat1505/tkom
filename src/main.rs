@@ -30,22 +30,26 @@ mod visitor;
 
 mod tests;
 
-fn parse_filename() -> String {
+fn parse_filename() -> Option<String> {
     let args: Vec<String> = args().collect();
-    if args.len() >= 2 {
-        return args[1].clone();
-    }
-    panic!("Path to file not given.");
+    args.get(1).cloned()
 }
 
 fn on_warning(warning: Box<dyn Issue>) {
-    println!("{}", warning.message());
+    eprintln!("{}", warning.message());
 }
 
-fn main() -> Result<(), Box<dyn Issue>> {
-    let path = parse_filename();
+fn main() {
+    let path = match parse_filename() {
+        Some(p) => p,
+        None => return eprintln!("Path to file not given.")
+    };
 
-    let file = File::open(path.as_str()).unwrap();
+    let file = match File::open(path.as_str()) {
+        Ok(f) => f,
+        Err(_) => return eprintln!("File '{}' not found.", path)
+    };
+
     let code = BufReader::new(file);
     let reader = LazyStreamReader::new(code);
 
@@ -58,9 +62,15 @@ fn main() -> Result<(), Box<dyn Issue>> {
     let mut parser = Parser::new(lexer);
 
     let start = Instant::now();
-    let program = parser.parse()?;
+    let program = match parser.parse() {
+        Ok(p) => p,
+        Err(err) => return eprintln!("{}", err.message())
+    };
 
-    let mut semantic_checker = SemanticChecker::new(program.clone())?;
+    let mut semantic_checker = match SemanticChecker::new(program.clone()) {
+        Ok(checker) => checker,
+        Err(err) => return eprintln!("{}", err.message())
+    };
     semantic_checker.check();
 
     for error in &semantic_checker.errors {
@@ -68,18 +78,14 @@ fn main() -> Result<(), Box<dyn Issue>> {
     }
 
     if semantic_checker.errors.len() > 0 {
-        return Ok(());
+        return;
     }
 
     let mut interpreter = Interpreter::new(program.clone());
     match interpreter.interpret() {
         Ok(_) => {}
-        Err(err) => {
-            eprintln!("{}", err.message())
-        }
+        Err(err) => eprintln!("{}", err.message())
     };
 
-    println!("Execution time: {:?}", Instant::now() - start);
-
-    Ok(())
+    println!("\nExecution time: {:?}", Instant::now() - start);
 }
