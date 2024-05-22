@@ -23,6 +23,7 @@ mod parser;
 mod scope_manager;
 mod semantic_checker;
 mod stack;
+mod std_functions;
 mod tokens;
 mod value;
 mod visitor;

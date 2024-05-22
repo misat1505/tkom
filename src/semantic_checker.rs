@@ -65,10 +65,13 @@ impl SemanticChecker {
                 position,
             }) => {
                 let name = &identifier.value.0;
-                if name == "print" {
+                if let Some(std_function) = self.functions_manager.std_functions.get(&String::from(name)) {
+                    if arguments.len() != std_function.params.len() {
+                        self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n", name, std_function.params.len(), arguments.len(), position) });
+                    }
                     return;
                 }
-                match self.functions_manager.clone().get(name.clone()) {
+                match self.functions_manager.functions.get(&String::from(name)) {
                     None => self.errors.push(SemanticCheckerIssue {
                         message: format!(
                             "Use of undeclared function '{}'.\nAt {:?}.\n",

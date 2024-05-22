@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     ast::{Program, Statement},
-    errors::Issue,
+    errors::Issue, std_functions::StdFunction,
 };
 
 #[derive(Debug)]
@@ -19,17 +19,19 @@ impl Issue for FunctionManagerIssue {
 #[derive(Debug, Clone)]
 pub struct FunctionsManager {
     pub functions: HashMap<String, Statement>,
+    pub std_functions: HashMap<String, StdFunction>
 }
 
 impl FunctionsManager {
     pub fn new(program: &Program) -> Result<Self, Box<dyn Issue>> {
+        let std_functions = Self::init_std();
         let mut functions: HashMap<String, Statement> = HashMap::new();
 
         for statement in &program.statements {
             match &statement.value {
                 Statement::FunctionDeclaration { identifier, .. } => {
                     let function_name = &identifier.value.0;
-                    if functions.contains_key(function_name) {
+                    if functions.contains_key(function_name) || std_functions.contains_key(function_name) {
                         return Err(Box::new(FunctionManagerIssue {
                             message: format!(
                                 "Redeclaration of function '{}' in {:?}\n",
@@ -44,10 +46,12 @@ impl FunctionsManager {
             }
         }
 
-        Ok(Self { functions })
+        Ok(Self { functions, std_functions })
     }
 
-    pub fn get(self, function_name: String) -> Option<Statement> {
-        self.functions.get(&function_name).cloned()
+    fn init_std() -> HashMap<String, StdFunction> {
+        let mut std_functions: HashMap<String, StdFunction> = HashMap::new();
+        std_functions.insert("print".to_owned(), StdFunction::print());
+        std_functions
     }
 }

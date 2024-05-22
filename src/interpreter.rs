@@ -486,107 +486,103 @@ impl Interpreter {
         name: String,
         arguments: Vec<Value>,
     ) -> Result<(), Box<dyn Issue>> {
-        if name == "print".to_owned() {
-            if let Value::String(text) = arguments.get(0).unwrap() {
-                println!("{}", text);
+        if let Some(std_function) = self.functions_manager.std_functions.get(&name) {
+            return match (std_function.execute)(arguments) {
+                Ok(_) => Ok(()),
+                Err(err) => Err(Box::new(err))
             }
         }
-        match self.functions_manager.clone().get(name.clone()) {
-            None => {
-                // built in function?
-            }
-            Some(function_declaration) => {
-                if let Statement::FunctionDeclaration {
-                    identifier: _,
-                    parameters,
-                    return_type,
-                    block,
-                } = function_declaration
-                {
-                    let statements = block.value.0;
-                    match self.stack.push_stack_frame() {
-                        Ok(_) => {}
-                        Err(err) => return Err(Box::new(err)),
-                    };
+        if let Some(function_declaration) = self.functions_manager.functions.clone().get(&name) {
+            if let Statement::FunctionDeclaration {
+                identifier: _,
+                parameters,
+                return_type,
+                block,
+            } = function_declaration
+            {
+                let statements = &block.value.0;
+                match self.stack.push_stack_frame() {
+                    Ok(_) => {}
+                    Err(err) => return Err(Box::new(err)),
+                };
 
-                    // args
-                    for idx in 0..arguments.len() {
-                        let desired_type = parameters.get(idx).unwrap().value.parameter_type.value;
-                        let param_name = parameters
-                            .get(idx)
-                            .unwrap()
-                            .value
-                            .identifier
-                            .value
-                            .0
-                            .clone();
-                        let value = arguments.get(idx).unwrap().clone();
-                        match (desired_type, value.clone()) {
-                            (Type::Bool, Value::Bool(_))
-                            | (Type::F64, Value::F64(_))
-                            | (Type::I64, Value::I64(_))
-                            | (Type::Str, Value::String(_)) => {}
-                            (des, got) => {
-                                return Err(Box::new(InterpreterIssue {
-                                    message: format!(
-                                        "Function '{}' expected {:?} but got {:?}",
-                                        name, des, got
-                                    ),
-                                }))
-                            }
-                        }
-                        match self.stack.declare_variable(param_name, value) {
-                            Ok(_) => {}
-                            Err(err) => return Err(Box::new(err)),
-                        };
-                    }
-
-                    // execute
-                    for statement in statements.clone() {
-                        if self.is_returning {
-                            self.is_returning = false;
-                            break;
-                        }
-                        match statement.value {
-                            Statement::FunctionDeclaration { .. } => {}
-                            _ => {
-                                self.visit_statement(&statement)?;
-                                if self.is_breaking
-                                    && self
-                                        .stack
-                                        .0
-                                        .get(self.stack.0.len() - 1)
-                                        .unwrap()
-                                        .scope_manager
-                                        .len()
-                                        == 1
-                                {
-                                    return Err(Box::new(InterpreterIssue {
-                                        message: format!("Break called outside for or switch."),
-                                    }));
-                                }
-                            }
-                        }
-                    }
-                    // check return type
-                    match (self.last_result.clone(), return_type.value) {
-                        (None, Type::Void)
-                        | (Some(Value::I64(_)), Type::I64)
-                        | (Some(Value::F64(_)), Type::F64)
-                        | (Some(Value::String(_)), Type::Str)
-                        | (Some(Value::Bool(_)), Type::Bool) => {}
-                        (res, exp) => {
+                // args
+                for idx in 0..arguments.len() {
+                    let desired_type = parameters.get(idx).unwrap().value.parameter_type.value;
+                    let param_name = parameters
+                        .get(idx)
+                        .unwrap()
+                        .value
+                        .identifier
+                        .value
+                        .0
+                        .clone();
+                    let value = arguments.get(idx).unwrap().clone();
+                    match (desired_type, value.clone()) {
+                        (Type::Bool, Value::Bool(_))
+                        | (Type::F64, Value::F64(_))
+                        | (Type::I64, Value::I64(_))
+                        | (Type::Str, Value::String(_)) => {}
+                        (des, got) => {
                             return Err(Box::new(InterpreterIssue {
                                 message: format!(
-                                    "Bad return type. Expected: {:?} but got {:?}.",
-                                    exp, res
+                                    "Function '{}' expected {:?} but got {:?}",
+                                    name, des, got
                                 ),
                             }))
                         }
                     }
-
-                    self.stack.pop_stack_frame();
+                    match self.stack.declare_variable(param_name, value) {
+                        Ok(_) => {}
+                        Err(err) => return Err(Box::new(err)),
+                    };
                 }
+
+                // execute
+                for statement in statements.clone() {
+                    if self.is_returning {
+                        self.is_returning = false;
+                        break;
+                    }
+                    match statement.value {
+                        Statement::FunctionDeclaration { .. } => {}
+                        _ => {
+                            self.visit_statement(&statement)?;
+                            if self.is_breaking
+                                && self
+                                    .stack
+                                    .0
+                                    .get(self.stack.0.len() - 1)
+                                    .unwrap()
+                                    .scope_manager
+                                    .len()
+                                    == 1
+                            {
+                                return Err(Box::new(InterpreterIssue {
+                                    message: format!("Break called outside for or switch."),
+                                }));
+                            }
+                        }
+                    }
+                }
+                // check return type
+                match (self.last_result.clone(), return_type.value) {
+                    (None, Type::Void)
+                    | (Some(Value::I64(_)), Type::I64)
+                    | (Some(Value::F64(_)), Type::F64)
+                    | (Some(Value::String(_)), Type::Str)
+                    | (Some(Value::Bool(_)), Type::Bool) => {}
+                    (res, exp) => {
+                        return Err(Box::new(InterpreterIssue {
+                            message: format!(
+                                "Bad return type. Expected: {:?} but got {:?}.",
+                                exp, res
+                            ),
+                        }))
+                    }
+                }
+
+                self.stack.pop_stack_frame();
             }
         }
         Ok(())
