@@ -297,27 +297,21 @@ impl Visitor for Interpreter {
                     }
                 }
 
-                match self
+                if let Err(mut err) = self
                     .stack
                     .declare_variable(identifier.value.0, computed_value)
                 {
-                    Ok(_) => {}
-                    Err(mut err) => {
-                        err.message = format!("{}\nAt {:?}.", err.message, self.position);
-                        return Err(Box::new(err));
-                    }
+                    err.message = format!("{}\nAt {:?}.", err.message, self.position);
+                    return Err(Box::new(err));
                 }
             }
             Statement::Assignment { identifier, value } => {
                 self.visit_identifier(&identifier)?;
                 self.visit_expression(&value)?;
                 let value = self.read_last_result()?;
-                match self.stack.assign_variable(identifier.value.0, value) {
-                    Ok(_) => {}
-                    Err(mut err) => {
-                        err.message = format!("{}\nAt {:?}.", err.message, self.position);
-                        return Err(Box::new(err));
-                    }
+                if let Err(mut err) = self.stack.assign_variable(identifier.value.0, value) {
+                    err.message = format!("{}\nAt {:?}.", err.message, self.position);
+                    return Err(Box::new(err));
                 }
             }
             Statement::Conditional {
