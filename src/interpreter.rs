@@ -55,10 +55,17 @@ impl Interpreter {
         self.visit_program(&self.program.clone())
     }
 
-    fn read_last_result(&mut self) -> Value {
-        let read_value = self.last_result.clone().unwrap();
-        self.last_result = None;
-        read_value
+    fn read_last_result(&mut self) -> Result<Value, Box<dyn Issue>> {
+        match self.last_result.clone() {
+            Some(result) => {
+                self.last_result = None;
+                Ok(result)
+            },
+            None => Err(Box::new(InterpreterIssue {message: format!("No value produced where it is needed.\nAt {:?}.", self.position)}))
+        }
+        // let read_value = self.last_result.clone().unwrap();
+        // self.last_result = None;
+        // Ok(read_value)
     }
 
     fn evaluate_binary_op<F>(
@@ -71,9 +78,9 @@ impl Interpreter {
         F: Fn(Value, Value) -> Result<Value, ComputationIssue>,
     {
         self.visit_expression(&lhs)?;
-        let left_value = self.read_last_result();
+        let left_value = self.read_last_result()?;
         self.visit_expression(&rhs)?;
-        let right_value = self.read_last_result();
+        let right_value = self.read_last_result()?;
 
         match op(left_value, right_value) {
             Ok(val) => {
@@ -96,7 +103,7 @@ impl Interpreter {
         F: Fn(Value) -> Result<Value, ComputationIssue>,
     {
         self.visit_expression(&value)?;
-        let computed_value = self.read_last_result();
+        let computed_value = self.read_last_result()?;
         match op(computed_value) {
             Ok(val) => {
                 self.last_result = Some(val);
@@ -145,7 +152,7 @@ impl Visitor for Interpreter {
         match expression.value.clone() {
             Expression::Casting { value, to_type } => {
                 self.visit_expression(&value)?;
-                let computed_value = self.read_last_result();
+                let computed_value = self.read_last_result()?;
                 match ALU::cast_to_type(computed_value, to_type.value) {
                     Ok(val) => {
                         self.last_result = Some(val);
@@ -195,7 +202,7 @@ impl Visitor for Interpreter {
                 let mut args: Vec<Value> = vec![];
                 for arg in arguments {
                     self.visit_expression(&arg.value.value)?;
-                    let value = self.read_last_result();
+                    let value = self.read_last_result()?;
                     args.push(value);
                 }
 
@@ -243,7 +250,7 @@ impl Visitor for Interpreter {
                 let mut args: Vec<Value> = vec![];
                 for arg in arguments {
                     self.visit_expression(&arg.value.value)?;
-                    let value = self.read_last_result();
+                    let value = self.read_last_result()?;
                     args.push(value);
                 }
 
@@ -274,7 +281,7 @@ impl Visitor for Interpreter {
                 let computed_value = match value {
                     Some(val) => {
                         self.visit_expression(&val)?;
-                        let result = self.read_last_result();
+                        let result = self.read_last_result()?;
                         result
                     }
                     None => match Value::default_value(var_type.value) {
@@ -312,7 +319,7 @@ impl Visitor for Interpreter {
             Statement::Assignment { identifier, value } => {
                 self.visit_identifier(&identifier)?;
                 self.visit_expression(&value)?;
-                let value = self.read_last_result();
+                let value = self.read_last_result()?;
                 match self.stack.assign_variable(identifier.value.0, value) {
                     Ok(_) => {}
                     Err(mut err) => {
@@ -327,7 +334,7 @@ impl Visitor for Interpreter {
                 else_block,
             } => {
                 self.visit_expression(&condition)?;
-                let computed_condition = self.read_last_result();
+                let computed_condition = self.read_last_result()?;
                 let boolean_value = match computed_condition {
                     Value::Bool(bool) => bool,
                     a => return Err(Box::new(InterpreterIssue {message: format!("Condition in if statement has to evaulate to boolean - got {:?}.\nAt {:?}.", a, self.position)})),
@@ -352,7 +359,7 @@ impl Visitor for Interpreter {
                 }
 
                 self.visit_expression(&condition)?;
-                let mut computed_condition = self.read_last_result();
+                let mut computed_condition = self.read_last_result()?;
                 let mut boolean_value = match computed_condition {
                     Value::Bool(bool) => bool,
                     a => return Err(Box::new(InterpreterIssue {message: format!("Condition in for statement has to evaulate to boolean - got {:?}.\nAt {:?}.", a, self.position)})),
@@ -371,7 +378,7 @@ impl Visitor for Interpreter {
                     }
 
                     self.visit_expression(&condition)?;
-                    computed_condition = self.read_last_result();
+                    computed_condition = self.read_last_result()?;
                     boolean_value = match computed_condition {
                         Value::Bool(bool) => bool,
                         a => return Err(Box::new(InterpreterIssue {message: format!("Condition in for statement has to evaulate to boolean - got {:?}.\nAt {:?}.", a, self.position)})),
@@ -397,7 +404,7 @@ impl Visitor for Interpreter {
                 let returned_value = match value {
                     Some(val) => {
                         self.visit_expression(&val)?;
-                        Some(self.read_last_result())
+                        Some(self.read_last_result()?)
                     }
                     None => None,
                 };
@@ -454,7 +461,7 @@ impl Visitor for Interpreter {
 
     fn visit_switch_case(&mut self, switch_case: &Node<SwitchCase>) -> Result<(), Box<dyn Issue>> {
         self.visit_expression(&switch_case.value.condition)?;
-        let computed_value = self.read_last_result();
+        let computed_value = self.read_last_result()?;
         let boolean_value = match computed_value {
             Value::Bool(bool) => bool,
             a => {
@@ -480,7 +487,7 @@ impl Visitor for Interpreter {
             None => {}
             Some(alias) => {
                 self.visit_expression(&switch_expression.value.expression)?;
-                let computed_value = self.read_last_result();
+                let computed_value = self.read_last_result()?;
                 match self
                     .stack
                     .declare_variable(alias.value.0.clone(), computed_value)
