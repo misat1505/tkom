@@ -1,6 +1,7 @@
 use crate::{
     ast::{
-        Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type
+        Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement,
+        SwitchCase, SwitchExpression, Type,
     },
     errors::Issue,
     functions_manager::FunctionsManager,
@@ -32,7 +33,7 @@ pub struct Interpreter {
     is_returning: bool,
     position: Position,
     last_arguments: Vec<Value>,
-    returned_arguments: Vec<Value>
+    returned_arguments: Vec<Value>,
 }
 
 impl Interpreter {
@@ -50,7 +51,7 @@ impl Interpreter {
                 offset: 0,
             },
             last_arguments: vec![],
-            returned_arguments: vec![]
+            returned_arguments: vec![],
         }
     }
 
@@ -314,6 +315,10 @@ impl Visitor for Interpreter {
                 while boolean_value {
                     self.visit_block(&block)?;
 
+                    if self.is_returning {
+                        break;
+                    }
+
                     if self.is_breaking {
                         self.is_breaking = false;
                         break;
@@ -502,10 +507,15 @@ impl Interpreter {
         // update these passed by reference
         for idx in 0..arguments.len() {
             let arg = arguments.get(idx).unwrap().value.clone();
-            if arg.passed_by == PassedBy::Value {continue;}
+            if arg.passed_by == PassedBy::Value {
+                continue;
+            }
 
             if let Expression::Variable(name) = arg.value.value {
-                if let Err(mut err) = self.stack.assign_variable(name, self.returned_arguments.get(idx).unwrap().clone()) {
+                if let Err(mut err) = self
+                    .stack
+                    .assign_variable(name, self.returned_arguments.get(idx).unwrap().clone())
+                {
                     err.message = format!("{}\nAt {:?}.", err.message, self.position);
                     return Err(Box::new(err));
                 };
@@ -606,7 +616,7 @@ impl Interpreter {
                     return Err(Box::new(InterpreterIssue {
                         message: format!(
                             "Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.\nAt {:?}.",
-                            name, exp, res.unwrap().to_type(), self.position
+                            name, exp, res, self.position
                         ),
                     }))
                 }

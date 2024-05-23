@@ -1,0 +1,20 @@
+fn is_prime(i64 x): bool {
+  if (x < 2) {
+    return false;
+  }
+
+  for (i64 i = 2; i < x / 2; i = i + 1) {
+    if (mod(x, i) == 0) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+for (i64 x = 0; x < 1000; x = x + 1) {
+  if (is_prime(x)) {
+    print(x as str + " is a prime.");
+  }
+}

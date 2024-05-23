@@ -64,4 +64,15 @@ impl StdFunction {
         };
         StdFunction { params, execute }
     }
+
+    pub fn modulo() -> Self {
+        let params = vec![Type::I64, Type::I64];
+        let execute = |params: Vec<Value>| -> Result<Option<Value>, StdFunctionIssue> {
+            match (params.get(0), params.get(1)) {
+                (Some(Value::I64(val1)), Some(Value::I64(val2))) => Ok(Some(Value::I64(*val1 % *val2))),
+                (a, b) => Err(StdFunctionIssue { message: format!("Cannot perform modulo operation between values of types '{:?}' and '{:?}'.", a.unwrap().to_type(), b.unwrap().to_type()) })
+            }
+        };
+        StdFunction { params, execute }
+    }
 }
