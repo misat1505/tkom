@@ -72,16 +72,16 @@ impl Interpreter {
 
     fn evaluate_binary_op<F>(
         &mut self,
-        lhs: Box<Node<Expression>>,
-        rhs: Box<Node<Expression>>,
+        lhs: &Box<Node<Expression>>,
+        rhs: &Box<Node<Expression>>,
         op: F,
     ) -> Result<(), Box<dyn Issue>>
     where
         F: Fn(Value, Value) -> Result<Value, ComputationIssue>,
     {
-        self.visit_expression(&lhs)?;
+        self.visit_expression(lhs)?;
         let left_value = self.read_last_result()?;
-        self.visit_expression(&rhs)?;
+        self.visit_expression(rhs)?;
         let right_value = self.read_last_result()?;
 
         match op(left_value, right_value) {
@@ -98,13 +98,13 @@ impl Interpreter {
 
     fn evaluate_unary_op<F>(
         &mut self,
-        value: Box<Node<Expression>>,
+        value: &Box<Node<Expression>>,
         op: F,
     ) -> Result<(), Box<dyn Issue>>
     where
         F: Fn(Value) -> Result<Value, ComputationIssue>,
     {
-        self.visit_expression(&value)?;
+        self.visit_expression(value)?;
         let computed_value = self.read_last_result()?;
         match op(computed_value) {
             Ok(val) => {
@@ -141,7 +141,7 @@ impl Visitor for Interpreter {
 
     fn visit_expression(&mut self, expression: &Node<Expression>) -> Result<(), Box<dyn Issue>> {
         self.position = expression.position;
-        match expression.value.clone() {
+        match &expression.value {
             Expression::Casting { value, to_type } => {
                 self.visit_expression(&value)?;
                 let computed_value = self.read_last_result()?;
@@ -183,13 +183,13 @@ impl Visitor for Interpreter {
             }
             Expression::Equal(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::equal)?,
             Expression::NotEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::not_equal)?,
-            Expression::Literal(literal) => self.visit_literal(literal)?,
-            Expression::Variable(variable) => self.visit_variable(variable)?,
+            Expression::Literal(literal) => self.visit_literal(literal.clone())?,
+            Expression::Variable(variable) => self.visit_variable(variable.clone())?,
             Expression::FunctionCall {
                 identifier,
                 arguments,
             } => {
-                let name = identifier.value.0;
+                let name = identifier.value.0.clone();
 
                 let mut args: Vec<Value> = vec![];
                 for arg in arguments {
