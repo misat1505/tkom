@@ -57,4 +57,8 @@ impl FunctionsManager {
         std_functions.insert("print".to_owned(), StdFunction::print());
         std_functions
     }
+
+    pub fn get(&mut self, name: &String) -> Option<&Statement> {
+        self.functions.get(name)
+    }
 }

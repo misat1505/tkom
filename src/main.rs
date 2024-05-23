@@ -86,6 +86,7 @@ fn main() {
         Ok(_) => {}
         Err(err) => eprintln!("{}", err.message()),
     };
+    println!("{}", interpreter.v);
 
     println!("\nExecution time: {:?}", Instant::now() - start);
 }
