@@ -1,7 +1,6 @@
 use crate::{
     ast::{
-        Argument, Block, Expression, Literal, Node, Parameter, Program, Statement, SwitchCase,
-        SwitchExpression, Type,
+        Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type
     },
     errors::Issue,
     functions_manager::FunctionsManager,
@@ -33,6 +32,7 @@ pub struct Interpreter {
     is_returning: bool,
     position: Position,
     last_arguments: Vec<Value>,
+    returned_arguments: Vec<Value>
 }
 
 impl Interpreter {
@@ -50,6 +50,7 @@ impl Interpreter {
                 offset: 0,
             },
             last_arguments: vec![],
+            returned_arguments: vec![]
         }
     }
 
@@ -498,11 +499,25 @@ impl Interpreter {
             self.visit_statement(&function_declaration)?;
         }
 
+        // update these passed by reference
+        for idx in 0..arguments.len() {
+            let arg = arguments.get(idx).unwrap().value.clone();
+            if arg.passed_by == PassedBy::Value {continue;}
+
+            if let Expression::Variable(name) = arg.value.value {
+                if let Err(mut err) = self.stack.assign_variable(name, self.returned_arguments.get(idx).unwrap().clone()) {
+                    err.message = format!("{}\nAt {:?}.", err.message, self.position);
+                    return Err(Box::new(err));
+                };
+            }
+        }
+
         if self.is_returning {
             self.is_returning = false;
         }
 
         self.last_arguments = vec![];
+        self.returned_arguments = vec![];
 
         Ok(())
     }
@@ -597,8 +612,77 @@ impl Interpreter {
                 }
             }
 
+            // for reference
+            let mut returned_arguments: Vec<Value> = vec![];
+            for parameter in parameters {
+                let param_name = parameter.value.identifier.value.clone();
+                returned_arguments.push(self.stack.get_variable(param_name).unwrap().clone());
+            }
+
+            self.returned_arguments = returned_arguments;
+
             self.stack.pop_stack_frame();
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn default_position() -> Position {
+        Position {
+            line: 0,
+            column: 0,
+            offset: 0,
+        }
+    }
+
+    fn create_interpreter() -> Interpreter {
+        Interpreter::new(Program { statements: vec![] })
+    }
+
+    #[test]
+    fn interpret_casting() {
+        let ast = Node {
+            value: Expression::Casting {
+                value: Box::new(Node {
+                    value: Expression::Literal(Literal::I64(2)),
+                    position: default_position(),
+                }),
+                to_type: Node {
+                    value: Type::F64,
+                    position: default_position(),
+                },
+            },
+
+            position: default_position(),
+        };
+
+        let exp = Some(Value::F64(2.0));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_boolean_negation() {
+        let ast = Node {
+            value: Expression::BooleanNegation(Box::new(Node {
+                value: Expression::Literal(Literal::False),
+                position: default_position(),
+            })),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::Bool(true));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
     }
 }
