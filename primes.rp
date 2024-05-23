@@ -12,7 +12,7 @@ fn is_prime(i64 x): bool {
   return true;
 }
 
-for (i64 x = 0; x < 1000; x = x + 1) {
+for (i64 x = 0; x < 10000; x = x + 1) {
   if (is_prime(x)) {
     print(x as str + " is a prime.");
   }

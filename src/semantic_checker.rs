@@ -1,7 +1,6 @@
 use crate::{
     ast::{
-        Argument, Block, Expression, Literal, Node, Parameter, Program, Statement, SwitchCase,
-        SwitchExpression, Type,
+        Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type
     },
     errors::Issue,
     functions_manager::FunctionsManager,
@@ -73,6 +72,13 @@ impl SemanticChecker {
                     if arguments.len() != std_function.params.len() {
                         self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n", name, std_function.params.len(), arguments.len(), position) });
                     }
+
+                    for argument in arguments {
+                        if argument.value.passed_by == PassedBy::Reference {
+                            self.errors.push(SemanticCheckerIssue { message: format!("Parameter in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n", identifier.value, argument.value.passed_by, PassedBy::Value, argument.position) })
+                        }
+                    }
+
                     return;
                 }
                 match self.functions_manager.functions.get(&String::from(name)) {
