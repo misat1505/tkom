@@ -17,6 +17,7 @@ fn fib_iter(i64 x): i64 {
 }
 
 fn fib_rec(i64 x): i64 {
+  print(x as str);
   if (x == 1) {
     return 1;
   }

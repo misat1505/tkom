@@ -32,6 +32,7 @@ pub struct Interpreter {
     is_breaking: bool,
     is_returning: bool,
     position: Position,
+    last_arguments: Vec<Value>,
 }
 
 impl Interpreter {
@@ -48,6 +49,7 @@ impl Interpreter {
                 column: 0,
                 offset: 0,
             },
+            last_arguments: vec![],
         }
     }
 
@@ -196,19 +198,7 @@ impl Visitor for Interpreter {
     fn visit_statement(&mut self, statement: &Node<Statement>) -> Result<(), Box<dyn Issue>> {
         self.position = statement.position;
         match &statement.value {
-            Statement::FunctionDeclaration {
-                // wykonanie funckji
-                identifier,
-                parameters,
-                return_type,
-                block,
-            } => {
-                for param in parameters {
-                    self.visit_parameter(&param)?
-                }
-                self.visit_type(&return_type)?;
-                self.visit_block(&block)?;
-            }
+            Statement::FunctionDeclaration { .. } => self.execute_function(&statement.value)?,
             Statement::FunctionCall {
                 identifier,
                 arguments,
@@ -496,6 +486,8 @@ impl Interpreter {
             args.push(value);
         }
 
+        self.last_arguments = args.clone();
+
         if let Some(std_function) = self.functions_manager.std_functions.get(&name) {
             if let Some(return_value) = Self::execute_std_function(std_function, args.clone())? {
                 self.last_result = Some(return_value);
@@ -503,21 +495,19 @@ impl Interpreter {
         }
 
         if let Some(function_declaration) = self.functions_manager.functions.get(&name).cloned() {
-            self.execute_function(&function_declaration, args)?;
+            self.visit_statement(&function_declaration)?;
         }
 
         if self.is_returning {
             self.is_returning = false;
         }
 
+        self.last_arguments = vec![];
+
         Ok(())
     }
 
-    fn execute_function(
-        &mut self,
-        function_declaration: &Statement,
-        arguments: Vec<Value>,
-    ) -> Result<(), Box<dyn Issue>> {
+    fn execute_function(&mut self, function_declaration: &Statement) -> Result<(), Box<dyn Issue>> {
         if let Statement::FunctionDeclaration {
             identifier,
             parameters,
@@ -532,10 +522,10 @@ impl Interpreter {
             };
 
             // args
-            for idx in 0..arguments.len() {
+            for idx in 0..self.last_arguments.len() {
                 let desired_type = parameters.get(idx).unwrap().value.parameter_type.value;
                 let param_name = parameters.get(idx).unwrap().value.identifier.value.clone();
-                let value = arguments.get(idx).unwrap().clone();
+                let value = self.last_arguments.get(idx).unwrap().clone();
                 match (desired_type, value.clone()) {
                     (Type::Bool, Value::Bool(_))
                     | (Type::F64, Value::F64(_))
@@ -589,6 +579,7 @@ impl Interpreter {
                     }));
                 }
             }
+
             // check return type
             match (self.last_result.clone(), return_type.value) {
                 (None, Type::Void)

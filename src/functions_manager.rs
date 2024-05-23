@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    ast::{Program, Statement},
+    ast::{Node, Program, Statement},
     errors::Issue,
     std_functions::StdFunction,
 };
@@ -19,14 +19,14 @@ impl Issue for FunctionManagerIssue {
 
 #[derive(Debug, Clone)]
 pub struct FunctionsManager {
-    pub functions: HashMap<String, Statement>,
+    pub functions: HashMap<String, Node<Statement>>,
     pub std_functions: HashMap<String, StdFunction>,
 }
 
 impl FunctionsManager {
     pub fn new(program: &Program) -> Result<Self, Box<dyn Issue>> {
         let std_functions = Self::init_std();
-        let mut functions: HashMap<String, Statement> = HashMap::new();
+        let mut functions: HashMap<String, Node<Statement>> = HashMap::new();
 
         for statement in &program.statements {
             if let Statement::FunctionDeclaration { identifier, .. } = statement.value.clone() {
@@ -41,8 +41,7 @@ impl FunctionsManager {
                         ),
                     }));
                 }
-                let function_declaration = statement.value.clone();
-                functions.insert(function_name.to_string(), function_declaration);
+                functions.insert(function_name.to_string(), statement.clone());
             }
         }
 
@@ -57,9 +56,5 @@ impl FunctionsManager {
         std_functions.insert("print".to_owned(), StdFunction::print());
         std_functions.insert("input".to_owned(), StdFunction::input());
         std_functions
-    }
-
-    pub fn get(&mut self, name: &String) -> Option<&Statement> {
-        self.functions.get(name)
     }
 }

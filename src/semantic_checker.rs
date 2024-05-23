@@ -84,7 +84,7 @@ impl SemanticChecker {
                     }),
                     Some(function_declaration) => {
                         if let Statement::FunctionDeclaration { parameters, .. } =
-                            function_declaration
+                            &function_declaration.value
                         {
                             if arguments.len() != parameters.len() {
                                 self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n", name, parameters.len(), arguments.len(), position) })
