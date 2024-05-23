@@ -32,7 +32,6 @@ pub struct Interpreter {
     is_breaking: bool,
     is_returning: bool,
     position: Position,
-    pub v: u32
 }
 
 impl Interpreter {
@@ -44,7 +43,6 @@ impl Interpreter {
             last_result: None,
             is_breaking: false,
             is_returning: false,
-            v: 0,
             position: Position {
                 line: 0,
                 column: 0,
@@ -210,7 +208,6 @@ impl Visitor for Interpreter {
                     self.execute_function(&function_declaration, args)?;
                 }
 
-
                 if self.is_returning {
                     self.is_returning = false;
                 }
@@ -250,13 +247,13 @@ impl Visitor for Interpreter {
                 }
 
                 if let Some(std_function) = self.functions_manager.std_functions.get(&name) {
-                    Self::execute_std_function(std_function, args.clone())?;
+                    if let Some(return_value) = Self::execute_std_function(std_function, args.clone())? {
+                        self.last_result = Some(return_value);
+                    }
                 }
 
-                if let Some(function_declaration) =
-                    self.functions_manager.functions.clone().get(&name)
-                {
-                    self.execute_function(function_declaration, args)?;
+                if let Some(function_declaration) = self.functions_manager.functions.get(&name).cloned() {
+                    self.execute_function(&function_declaration, args)?;
                 }
 
                 if self.is_returning {
@@ -553,7 +550,6 @@ impl Interpreter {
             block,
         } = function_declaration
         {
-            self.v += 1;
             let name = identifier.value.0.clone();
             let statements = &block.value.0;
             if let Err(err) = self.stack.push_stack_frame() {
