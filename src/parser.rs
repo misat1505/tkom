@@ -1,7 +1,7 @@
 use crate::{
     ast::{
-        Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program,
-        Statement, SwitchCase, SwitchExpression, Type,
+        Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement,
+        SwitchCase, SwitchExpression, Type,
     },
     errors::{Issue, IssueLevel, ParserIssue},
     lexer::ILexer,

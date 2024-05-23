@@ -1,7 +1,7 @@
 use crate::{
     ast::{
-        Argument, Block, Expression, Literal, Node, Parameter, Program, Statement,
-        SwitchCase, SwitchExpression, Type,
+        Argument, Block, Expression, Literal, Node, Parameter, Program, Statement, SwitchCase,
+        SwitchExpression, Type,
     },
     errors::Issue,
 };

@@ -1,7 +1,7 @@
 use crate::{
     ast::{
-        Argument, Block, Expression, Literal, Node, Parameter, Program, Statement,
-        SwitchCase, SwitchExpression, Type,
+        Argument, Block, Expression, Literal, Node, Parameter, Program, Statement, SwitchCase,
+        SwitchExpression, Type,
     },
     errors::Issue,
     functions_manager::FunctionsManager,
@@ -188,30 +188,7 @@ impl Visitor for Interpreter {
             Expression::FunctionCall {
                 identifier,
                 arguments,
-            } => {
-                let name = identifier.value.clone();
-
-                let mut args: Vec<Value> = vec![];
-                for arg in arguments {
-                    self.visit_expression(&arg.value.value)?;
-                    let value = self.read_last_result()?;
-                    args.push(value);
-                }
-
-                if let Some(std_function) = self.functions_manager.std_functions.get(&name) {
-                    if let Some(return_value) = Self::execute_std_function(std_function, args.clone())? {
-                        self.last_result = Some(return_value);
-                    }
-                }
-
-                if let Some(function_declaration) = self.functions_manager.functions.get(&name).cloned() {
-                    self.execute_function(&function_declaration, args)?;
-                }
-
-                if self.is_returning {
-                    self.is_returning = false;
-                }
-            }
+            } => self.call_function(identifier, arguments)?,
         }
         Ok(())
     }
@@ -235,32 +212,7 @@ impl Visitor for Interpreter {
             Statement::FunctionCall {
                 identifier,
                 arguments,
-            } => {
-                let name = identifier.value.clone();
-
-                let mut args: Vec<Value> = vec![];
-                for arg in arguments {
-                    self.visit_expression(&arg.value.value)?;
-                    let value = self.read_last_result()?;
-                    args.push(value);
-                }
-
-                if let Some(std_function) = self.functions_manager.std_functions.get(&name) {
-                    if let Some(return_value) = Self::execute_std_function(std_function, args.clone())? {
-                        self.last_result = Some(return_value);
-                    }
-                }
-
-                if let Some(function_declaration) = self.functions_manager.functions.get(&name).cloned() {
-                    self.execute_function(&function_declaration, args)?;
-                }
-
-                if self.is_returning {
-                    self.is_returning = false;
-                }
-                // przygotowqanie wywolania funckji
-                // sprawdzenie czy funckja uzytkownika czy wbudowana
-            }
+            } => self.call_function(identifier, arguments)?,
             Statement::Declaration {
                 var_type,
                 identifier,
@@ -530,6 +482,37 @@ impl Interpreter {
         };
     }
 
+    fn call_function(
+        &mut self,
+        identifier: &Node<String>,
+        arguments: &Vec<Box<Node<Argument>>>,
+    ) -> Result<(), Box<dyn Issue>> {
+        let name = identifier.value.clone();
+
+        let mut args: Vec<Value> = vec![];
+        for arg in arguments {
+            self.visit_expression(&arg.value.value)?;
+            let value = self.read_last_result()?;
+            args.push(value);
+        }
+
+        if let Some(std_function) = self.functions_manager.std_functions.get(&name) {
+            if let Some(return_value) = Self::execute_std_function(std_function, args.clone())? {
+                self.last_result = Some(return_value);
+            }
+        }
+
+        if let Some(function_declaration) = self.functions_manager.functions.get(&name).cloned() {
+            self.execute_function(&function_declaration, args)?;
+        }
+
+        if self.is_returning {
+            self.is_returning = false;
+        }
+
+        Ok(())
+    }
+
     fn execute_function(
         &mut self,
         function_declaration: &Statement,
@@ -551,12 +534,7 @@ impl Interpreter {
             // args
             for idx in 0..arguments.len() {
                 let desired_type = parameters.get(idx).unwrap().value.parameter_type.value;
-                let param_name = parameters
-                    .get(idx)
-                    .unwrap()
-                    .value
-                    .identifier
-                    .value.clone();
+                let param_name = parameters.get(idx).unwrap().value.identifier.value.clone();
                 let value = arguments.get(idx).unwrap().clone();
                 match (desired_type, value.clone()) {
                     (Type::Bool, Value::Bool(_))

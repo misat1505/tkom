@@ -1,7 +1,7 @@
 use crate::{
     ast::{
-        Argument, Block, Expression, Literal, Node, Parameter, Program, Statement,
-        SwitchCase, SwitchExpression, Type,
+        Argument, Block, Expression, Literal, Node, Parameter, Program, Statement, SwitchCase,
+        SwitchExpression, Type,
     },
     errors::Issue,
     functions_manager::FunctionsManager,
@@ -154,10 +154,7 @@ impl Visitor for SemanticChecker {
             Expression::Variable(variable) => {
                 self.visit_variable(variable);
             }
-            Expression::FunctionCall {
-                arguments,
-                ..
-            } => {
+            Expression::FunctionCall { arguments, .. } => {
                 for arg in arguments {
                     self.visit_argument(&arg);
                 }
@@ -187,18 +184,13 @@ impl Visitor for SemanticChecker {
                 self.visit_type(&return_type);
                 self.visit_block(&block);
             }
-            Statement::FunctionCall {
-                arguments,
-                ..
-            } => {
+            Statement::FunctionCall { arguments, .. } => {
                 for arg in arguments {
                     self.visit_argument(&arg);
                 }
             }
             Statement::Declaration {
-                var_type,
-                value,
-                ..
+                var_type, value, ..
             } => {
                 self.visit_type(&var_type);
                 if let Some(val) = value {

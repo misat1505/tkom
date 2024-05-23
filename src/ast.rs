@@ -74,7 +74,6 @@ impl Debug for Type {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum PassedBy {
     Reference,
