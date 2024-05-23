@@ -1,6 +1,6 @@
 use crate::{
     ast::{
-        Argument, Block, Expression, Identifier, Literal, Node, Parameter, Program, Statement,
+        Argument, Block, Expression, Literal, Node, Parameter, Program, Statement,
         SwitchCase, SwitchExpression, Type,
     },
     errors::Issue,
@@ -64,7 +64,7 @@ impl SemanticChecker {
                     },
                 position,
             }) => {
-                let name = &identifier.value.0;
+                let name = &identifier.value;
                 if let Some(std_function) = self
                     .functions_manager
                     .std_functions
@@ -96,7 +96,7 @@ impl SemanticChecker {
                                     None => {}
                                     Some(argument) => {
                                         if argument.value.passed_by != parameter.value.passed_by {
-                                            self.errors.push(SemanticCheckerIssue { message: format!("Parameter '{}' in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n", parameter.value.identifier.value.0, identifier.value.0, argument.value.passed_by, parameter.value.passed_by, argument.position) });
+                                            self.errors.push(SemanticCheckerIssue { message: format!("Parameter '{}' in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n", parameter.value.identifier.value, identifier.value, argument.value.passed_by, parameter.value.passed_by, argument.position) });
                                         }
                                     }
                                 }
@@ -155,10 +155,9 @@ impl Visitor for SemanticChecker {
                 self.visit_variable(variable);
             }
             Expression::FunctionCall {
-                identifier,
                 arguments,
+                ..
             } => {
-                self.visit_identifier(&identifier);
                 for arg in arguments {
                     self.visit_argument(&arg);
                 }
@@ -177,12 +176,11 @@ impl Visitor for SemanticChecker {
 
         match statement.value.clone() {
             Statement::FunctionDeclaration {
-                identifier,
                 parameters,
                 return_type,
                 block,
+                ..
             } => {
-                self.visit_identifier(&identifier);
                 for param in parameters {
                     self.visit_parameter(&param);
                 }
@@ -190,27 +188,24 @@ impl Visitor for SemanticChecker {
                 self.visit_block(&block);
             }
             Statement::FunctionCall {
-                identifier,
                 arguments,
+                ..
             } => {
-                self.visit_identifier(&identifier);
                 for arg in arguments {
                     self.visit_argument(&arg);
                 }
             }
             Statement::Declaration {
                 var_type,
-                identifier,
                 value,
+                ..
             } => {
                 self.visit_type(&var_type);
-                self.visit_identifier(&identifier);
                 if let Some(val) = value {
                     self.visit_expression(&val);
                 }
             }
-            Statement::Assignment { identifier, value } => {
-                self.visit_identifier(&identifier);
+            Statement::Assignment { value, .. } => {
                 self.visit_expression(&value);
             }
             Statement::Conditional {
@@ -271,7 +266,6 @@ impl Visitor for SemanticChecker {
 
     fn visit_parameter(&mut self, parameter: &Node<Parameter>) -> Result<(), Box<dyn Issue>> {
         self.visit_type(&parameter.value.parameter_type);
-        self.visit_identifier(&parameter.value.identifier);
         Ok(())
     }
 
@@ -289,11 +283,6 @@ impl Visitor for SemanticChecker {
         Ok(())
     }
 
-    fn visit_identifier(&mut self, _identifier: &Node<Identifier>) -> Result<(), Box<dyn Issue>> {
-        // println!("{:?}", _identifier);
-        Ok(())
-    }
-
     fn visit_type(&mut self, _node_type: &Node<Type>) -> Result<(), Box<dyn Issue>> {
         // println!("{:?}", _node_type);
         Ok(())
@@ -304,7 +293,7 @@ impl Visitor for SemanticChecker {
         Ok(())
     }
 
-    fn visit_variable(&mut self, _variable: Identifier) -> Result<(), Box<dyn Issue>> {
+    fn visit_variable(&mut self, _variable: String) -> Result<(), Box<dyn Issue>> {
         // println!("{:?}", _variable);
         Ok(())
     }

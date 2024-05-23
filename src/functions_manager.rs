@@ -30,7 +30,7 @@ impl FunctionsManager {
 
         for statement in &program.statements {
             if let Statement::FunctionDeclaration { identifier, .. } = statement.value.clone() {
-                let function_name = &identifier.value.0;
+                let function_name = &identifier.value;
                 if functions.contains_key(function_name)
                     || std_functions.contains_key(function_name)
                 {

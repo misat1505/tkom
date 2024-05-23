@@ -1,6 +1,6 @@
 use crate::{
     ast::{
-        Argument, Block, Expression, Identifier, Literal, Node, Parameter, PassedBy, Program,
+        Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program,
         Statement, SwitchCase, SwitchExpression, Type,
     },
     errors::{Issue, IssueLevel, ParserIssue},
@@ -1003,7 +1003,7 @@ impl<L: ILexer> Parser<L> {
         Ok(Some(node))
     }
 
-    fn parse_identifier(&mut self) -> Result<Option<Node<Identifier>>, Box<dyn Issue>> {
+    fn parse_identifier(&mut self) -> Result<Option<Node<String>>, Box<dyn Issue>> {
         let token = match self.consume_must_be(TokenCategory::Identifier) {
             Ok(t) => t,
             Err(_) => return Ok(None),
@@ -1011,7 +1011,7 @@ impl<L: ILexer> Parser<L> {
 
         if let TokenValue::String(name) = token.value {
             let node = Node {
-                value: Identifier(name),
+                value: name,
                 position: token.position,
             };
             return Ok(Some(node));
@@ -1155,7 +1155,7 @@ mod tests {
             Block(vec![Node {
                 value: Statement::Assignment {
                     identifier: Node {
-                        value: Identifier("x".to_owned()),
+                        value: "x".to_owned(),
                         position: default_position(),
                     },
                     value: Node {
@@ -1169,7 +1169,7 @@ mod tests {
                 Node {
                     value: Statement::Assignment {
                         identifier: Node {
-                            value: Identifier("x".to_owned()),
+                            value: "x".to_owned(),
                             position: default_position(),
                         },
                         value: Node {
@@ -1182,7 +1182,7 @@ mod tests {
                 Node {
                     value: Statement::Assignment {
                         identifier: Node {
-                            value: Identifier("x".to_owned()),
+                            value: "x".to_owned(),
                             position: default_position(),
                         },
                         value: Node {
@@ -1323,7 +1323,7 @@ mod tests {
         let expected = [
             Statement::Assignment {
                 identifier: Node {
-                    value: Identifier("x".to_owned()),
+                    value: "x".to_owned(),
                     position: default_position(),
                 },
                 value: Node {
@@ -1333,7 +1333,7 @@ mod tests {
             },
             Statement::FunctionCall {
                 identifier: Node {
-                    value: Identifier("print".to_owned()),
+                    value: "print".to_owned(),
                     position: default_position(),
                 },
                 arguments: vec![],
@@ -1365,7 +1365,7 @@ mod tests {
                 expressions: vec![Node {
                     value: SwitchExpression {
                         expression: Node {
-                            value: Expression::Variable(Identifier("x".to_owned())),
+                            value: Expression::Variable("x".to_owned()),
                             position: default_position(),
                         },
                         alias: None,
@@ -1394,7 +1394,7 @@ mod tests {
                     position: default_position(),
                 },
                 identifier: Node {
-                    value: Identifier("a".to_owned()),
+                    value: "a".to_owned(),
                     position: default_position(),
                 },
                 value: Some(Node {
@@ -1477,7 +1477,7 @@ mod tests {
         let expected = [
             Statement::FunctionDeclaration {
                 identifier: Node {
-                    value: Identifier("add".to_owned()),
+                    value: "add".to_owned(),
                     position: default_position(),
                 },
                 parameters: vec![],
@@ -1492,7 +1492,7 @@ mod tests {
             },
             Statement::FunctionDeclaration {
                 identifier: Node {
-                    value: Identifier("add".to_owned()),
+                    value: "add".to_owned(),
                     position: default_position(),
                 },
                 parameters: vec![],
@@ -1578,7 +1578,7 @@ mod tests {
                         position: default_position(),
                     },
                     identifier: Node {
-                        value: Identifier("x".to_owned()),
+                        value: "x".to_owned(),
                         position: default_position(),
                     },
                     value: None,
@@ -1594,7 +1594,7 @@ mod tests {
                             position: default_position(),
                         },
                         identifier: Node {
-                            value: Identifier("x".to_owned()),
+                            value: "x".to_owned(),
                             position: default_position(),
                         },
                         value: None,
@@ -1609,7 +1609,7 @@ mod tests {
                             position: default_position(),
                         },
                         identifier: Node {
-                            value: Identifier("y".to_owned()),
+                            value: "y".to_owned(),
                             position: default_position(),
                         },
                         value: None,
@@ -1662,7 +1662,7 @@ mod tests {
                     position: default_position(),
                 },
                 identifier: Node {
-                    value: Identifier("x".to_owned()),
+                    value: "x".to_owned(),
                     position: default_position(),
                 },
                 value: Some(Node {
@@ -1677,7 +1677,7 @@ mod tests {
                     position: default_position(),
                 },
                 identifier: Node {
-                    value: Identifier("x".to_owned()),
+                    value: "x".to_owned(),
                     position: default_position(),
                 },
                 value: None,
@@ -1803,7 +1803,7 @@ mod tests {
                             position: default_position(),
                         },
                         identifier: Node {
-                            value: Identifier("x".to_owned()),
+                            value: "x".to_owned(),
                             position: default_position(),
                         },
                         value: Some(Node {
@@ -1816,7 +1816,7 @@ mod tests {
                 condition: Node {
                     value: Expression::Less(
                         Box::new(Node {
-                            value: Expression::Variable(Identifier("x".to_owned())),
+                            value: Expression::Variable("x".to_owned()),
                             position: default_position(),
                         }),
                         Box::new(Node {
@@ -1829,13 +1829,13 @@ mod tests {
                 assignment: Some(Box::new(Node {
                     value: Statement::Assignment {
                         identifier: Node {
-                            value: Identifier("x".to_owned()),
+                            value: "x".to_owned(),
                             position: default_position(),
                         },
                         value: Node {
                             value: Expression::Addition(
                                 Box::new(Node {
-                                    value: Expression::Variable(Identifier("x".to_owned())),
+                                    value: Expression::Variable("x".to_owned()),
                                     position: default_position(),
                                 }),
                                 Box::new(Node {
@@ -1858,7 +1858,7 @@ mod tests {
                 condition: Node {
                     value: Expression::Less(
                         Box::new(Node {
-                            value: Expression::Variable(Identifier("x".to_owned())),
+                            value: Expression::Variable("x".to_owned()),
                             position: default_position(),
                         }),
                         Box::new(Node {
@@ -2062,14 +2062,14 @@ mod tests {
         let expected = vec![
             Statement::FunctionCall {
                 identifier: Node {
-                    value: Identifier("print".to_owned()),
+                    value: "print".to_owned(),
                     position: default_position(),
                 },
                 arguments: vec![],
             },
             Statement::Assignment {
                 identifier: Node {
-                    value: Identifier("x".to_owned()),
+                    value: "x".to_owned(),
                     position: default_position(),
                 },
                 value: Node {
@@ -2120,7 +2120,7 @@ mod tests {
                     position: default_position(),
                 },
                 identifier: Node {
-                    value: Identifier("a".to_owned()),
+                    value: "a".to_owned(),
                     position: default_position(),
                 },
                 value: None,
@@ -2131,7 +2131,7 @@ mod tests {
                     position: default_position(),
                 },
                 identifier: Node {
-                    value: Identifier("a".to_owned()),
+                    value: "a".to_owned(),
                     position: default_position(),
                 },
                 value: Some(Node {
@@ -2352,7 +2352,7 @@ mod tests {
             },
             Argument {
                 value: Node {
-                    value: Expression::Variable(Identifier("x".to_owned())),
+                    value: Expression::Variable("x".to_owned()),
                     position: default_position(),
                 },
                 passed_by: PassedBy::Reference,
@@ -2399,18 +2399,18 @@ mod tests {
                     Box::new(Node {
                         value: Expression::Alternative(
                             Box::new(Node {
-                                value: Expression::Variable(Identifier("a".to_owned())),
+                                value: Expression::Variable("a".to_owned()),
                                 position: default_position()
                             }),
                             Box::new(Node {
-                                value: Expression::Variable(Identifier("b".to_owned())),
+                                value: Expression::Variable("b".to_owned()),
                                 position: default_position()
                             })
                         ),
                         position: default_position()
                     }),
                     Box::new(Node {
-                        value: Expression::Variable(Identifier("c".to_owned())),
+                        value: Expression::Variable("c".to_owned()),
                         position: default_position()
                     })
                 )
@@ -2448,18 +2448,18 @@ mod tests {
                     Box::new(Node {
                         value: Expression::Concatenation(
                             Box::new(Node {
-                                value: Expression::Variable(Identifier("a".to_owned())),
+                                value: Expression::Variable("a".to_owned()),
                                 position: default_position()
                             }),
                             Box::new(Node {
-                                value: Expression::Variable(Identifier("b".to_owned())),
+                                value: Expression::Variable("b".to_owned()),
                                 position: default_position()
                             })
                         ),
                         position: default_position()
                     }),
                     Box::new(Node {
-                        value: Expression::Variable(Identifier("c".to_owned())),
+                        value: Expression::Variable("c".to_owned()),
                         position: default_position()
                     })
                 )
@@ -2627,7 +2627,7 @@ mod tests {
                         position: default_position()
                     }),
                     Box::new(Node {
-                        value: Expression::Variable(Identifier("x".to_owned())),
+                        value: Expression::Variable("x".to_owned()),
                         position: default_position()
                     })
                 )
@@ -2670,7 +2670,7 @@ mod tests {
                         position: default_position()
                     }),
                     Box::new(Node {
-                        value: Expression::Variable(Identifier("x".to_owned())),
+                        value: Expression::Variable("x".to_owned()),
                         position: default_position()
                     })
                 )
@@ -2799,7 +2799,7 @@ mod tests {
                 }),
             ),
             Expression::Literal(Literal::I64(5)),
-            Expression::Variable(Identifier("print".to_owned())),
+            Expression::Variable("print".to_owned()),
         ];
 
         for (idx, series) in token_series.iter().enumerate() {
@@ -2914,17 +2914,17 @@ mod tests {
         ];
 
         let expected = [
-            Expression::Variable(Identifier("print".to_owned())),
+            Expression::Variable("print".to_owned()),
             Expression::FunctionCall {
                 identifier: Node {
-                    value: Identifier("print".to_owned()),
+                    value: "print".to_owned(),
                     position: default_position(),
                 },
                 arguments: vec![],
             },
             Expression::FunctionCall {
                 identifier: Node {
-                    value: Identifier("print".to_owned()),
+                    value: "print".to_owned(),
                     position: default_position(),
                 },
                 arguments: vec![Box::new(Node {
@@ -2940,7 +2940,7 @@ mod tests {
             },
             Expression::FunctionCall {
                 identifier: Node {
-                    value: Identifier("print".to_owned()),
+                    value: "print".to_owned(),
                     position: default_position(),
                 },
                 arguments: vec![
@@ -2957,7 +2957,7 @@ mod tests {
                     Box::new(Node {
                         value: Argument {
                             value: Node {
-                                value: Expression::Variable(Identifier("x".to_owned())),
+                                value: Expression::Variable("x".to_owned()),
                                 position: default_position(),
                             },
                             passed_by: PassedBy::Value,
@@ -3005,7 +3005,7 @@ mod tests {
             expressions: vec![Node {
                 value: SwitchExpression {
                     expression: Node {
-                        value: Expression::Variable(Identifier("x".to_owned())),
+                        value: Expression::Variable("x".to_owned()),
                         position: default_position(),
                     },
                     alias: None,
@@ -3097,11 +3097,11 @@ mod tests {
                 Node {
                     value: SwitchExpression {
                         expression: Node {
-                            value: Expression::Variable(Identifier("x".to_owned())),
+                            value: Expression::Variable("x".to_owned()),
                             position: default_position(),
                         },
                         alias: Some(Node {
-                            value: Identifier("temp".to_owned()),
+                            value: "temp".to_owned(),
                             position: default_position(),
                         }),
                     },
@@ -3110,7 +3110,7 @@ mod tests {
                 Node {
                     value: SwitchExpression {
                         expression: Node {
-                            value: Expression::Variable(Identifier("y".to_owned())),
+                            value: Expression::Variable("y".to_owned()),
                             position: default_position(),
                         },
                         alias: None,
@@ -3121,7 +3121,7 @@ mod tests {
             vec![Node {
                 value: SwitchExpression {
                     expression: Node {
-                        value: Expression::Variable(Identifier("x".to_owned())),
+                        value: Expression::Variable("x".to_owned()),
                         position: default_position(),
                     },
                     alias: None,
@@ -3168,17 +3168,17 @@ mod tests {
         let expected_types = [
             SwitchExpression {
                 expression: Node {
-                    value: Expression::Variable(Identifier("x".to_owned())),
+                    value: Expression::Variable("x".to_owned()),
                     position: default_position(),
                 },
                 alias: Some(Node {
-                    value: Identifier("temp".to_owned()),
+                    value: "temp".to_owned(),
                     position: default_position(),
                 }),
             },
             SwitchExpression {
                 expression: Node {
-                    value: Expression::Variable(Identifier("x".to_owned())),
+                    value: Expression::Variable("x".to_owned()),
                     position: default_position(),
                 },
                 alias: None,
@@ -3314,32 +3314,6 @@ mod tests {
         assert!(literal.value == Literal::F64(5.0));
     }
 
-    // #[test]
-    // fn parse_literals_bad_value_types() {
-    //     let token_series = vec![
-    //         vec![
-    //             create_token(TokenCategory::StringValue, TokenValue::I64(5)),
-    //             create_token(TokenCategory::ETX, TokenValue::Null),
-    //         ],
-    //         vec![
-    //             create_token(TokenCategory::I64Value, TokenValue::F64(5.0)),
-    //             create_token(TokenCategory::ETX, TokenValue::Null),
-    //         ],
-    //         vec![
-    //             create_token(TokenCategory::F64Value, TokenValue::I64(5)),
-    //             create_token(TokenCategory::ETX, TokenValue::Null),
-    //         ],
-    //     ];
-
-    //     for series in token_series {
-    //         let mock_lexer = LexerMock::new(series);
-    //         let mut parser = Parser::new(mock_lexer);
-
-    //         let result = parser.parse_literal();
-    //         assert!(result.is_err());
-    //     }
-    // }
-
     #[test]
     fn parse_identifier() {
         let tokens = vec![
@@ -3354,7 +3328,7 @@ mod tests {
         let mut parser = Parser::new(mock_lexer);
 
         let node = parser.parse_identifier().unwrap().unwrap();
-        assert!(node.value == Identifier("print".to_owned()));
+        assert!(node.value == "print".to_owned());
     }
 
     #[test]

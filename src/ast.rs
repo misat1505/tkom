@@ -37,9 +37,9 @@ pub enum Expression {
     },
     // Values
     Literal(Literal),
-    Variable(Identifier),
+    Variable(String),
     FunctionCall {
-        identifier: Node<Identifier>,
+        identifier: Node<String>,
         arguments: Vec<BNode<Argument>>,
     },
 }
@@ -74,8 +74,6 @@ impl Debug for Type {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Identifier(pub String);
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PassedBy {
@@ -92,22 +90,22 @@ pub struct Argument {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     FunctionDeclaration {
-        identifier: Node<Identifier>,
+        identifier: Node<String>,
         parameters: Vec<Node<Parameter>>,
         return_type: Node<Type>,
         block: Node<Block>,
     },
     FunctionCall {
-        identifier: Node<Identifier>,
+        identifier: Node<String>,
         arguments: Vec<BNode<Argument>>,
     },
     Declaration {
         var_type: Node<Type>,
-        identifier: Node<Identifier>,
+        identifier: Node<String>,
         value: Option<Node<Expression>>,
     },
     Assignment {
-        identifier: Node<Identifier>,
+        identifier: Node<String>,
         value: Node<Expression>,
     },
     Conditional {
@@ -133,14 +131,14 @@ pub enum Statement {
 pub struct Parameter {
     pub passed_by: PassedBy,
     pub parameter_type: Node<Type>,
-    pub identifier: Node<Identifier>,
+    pub identifier: Node<String>,
     pub value: Option<Node<Expression>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SwitchExpression {
     pub expression: Node<Expression>,
-    pub alias: Option<Node<Identifier>>,
+    pub alias: Option<Node<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

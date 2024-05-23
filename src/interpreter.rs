@@ -1,6 +1,6 @@
 use crate::{
     ast::{
-        Argument, Block, Expression, Identifier, Literal, Node, Parameter, Program, Statement,
+        Argument, Block, Expression, Literal, Node, Parameter, Program, Statement,
         SwitchCase, SwitchExpression, Type,
     },
     errors::Issue,
@@ -189,7 +189,7 @@ impl Visitor for Interpreter {
                 identifier,
                 arguments,
             } => {
-                let name = identifier.value.0.clone();
+                let name = identifier.value.clone();
 
                 let mut args: Vec<Value> = vec![];
                 for arg in arguments {
@@ -226,7 +226,6 @@ impl Visitor for Interpreter {
                 return_type,
                 block,
             } => {
-                self.visit_identifier(&identifier)?;
                 for param in parameters {
                     self.visit_parameter(&param)?
                 }
@@ -237,7 +236,7 @@ impl Visitor for Interpreter {
                 identifier,
                 arguments,
             } => {
-                let name = identifier.value.0.clone();
+                let name = identifier.value.clone();
 
                 let mut args: Vec<Value> = vec![];
                 for arg in arguments {
@@ -268,7 +267,6 @@ impl Visitor for Interpreter {
                 value,
             } => {
                 self.visit_type(&var_type)?;
-                self.visit_identifier(&identifier)?;
 
                 let computed_value = match value {
                     Some(val) => {
@@ -279,7 +277,7 @@ impl Visitor for Interpreter {
                                 return Err(Box::new(InterpreterIssue {
                                     message: format!(
                                         "Cannot declare variable '{}' with no value.\nAt {:?}.",
-                                        identifier.value.0, self.position
+                                        identifier.value, self.position
                                     ),
                                 }))
                             }
@@ -301,7 +299,7 @@ impl Visitor for Interpreter {
                         return Err(Box::new(InterpreterIssue {
                             message: format!(
                                 "Cannot assign value of type '{:?}' to variable '{}' of type '{:?}'.\nAt {:?}.",
-                                declared_type, identifier.value.0, computed_type.to_type(), self.position
+                                computed_type.to_type(), identifier.value, declared_type, self.position
                             ),
                         }))
                     }
@@ -309,14 +307,13 @@ impl Visitor for Interpreter {
 
                 if let Err(mut err) = self
                     .stack
-                    .declare_variable(identifier.value.0.clone(), computed_value)
+                    .declare_variable(identifier.value.clone(), computed_value)
                 {
                     err.message = format!("{}\nAt {:?}.", err.message, self.position);
                     return Err(Box::new(err));
                 }
             }
             Statement::Assignment { identifier, value } => {
-                self.visit_identifier(&identifier)?;
                 self.visit_expression(&value)?;
                 let value = match self.read_last_result() {
                     Ok(val) => val,
@@ -324,12 +321,12 @@ impl Visitor for Interpreter {
                         return Err(Box::new(InterpreterIssue {
                             message: format!(
                                 "Cannot assign no value to variable '{}'.\nAt {:?}.",
-                                identifier.value.0, self.position
+                                identifier.value, self.position
                             ),
                         }))
                     }
                 };
-                if let Err(mut err) = self.stack.assign_variable(identifier.value.0.clone(), value) {
+                if let Err(mut err) = self.stack.assign_variable(identifier.value.clone(), value) {
                     err.message = format!("{}\nAt {:?}.", err.message, self.position);
                     return Err(Box::new(err));
                 }
@@ -452,7 +449,6 @@ impl Visitor for Interpreter {
 
     fn visit_parameter(&mut self, parameter: &Node<Parameter>) -> Result<(), Box<dyn Issue>> {
         self.visit_type(&parameter.value.parameter_type)?;
-        self.visit_identifier(&parameter.value.identifier)?;
         Ok(())
     }
 
@@ -485,16 +481,12 @@ impl Visitor for Interpreter {
             let computed_value = self.read_last_result()?;
             if let Err(mut err) = self
                 .stack
-                .declare_variable(alias.value.0.clone(), computed_value)
+                .declare_variable(alias.value.clone(), computed_value)
             {
                 err.message = format!("{}\nAt {:?}.", err.message, self.position);
                 return Err(Box::new(err));
             }
         }
-        Ok(())
-    }
-
-    fn visit_identifier(&mut self, _identifier: &Node<Identifier>) -> Result<(), Box<dyn Issue>> {
         Ok(())
     }
 
@@ -516,9 +508,9 @@ impl Visitor for Interpreter {
         Ok(())
     }
 
-    fn visit_variable(&mut self, variable: Identifier) -> Result<(), Box<dyn Issue>> {
+    fn visit_variable(&mut self, variable: String) -> Result<(), Box<dyn Issue>> {
         // read value of variable
-        let value = match self.stack.get_variable(variable.0) {
+        let value = match self.stack.get_variable(variable) {
             Ok(val) => val,
             Err(err) => return Err(Box::new(err)),
         };
@@ -550,7 +542,7 @@ impl Interpreter {
             block,
         } = function_declaration
         {
-            let name = identifier.value.0.clone();
+            let name = identifier.value.clone();
             let statements = &block.value.0;
             if let Err(err) = self.stack.push_stack_frame() {
                 return Err(Box::new(err));
@@ -564,9 +556,7 @@ impl Interpreter {
                     .unwrap()
                     .value
                     .identifier
-                    .value
-                    .0
-                    .clone();
+                    .value.clone();
                 let value = arguments.get(idx).unwrap().clone();
                 match (desired_type, value.clone()) {
                     (Type::Bool, Value::Bool(_))
