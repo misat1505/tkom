@@ -88,7 +88,6 @@ impl<L: ILexer> Parser<L> {
             Self::parse_if_statement,
             Self::parse_for_statement,
             Self::parse_switch_statement,
-            Self::parse_return_statement,
             Self::parse_variable_declaration,
         ];
 
