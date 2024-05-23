@@ -201,12 +201,15 @@ impl Visitor for Interpreter {
                 }
 
                 if let Some(std_function) = self.functions_manager.std_functions.get(&name) {
-                    Self::execute_std_function(std_function, args.clone())?;
+                    if let Some(return_value) = Self::execute_std_function(std_function, args.clone())? {
+                        self.last_result = Some(return_value);
+                    }
                 }
 
                 if let Some(function_declaration) = self.functions_manager.functions.get(&name).cloned() {
                     self.execute_function(&function_declaration, args)?;
                 }
+
 
                 if self.is_returning {
                     self.is_returning = false;
@@ -531,9 +534,9 @@ impl Interpreter {
     fn execute_std_function(
         std_function: &StdFunction,
         arguments: Vec<Value>,
-    ) -> Result<(), Box<dyn Issue>> {
+    ) -> Result<Option<Value>, Box<dyn Issue>> {
         return match (std_function.execute)(arguments) {
-            Ok(_) => Ok(()),
+            Ok(val) => Ok(val),
             Err(err) => Err(Box::new(err)),
         };
     }

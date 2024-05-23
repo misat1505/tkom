@@ -1,3 +1,5 @@
+use std::io::{self, Write};
+
 use crate::{ast::Type, errors::Issue, value::Value};
 
 #[derive(Debug)]
@@ -14,21 +16,47 @@ impl Issue for StdFunctionIssue {
 #[derive(Debug, Clone)]
 pub struct StdFunction {
     pub params: Vec<Type>,
-    pub execute: fn(Vec<Value>) -> Result<(), StdFunctionIssue>,
+    pub execute: fn(Vec<Value>) -> Result<Option<Value>, StdFunctionIssue>,
 }
 
 impl StdFunction {
     pub fn print() -> Self {
         let params = vec![Type::Str];
-        let execute = |params: Vec<Value>| -> Result<(), StdFunctionIssue> {
+        let execute = |params: Vec<Value>| -> Result<Option<Value>, StdFunctionIssue> {
             match params.get(0).unwrap() {
                 Value::String(text) => {
                     println!("{}", text);
-                    Ok(())
+                    Ok(None)
                 }
                 a => Err(StdFunctionIssue {
                     message: format!(
                         "Std function 'print' expected '{:?}' as only argument, but was given '{:?}'.",
+                        Type::Str, a.to_type()
+                    ),
+                }),
+            }
+        };
+        StdFunction { params, execute }
+    }
+
+    pub fn input() -> Self {
+        let params = vec![Type::Str];
+        let execute = |params: Vec<Value>| -> Result<Option<Value>, StdFunctionIssue> {
+            match params.get(0).unwrap() {
+                Value::String(text) => {
+                    print!("{}", text);
+                    io::stdout().flush().unwrap(); // Flush stdout to ensure prompt is displayed
+                    let mut input = String::new();
+                    match io::stdin().read_line(&mut input) {
+                        Ok(_) => Ok(Some(Value::String(input.trim().to_string()))),
+                        Err(_) => Err(StdFunctionIssue {
+                            message: "Failed to read input".to_string(),
+                        }),
+                    }
+                },
+                a => Err(StdFunctionIssue {
+                    message: format!(
+                        "Std function 'input' expected '{:?}' as only argument, but was given '{:?}'.",
                         Type::Str, a.to_type()
                     ),
                 }),

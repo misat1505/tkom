@@ -55,6 +55,7 @@ impl FunctionsManager {
     fn init_std() -> HashMap<String, StdFunction> {
         let mut std_functions: HashMap<String, StdFunction> = HashMap::new();
         std_functions.insert("print".to_owned(), StdFunction::print());
+        std_functions.insert("input".to_owned(), StdFunction::input());
         std_functions
     }
 

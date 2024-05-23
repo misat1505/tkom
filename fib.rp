@@ -29,6 +29,6 @@ fn fib_rec(i64 x): i64 {
 }
 
 
-i64 num = 25;
+i64 num = input("Podaj liczbe: ") as i64;
 print("fib_iter(" + num as str + ") = " + fib_iter(num) as str);
 print("fib_rec(" + num as str + ") = " + fib_rec(num) as str);
