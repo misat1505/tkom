@@ -10,4 +10,4 @@ if (true) {
   age = 22;
 }
 
-print(text);
+i64 x = text;

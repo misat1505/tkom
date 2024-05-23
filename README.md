@@ -403,7 +403,7 @@ fn sum_up_to(i64 x): i64 {
 switch (x: temp1, y: temp2) {
     (x < 5 && temp2 < 5) -> {
       print("Less than 5.");
-    },
+    }
     (temp1 < 10 && y < 10) -> {
       print("Less than 10.");
       break;
@@ -413,7 +413,7 @@ switch (x: temp1, y: temp2) {
 
 ## Funkcje wbudowane
 
-1. print(...) - wyświetla argumenty na standardowe wyjście wraz ze znakiem końca linii
+1. print(...) - wyświetla tekst na standardowe wyjście wraz ze znakiem końca linii
 
 ## Obsługa błędów
 

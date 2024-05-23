@@ -121,7 +121,7 @@ impl Interpreter {
 
 impl Visitor for Interpreter {
     fn visit_program(&mut self, program: &Program) -> Result<(), Box<dyn Issue>> {
-        for statement in program.statements.clone() {
+        for statement in &program.statements {
             if let Statement::FunctionDeclaration { .. } = statement.value {
                 continue;
             }
@@ -218,7 +218,7 @@ impl Visitor for Interpreter {
 
     fn visit_statement(&mut self, statement: &Node<Statement>) -> Result<(), Box<dyn Issue>> {
         self.position = statement.position;
-        match statement.value.clone() {
+        match &statement.value {
             Statement::FunctionDeclaration {
                 // wykonanie funckji
                 identifier,
@@ -237,7 +237,7 @@ impl Visitor for Interpreter {
                 identifier,
                 arguments,
             } => {
-                let name = identifier.value.0;
+                let name = identifier.value.0.clone();
 
                 let mut args: Vec<Value> = vec![];
                 for arg in arguments {
@@ -300,8 +300,8 @@ impl Visitor for Interpreter {
                     (declared_type, computed_type) => {
                         return Err(Box::new(InterpreterIssue {
                             message: format!(
-                                "Cannot assign variable of type '{:?}' to type '{:?}'.\nAt {:?}.",
-                                computed_type, declared_type, self.position
+                                "Cannot assign value of type '{:?}' to variable '{}' of type '{:?}'.\nAt {:?}.",
+                                declared_type, identifier.value.0, computed_type.to_type(), self.position
                             ),
                         }))
                     }
@@ -309,7 +309,7 @@ impl Visitor for Interpreter {
 
                 if let Err(mut err) = self
                     .stack
-                    .declare_variable(identifier.value.0, computed_value)
+                    .declare_variable(identifier.value.0.clone(), computed_value)
                 {
                     err.message = format!("{}\nAt {:?}.", err.message, self.position);
                     return Err(Box::new(err));
@@ -329,7 +329,7 @@ impl Visitor for Interpreter {
                         }))
                     }
                 };
-                if let Err(mut err) = self.stack.assign_variable(identifier.value.0, value) {
+                if let Err(mut err) = self.stack.assign_variable(identifier.value.0.clone(), value) {
                     err.message = format!("{}\nAt {:?}.", err.message, self.position);
                     return Err(Box::new(err));
                 }
@@ -379,7 +379,7 @@ impl Visitor for Interpreter {
                         break;
                     }
 
-                    if let Some(assign) = assignment.clone() {
+                    if let Some(assign) = assignment {
                         self.visit_statement(&assign)?;
                     }
 
@@ -592,7 +592,7 @@ impl Interpreter {
             }
 
             // execute
-            for statement in statements.clone() {
+            for statement in statements {
                 if self.is_returning {
                     self.is_returning = false;
                     break;
