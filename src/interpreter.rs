@@ -141,7 +141,9 @@ impl Visitor for Interpreter {
             }
 
             if self.is_returning {
-                return Err(Box::new(InterpreterIssue {message: format!("Return called outside a function.\nAt {:?}.", self.position)}))
+                return Err(Box::new(InterpreterIssue {
+                    message: format!("Return called outside a function.\nAt {:?}.", self.position),
+                }));
             }
         }
         Ok(())

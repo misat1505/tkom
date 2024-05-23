@@ -1,9 +1,10 @@
-fn is_prime(i64 x): bool {
+fn is_prime(i64 x, &i64 total_iters): bool {
   if (x < 2) {
     return false;
   }
 
   for (i64 i = 2; i < x / 2; i = i + 1) {
+    total_iters = total_iters + 1;
     if (mod(x, i) == 0) {
       return false;
     }
@@ -12,8 +13,11 @@ fn is_prime(i64 x): bool {
   return true;
 }
 
-for (i64 x = 0; x < 10000; x = x + 1) {
-  if (is_prime(x)) {
+i64 iters;
+for (i64 x = 0; x < 1000; x = x + 1) {
+  if (is_prime(x, &iters)) {
     print(x as str + " is a prime.");
   }
 }
+
+print(iters as str + " total iterations.");

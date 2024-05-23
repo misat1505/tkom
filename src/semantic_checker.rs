@@ -1,6 +1,7 @@
 use crate::{
     ast::{
-        Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type
+        Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement,
+        SwitchCase, SwitchExpression, Type,
     },
     errors::Issue,
     functions_manager::FunctionsManager,
@@ -64,6 +65,8 @@ impl SemanticChecker {
                 position,
             }) => {
                 let name = &identifier.value;
+
+                // std function
                 if let Some(std_function) = self
                     .functions_manager
                     .std_functions
@@ -81,35 +84,37 @@ impl SemanticChecker {
 
                     return;
                 }
-                match self.functions_manager.functions.get(&String::from(name)) {
-                    None => self.errors.push(SemanticCheckerIssue {
-                        message: format!(
-                            "Use of undeclared function '{}'.\nAt {:?}.\n",
-                            name, position
-                        ),
-                    }),
-                    Some(function_declaration) => {
-                        if let Statement::FunctionDeclaration { parameters, .. } =
-                            &function_declaration.value
-                        {
-                            if arguments.len() != parameters.len() {
-                                self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n", name, parameters.len(), arguments.len(), position) })
-                            }
 
-                            for idx in 0..parameters.len() {
-                                let parameter = parameters.get(idx).unwrap();
-                                match arguments.get(idx) {
-                                    None => {}
-                                    Some(argument) => {
-                                        if argument.value.passed_by != parameter.value.passed_by {
-                                            self.errors.push(SemanticCheckerIssue { message: format!("Parameter '{}' in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n", parameter.value.identifier.value, identifier.value, argument.value.passed_by, parameter.value.passed_by, argument.position) });
-                                        }
-                                    }
+                // user function
+                if let Some(function_declaration) =
+                    self.functions_manager.functions.get(&String::from(name))
+                {
+                    if let Statement::FunctionDeclaration { parameters, .. } =
+                        &function_declaration.value
+                    {
+                        if arguments.len() != parameters.len() {
+                            self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n", name, parameters.len(), arguments.len(), position) })
+                        }
+
+                        for idx in 0..parameters.len() {
+                            let parameter = parameters.get(idx).unwrap();
+                            if let Some(argument) = arguments.get(idx) {
+                                if argument.value.passed_by != parameter.value.passed_by {
+                                    self.errors.push(SemanticCheckerIssue { message: format!("Parameter '{}' in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n", parameter.value.identifier.value, identifier.value, argument.value.passed_by, parameter.value.passed_by, argument.position) });
                                 }
                             }
                         }
+
+                        return;
                     }
                 }
+
+                self.errors.push(SemanticCheckerIssue {
+                    message: format!(
+                        "Use of undeclared function '{}'.\nAt {:?}.\n",
+                        name, position
+                    ),
+                })
             }
             _ => {}
         }
