@@ -701,4 +701,309 @@ mod tests {
         let _ = interpreter.visit_expression(&ast);
         assert!(interpreter.last_result == exp);
     }
+
+    #[test]
+    fn interpret_arithmetic_negation() {
+        let ast = Node {
+            value: Expression::ArithmeticNegation(Box::new(Node {
+                value: Expression::Literal(Literal::I64(5)),
+                position: default_position(),
+            })),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::I64(-5));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_addition() {
+        let ast = Node {
+            value: Expression::Addition(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(2)),
+                    position: default_position(),
+                }),
+            ),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::I64(7));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_subtraction() {
+        let ast = Node {
+            value: Expression::Subtraction(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(2)),
+                    position: default_position(),
+                }),
+            ),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::I64(3));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_multiplication() {
+        let ast = Node {
+            value: Expression::Multiplication(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(2)),
+                    position: default_position(),
+                }),
+            ),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::I64(10));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_division() {
+        let ast = Node {
+            value: Expression::Division(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(2)),
+                    position: default_position(),
+                }),
+            ),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::I64(2));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_concatenation() {
+        let ast = Node {
+            value: Expression::Concatenation(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::True),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::False),
+                    position: default_position(),
+                }),
+            ),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::Bool(false));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_alternative() {
+        let ast = Node {
+            value: Expression::Alternative(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::True),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::False),
+                    position: default_position(),
+                }),
+            ),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::Bool(true));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_greater() {
+        let ast = Node {
+            value: Expression::Greater(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+            ),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::Bool(false));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_greater_equal() {
+        let ast = Node {
+            value: Expression::GreaterEqual(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+            ),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::Bool(true));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_less() {
+        let ast = Node {
+            value: Expression::Less(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+            ),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::Bool(false));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+    #[test]
+    fn interpret_less_equal() {
+        let ast = Node {
+            value: Expression::LessEqual(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+            ),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::Bool(true));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_equal() {
+        let ast = Node {
+            value: Expression::Equal(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+            ),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::Bool(true));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_not_equal() {
+        let ast = Node {
+            value: Expression::NotEqual(
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+                Box::new(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+            ),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::Bool(false));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
 }
