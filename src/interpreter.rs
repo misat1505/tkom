@@ -659,6 +659,75 @@ mod tests {
         Interpreter::new(Program { statements: vec![] })
     }
 
+    fn create_interpreter_with_add_function() -> Interpreter {
+        Interpreter::new(Program {
+            statements: vec![Node {
+                value: Statement::FunctionDeclaration {
+                    identifier: Node {
+                        value: String::from("add"),
+                        position: default_position(),
+                    },
+                    parameters: vec![
+                        Node {
+                            value: Parameter {
+                                passed_by: PassedBy::Value,
+                                parameter_type: Node {
+                                    value: Type::I64,
+                                    position: default_position(),
+                                },
+                                identifier: Node {
+                                    value: String::from("a"),
+                                    position: default_position(),
+                                },
+                                value: None,
+                            },
+                            position: default_position(),
+                        },
+                        Node {
+                            value: Parameter {
+                                passed_by: PassedBy::Value,
+                                parameter_type: Node {
+                                    value: Type::I64,
+                                    position: default_position(),
+                                },
+                                identifier: Node {
+                                    value: String::from("b"),
+                                    position: default_position(),
+                                },
+                                value: None,
+                            },
+                            position: default_position(),
+                        },
+                    ],
+                    return_type: Node {
+                        value: Type::I64,
+                        position: default_position(),
+                    },
+                    block: Node {
+                        value: Block(vec![Node {
+                            value: Statement::Return(Some(Node {
+                                value: Expression::Addition(
+                                    Box::new(Node {
+                                        value: Expression::Variable(String::from("a")),
+                                        position: default_position(),
+                                    }),
+                                    Box::new(Node {
+                                        value: Expression::Variable(String::from("b")),
+                                        position: default_position(),
+                                    }),
+                                ),
+                                position: default_position(),
+                            })),
+                            position: default_position(),
+                        }]),
+                        position: default_position(),
+                    },
+                },
+                position: default_position(),
+            }],
+        })
+    }
+
     #[test]
     fn interpret_casting() {
         let ast = Node {
@@ -1584,49 +1653,52 @@ mod tests {
                 },
                 assignment: None,
                 block: Node {
-                    value: Block(vec![Node {
-                        value: Statement::Assignment {
-                            identifier: Node {
-                                value: String::from("total"),
-                                position: default_position(),
+                    value: Block(vec![
+                        Node {
+                            value: Statement::Assignment {
+                                identifier: Node {
+                                    value: String::from("total"),
+                                    position: default_position(),
+                                },
+                                value: Node {
+                                    value: Expression::Addition(
+                                        Box::new(Node {
+                                            value: Expression::Variable(String::from("total")),
+                                            position: default_position(),
+                                        }),
+                                        Box::new(Node {
+                                            value: Expression::Variable(String::from("i")),
+                                            position: default_position(),
+                                        }),
+                                    ),
+                                    position: default_position(),
+                                },
                             },
-                            value: Node {
-                                value: Expression::Addition(
-                                    Box::new(Node {
-                                        value: Expression::Variable(String::from("total")),
-                                        position: default_position(),
-                                    }),
-                                    Box::new(Node {
-                                        value: Expression::Variable(String::from("i")),
-                                        position: default_position(),
-                                    }),
-                                ),
-                                position: default_position(),
-                            },
+                            position: default_position(),
                         },
-                        position: default_position(),
-                    }, Node {
-                        value: Statement::Assignment {
-                            identifier: Node {
-                                value: String::from("i"),
-                                position: default_position(),
+                        Node {
+                            value: Statement::Assignment {
+                                identifier: Node {
+                                    value: String::from("i"),
+                                    position: default_position(),
+                                },
+                                value: Node {
+                                    value: Expression::Addition(
+                                        Box::new(Node {
+                                            value: Expression::Variable(String::from("i")),
+                                            position: default_position(),
+                                        }),
+                                        Box::new(Node {
+                                            value: Expression::Literal(Literal::I64(1)),
+                                            position: default_position(),
+                                        }),
+                                    ),
+                                    position: default_position(),
+                                },
                             },
-                            value: Node {
-                                value: Expression::Addition(
-                                    Box::new(Node {
-                                        value: Expression::Variable(String::from("i")),
-                                        position: default_position(),
-                                    }),
-                                    Box::new(Node {
-                                        value: Expression::Literal(Literal::I64(1)),
-                                        position: default_position(),
-                                    }),
-                                ),
-                                position: default_position(),
-                            },
+                            position: default_position(),
                         },
-                        position: default_position(),
-                    }]),
+                    ]),
                     position: default_position(),
                 },
             },
@@ -1674,5 +1746,128 @@ mod tests {
         let mut interpreter = create_interpreter();
 
         assert!(interpreter.visit_statement(&ast).is_err());
+    }
+
+    #[test]
+    fn for_loop_with_break() {
+        // i64 i = 0;
+        // for (;true; i = i + 1) {if (i == 5) {break;}}
+        let ast = Node {
+            value: Statement::ForLoop {
+                declaration: None,
+                condition: Node {
+                    value: Expression::Literal(Literal::True),
+                    position: default_position(),
+                },
+                assignment: Some(Box::new(Node {
+                    value: Statement::Assignment {
+                        identifier: Node {
+                            value: String::from("i"),
+                            position: default_position(),
+                        },
+                        value: Node {
+                            value: Expression::Addition(
+                                Box::new(Node {
+                                    value: Expression::Variable(String::from("i")),
+                                    position: default_position(),
+                                }),
+                                Box::new(Node {
+                                    value: Expression::Literal(Literal::I64(1)),
+                                    position: default_position(),
+                                }),
+                            ),
+                            position: default_position(),
+                        },
+                    },
+                    position: default_position(),
+                })),
+                block: Node {
+                    value: Block(vec![Node {
+                        value: Statement::Conditional {
+                            condition: Node {
+                                value: Expression::Equal(
+                                    Box::new(Node {
+                                        value: Expression::Variable(String::from("i")),
+                                        position: default_position(),
+                                    }),
+                                    Box::new(Node {
+                                        value: Expression::Literal(Literal::I64(5)),
+                                        position: default_position(),
+                                    }),
+                                ),
+                                position: default_position(),
+                            },
+                            if_block: Node {
+                                value: Block(vec![Node {
+                                    value: Statement::Break,
+                                    position: default_position(),
+                                }]),
+                                position: default_position(),
+                            },
+                            else_block: None,
+                        },
+                        position: default_position(),
+                    }]),
+                    position: default_position(),
+                },
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("i"), Value::I64(0));
+
+        assert!(interpreter.visit_statement(&ast).is_ok());
+        assert!(interpreter.is_breaking == false);
+        assert!(
+            interpreter
+                .stack
+                .get_variable(String::from("i"))
+                .unwrap()
+                .clone()
+                == Value::I64(5)
+        );
+    }
+
+    #[test]
+    fn test_function_call() {
+        let ast = Node {
+            value: Statement::FunctionCall {
+                identifier: Node {
+                    value: String::from("add"),
+                    position: default_position(),
+                },
+                arguments: vec![
+                    Box::new(Node {
+                        value: Argument {
+                            value: Node {
+                                value: Expression::Literal(Literal::I64(3)),
+                                position: default_position(),
+                            },
+                            passed_by: PassedBy::Value,
+                        },
+                        position: default_position(),
+                    }),
+                    Box::new(Node {
+                        value: Argument {
+                            value: Node {
+                                value: Expression::Literal(Literal::I64(4)),
+                                position: default_position(),
+                            },
+                            passed_by: PassedBy::Value,
+                        },
+                        position: default_position(),
+                    }),
+                ],
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter_with_add_function();
+        assert!(interpreter.visit_statement(&ast).is_ok());
+        assert!(interpreter.last_result == Some(Value::I64(7)));
+        assert!(interpreter.is_returning == false);
     }
 }
