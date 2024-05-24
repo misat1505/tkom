@@ -102,6 +102,13 @@ impl SemanticChecker {
                                 if argument.value.passed_by != parameter.value.passed_by {
                                     self.errors.push(SemanticCheckerIssue { message: format!("Parameter '{}' in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n", parameter.value.identifier.value, identifier.value, argument.value.passed_by, parameter.value.passed_by, argument.position) });
                                 }
+
+                                if let Expression::Variable(_) = argument.value.value.value {
+                                } else {
+                                    if argument.value.passed_by == PassedBy::Reference {
+                                        self.errors.push(SemanticCheckerIssue { message: format!("Parameter '{}' in function '{}' is passed by {:?}. Thus it needs to an identifier, but a complex expression was found.\nAt {:?}.\n", parameter.value.identifier.value, identifier.value, PassedBy::Reference, argument.position) });
+                                    }
+                                }
                             }
                         }
 
