@@ -84,11 +84,7 @@ impl Stack {
         Ok(())
     }
 
-    pub fn declare_variable(
-        &mut self,
-        name: String,
-        value: Value,
-    ) -> Result<(), ScopeManagerIssue> {
+    pub fn declare_variable(&mut self, name: String, value: Value) -> Result<(), ScopeManagerIssue> {
         if let Some(last_frame) = self.0.last_mut() {
             last_frame.scope_manager.declare_variable(name, value)?;
         }
@@ -156,16 +152,12 @@ mod tests {
         let var_name = "x".to_string();
         let var_value = Value::I64(42);
 
-        stack
-            .declare_variable(var_name.clone(), var_value.clone())
-            .unwrap();
+        stack.declare_variable(var_name.clone(), var_value.clone()).unwrap();
         let retrieved_value = stack.get_variable(var_name.clone()).unwrap();
         assert_eq!(retrieved_value, &var_value);
 
         let new_value = Value::I64(43);
-        stack
-            .assign_variable(var_name.clone(), new_value.clone())
-            .unwrap();
+        stack.assign_variable(var_name.clone(), new_value.clone()).unwrap();
         let updated_value = stack.get_variable(var_name).unwrap();
         assert_eq!(updated_value, &new_value);
     }

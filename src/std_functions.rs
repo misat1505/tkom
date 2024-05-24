@@ -31,7 +31,8 @@ impl StdFunction {
                 a => Err(StdFunctionIssue {
                     message: format!(
                         "Std function 'print' expected '{:?}' as only argument, but was given '{:?}'.",
-                        Type::Str, a.to_type()
+                        Type::Str,
+                        a.to_type()
                     ),
                 }),
             }
@@ -53,11 +54,12 @@ impl StdFunction {
                             message: "Failed to read input".to_string(),
                         }),
                     }
-                },
+                }
                 a => Err(StdFunctionIssue {
                     message: format!(
                         "Std function 'input' expected '{:?}' as only argument, but was given '{:?}'.",
-                        Type::Str, a.to_type()
+                        Type::Str,
+                        a.to_type()
                     ),
                 }),
             }
@@ -70,7 +72,13 @@ impl StdFunction {
         let execute = |params: Vec<Value>| -> Result<Option<Value>, StdFunctionIssue> {
             match (params.get(0), params.get(1)) {
                 (Some(Value::I64(val1)), Some(Value::I64(val2))) => Ok(Some(Value::I64(*val1 % *val2))),
-                (a, b) => Err(StdFunctionIssue { message: format!("Cannot perform modulo operation between values of types '{:?}' and '{:?}'.", a.unwrap().to_type(), b.unwrap().to_type()) })
+                (a, b) => Err(StdFunctionIssue {
+                    message: format!(
+                        "Cannot perform modulo operation between values of types '{:?}' and '{:?}'.",
+                        a.unwrap().to_type(),
+                        b.unwrap().to_type()
+                    ),
+                }),
             }
         };
         StdFunction { params, execute }

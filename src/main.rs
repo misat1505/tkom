@@ -84,7 +84,9 @@ fn main() {
     let mut interpreter = Interpreter::new(program.clone());
     match interpreter.interpret() {
         Ok(_) => {}
-        Err(err) => eprintln!("{}", err.message()),
+        Err(err) => {
+            eprintln!("{}", err.message())
+        }
     };
 
     println!("\nExecution time: {:?}", Instant::now() - start);

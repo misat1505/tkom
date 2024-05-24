@@ -191,10 +191,7 @@ mod tests {
             (TokenCategory::As, TokenValue::Null),
             (TokenCategory::Switch, TokenValue::Null),
             (TokenCategory::Break, TokenValue::Null),
-            (
-                TokenCategory::Identifier,
-                TokenValue::String("my_identifier1".to_owned()),
-            ),
+            (TokenCategory::Identifier, TokenValue::String("my_identifier1".to_owned())),
         ];
 
         for (category, value) in &expected {

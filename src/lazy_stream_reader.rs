@@ -26,11 +26,7 @@ impl Debug for Position {
 
 impl Position {
     pub fn new(line: u32, column: u32, offset: usize) -> Self {
-        Position {
-            line,
-            column,
-            offset,
-        }
+        Position { line, column, offset }
     }
 }
 
@@ -147,9 +143,6 @@ impl<R: BufRead> LazyStreamReader<R> {
         let spaces = " ".repeat((self.position().column - 1) as usize);
         let caret_string = format!("{}^", spaces);
 
-        format!(
-            "\nAt line:\n{}{}{}{}",
-            self.current_line, self.current_char, buffer, caret_string
-        )
+        format!("\nAt line:\n{}{}{}{}", self.current_line, self.current_char, buffer, caret_string)
     }
 }

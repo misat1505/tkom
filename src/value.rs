@@ -50,12 +50,7 @@ mod tests {
     fn default_values() {
         let data = [Type::Bool, Type::I64, Type::F64, Type::Str];
 
-        let expected = [
-            Value::Bool(false),
-            Value::I64(0),
-            Value::F64(0.0),
-            Value::String(String::from("")),
-        ];
+        let expected = [Value::Bool(false), Value::I64(0), Value::F64(0.0), Value::String(String::from(""))];
 
         for idx in 0..data.len() {
             assert!(Value::default_value(data[idx]).unwrap() == expected[idx]);
@@ -69,12 +64,7 @@ mod tests {
 
     #[test]
     fn value_to_type() {
-        let values = [
-            Value::Bool(true),
-            Value::I64(5),
-            Value::F64(5.5),
-            Value::String(String::from("hello")),
-        ];
+        let values = [Value::Bool(true), Value::I64(5), Value::F64(5.5), Value::String(String::from("hello"))];
 
         let exp = [Type::Bool, Type::I64, Type::F64, Type::Str];
 

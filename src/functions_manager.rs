@@ -31,24 +31,16 @@ impl FunctionsManager {
         for statement in &program.statements {
             if let Statement::FunctionDeclaration { identifier, .. } = statement.value.clone() {
                 let function_name = &identifier.value;
-                if functions.contains_key(function_name)
-                    || std_functions.contains_key(function_name)
-                {
+                if functions.contains_key(function_name) || std_functions.contains_key(function_name) {
                     return Err(Box::new(FunctionManagerIssue {
-                        message: format!(
-                            "Redeclaration of function '{}'.\nAt {:?}.\n",
-                            function_name, statement.position
-                        ),
+                        message: format!("Redeclaration of function '{}'.\nAt {:?}.\n", function_name, statement.position),
                     }));
                 }
                 functions.insert(function_name.to_string(), statement.clone());
             }
         }
 
-        Ok(Self {
-            functions,
-            std_functions,
-        })
+        Ok(Self { functions, std_functions })
     }
 
     fn init_std() -> HashMap<String, StdFunction> {

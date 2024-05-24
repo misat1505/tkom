@@ -65,11 +65,21 @@ pub enum Type {
 impl Debug for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Type::Bool => write!(f, "bool"),
-            Type::F64 => write!(f, "f64"),
-            Type::I64 => write!(f, "i64"),
-            Type::Str => write!(f, "str"),
-            Type::Void => write!(f, "void"),
+            Type::Bool => {
+                write!(f, "bool")
+            }
+            Type::F64 => {
+                write!(f, "f64")
+            }
+            Type::I64 => {
+                write!(f, "i64")
+            }
+            Type::Str => {
+                write!(f, "str")
+            }
+            Type::Void => {
+                write!(f, "void")
+            }
         }
     }
 }

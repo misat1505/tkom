@@ -1,8 +1,5 @@
 use crate::{
-    ast::{
-        Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement,
-        SwitchCase, SwitchExpression, Type,
-    },
+    ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
     errors::{Issue, IssueLevel, ParserIssue},
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
@@ -61,16 +58,10 @@ impl<L: ILexer> Parser<L> {
             let _ = self.next_token()?;
             return Ok(current_token.clone());
         }
-        Err(self.create_parser_error(format!(
-            "Unexpected token - {:?}. Expected {:?}.",
-            current_token.category, category
-        )))
+        Err(self.create_parser_error(format!("Unexpected token - {:?}. Expected {:?}.", current_token.category, category)))
     }
 
-    fn consume_if_matches(
-        &mut self,
-        category: TokenCategory,
-    ) -> Result<Option<Token>, Box<dyn Issue>> {
+    fn consume_if_matches(&mut self, category: TokenCategory) -> Result<Option<Token>, Box<dyn Issue>> {
         // consumes on match, else does nothing
         let current_token = self.current_token();
         if current_token.category == category {
@@ -124,11 +115,7 @@ impl<L: ILexer> Parser<L> {
 
         let identifier = match self.parse_identifier()? {
             Some(t) => t,
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create identifier while parsing function declaration.".to_owned(),
-                ))
-            }
+            None => return Err(self.create_parser_error("Couldn't create identifier while parsing function declaration.".to_owned())),
         };
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let parameters = self.parse_parameters()?;
@@ -143,12 +130,7 @@ impl<L: ILexer> Parser<L> {
         };
         let block = match self.parse_statement_block()? {
             Some(t) => t,
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create statement block while parsing function declaration."
-                        .to_owned(),
-                ))
-            }
+            None => return Err(self.create_parser_error("Couldn't create statement block while parsing function declaration.".to_owned())),
         };
         let node = Node {
             value: Statement::FunctionDeclaration {
@@ -173,11 +155,7 @@ impl<L: ILexer> Parser<L> {
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             let parameter = match self.parse_parameter()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create parameter while parsing parameters.".to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create parameter while parsing parameters.".to_owned())),
             };
             parameters.push(parameter);
         }
@@ -197,11 +175,7 @@ impl<L: ILexer> Parser<L> {
         };
         let identifier = match self.parse_identifier()? {
             Some(t) => t,
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create identifier while parsing parameter.".to_owned(),
-                ))
-            }
+            None => return Err(self.create_parser_error("Couldn't create identifier while parsing parameter.".to_owned())),
         };
         let node = Node {
             value: Parameter {
@@ -226,10 +200,7 @@ impl<L: ILexer> Parser<L> {
             Ok(decl) => match decl {
                 Some(t) => {
                     let position = t.position;
-                    let node = Node {
-                        value: t.value,
-                        position,
-                    };
+                    let node = Node { value: t.value, position };
                     Some(Box::new(node))
                 }
                 None => None,
@@ -239,38 +210,23 @@ impl<L: ILexer> Parser<L> {
         self.consume_must_be(TokenCategory::Semicolon)?;
         let condition = match self.parse_expression()? {
             Some(t) => t,
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create expression while parsing for statement.".to_owned(),
-                ))
-            }
+            None => return Err(self.create_parser_error("Couldn't create expression while parsing for statement.".to_owned())),
         };
         self.consume_must_be(TokenCategory::Semicolon)?;
         let mut assignment: Option<Box<Node<Statement>>> = None;
         if self.current_token().category == TokenCategory::Identifier {
             let identifier = match self.parse_identifier()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create identifier while parsing for statement.".to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create identifier while parsing for statement.".to_owned())),
             };
             let position = identifier.position;
             let _ = self.consume_must_be(TokenCategory::Assign)?;
             let expr = match self.parse_expression()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create expression while parsing for statement.".to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create expression while parsing for statement.".to_owned())),
             };
             let assign = Box::new(Node {
-                value: Statement::Assignment {
-                    identifier,
-                    value: expr,
-                },
+                value: Statement::Assignment { identifier, value: expr },
                 position,
             });
             assignment = Some(assign);
@@ -278,11 +234,7 @@ impl<L: ILexer> Parser<L> {
         self.consume_must_be(TokenCategory::ParenClose)?;
         let block = match self.parse_statement_block()? {
             Some(t) => t,
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create statement block while parsing for statement.".to_owned(),
-                ))
-            }
+            None => return Err(self.create_parser_error("Couldn't create statement block while parsing for statement.".to_owned())),
         };
         let node = Node {
             value: Statement::ForLoop {
@@ -306,20 +258,12 @@ impl<L: ILexer> Parser<L> {
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let condition = match self.parse_expression()? {
             Some(t) => t,
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create expression while parsing if statement.".to_owned(),
-                ))
-            }
+            None => return Err(self.create_parser_error("Couldn't create expression while parsing if statement.".to_owned())),
         };
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let true_block = match self.parse_statement_block()? {
             Some(t) => t,
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create statement block while parsing if statement.".to_owned(),
-                ))
-            }
+            None => return Err(self.create_parser_error("Couldn't create statement block while parsing if statement.".to_owned())),
         };
 
         let false_block = match self.consume_if_matches(TokenCategory::Else)? {
@@ -346,17 +290,10 @@ impl<L: ILexer> Parser<L> {
         };
 
         let mut statements: Vec<Node<Statement>> = vec![];
-        while self
-            .consume_if_matches(TokenCategory::BraceClose)?
-            .is_none()
-        {
+        while self.consume_if_matches(TokenCategory::BraceClose)?.is_none() {
             let statement = match self.parse_statement()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create statement while parsing statement block.".to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create statement while parsing statement block.".to_owned())),
             };
             statements.push(statement);
         }
@@ -409,17 +346,10 @@ impl<L: ILexer> Parser<L> {
         if self.consume_if_matches(TokenCategory::Assign)?.is_some() {
             let expr = match self.parse_expression()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create expression while parsing assignment.".to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create expression while parsing assignment.".to_owned())),
             };
             let node = Node {
-                value: Statement::Assignment {
-                    identifier,
-                    value: expr,
-                },
+                value: Statement::Assignment { identifier, value: expr },
                 position,
             };
             self.consume_must_be(TokenCategory::Semicolon)?;
@@ -429,10 +359,7 @@ impl<L: ILexer> Parser<L> {
         if self.consume_if_matches(TokenCategory::ParenOpen)?.is_some() {
             let arguments = self.parse_arguments()?.into_iter().map(Box::new).collect();
             let node = Node {
-                value: Statement::FunctionCall {
-                    identifier,
-                    arguments,
-                },
+                value: Statement::FunctionCall { identifier, arguments },
                 position,
             };
             self.consume_must_be(TokenCategory::ParenClose)?;
@@ -453,11 +380,7 @@ impl<L: ILexer> Parser<L> {
         let position = declaration_type.position;
         let identifier = match self.parse_identifier()? {
             Some(t) => t,
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create identifier while parsing variable declaration.".to_owned(),
-                ))
-            }
+            None => return Err(self.create_parser_error("Couldn't create identifier while parsing variable declaration.".to_owned())),
         };
         let value = match self.consume_if_matches(TokenCategory::Assign)? {
             Some(_) => self.parse_expression()?,
@@ -516,11 +439,7 @@ impl<L: ILexer> Parser<L> {
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             let argument = match self.parse_argument()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create argument while parsing arguments.".to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create argument while parsing arguments.".to_owned())),
             };
             arguments.push(argument);
         }
@@ -560,14 +479,9 @@ impl<L: ILexer> Parser<L> {
             let _ = self.next_token()?;
             let right_side = match self.parse_concatenation_term()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create concatenation term while parsing expression.".to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create concatenation term while parsing expression.".to_owned())),
             };
-            let expression_type =
-                Expression::Alternative(Box::new(left_side.clone()), Box::new(right_side.clone()));
+            let expression_type = Expression::Alternative(Box::new(left_side.clone()), Box::new(right_side.clone()));
             left_side = Node {
                 value: expression_type,
                 position: current_token.position,
@@ -589,17 +503,9 @@ impl<L: ILexer> Parser<L> {
             let _ = self.next_token()?;
             let right_side = match self.parse_relation_term()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create relation term while parsing concatenation term."
-                            .to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create relation term while parsing concatenation term.".to_owned())),
             };
-            let expression_type = Expression::Concatenation(
-                Box::new(left_side.clone()),
-                Box::new(right_side.clone()),
-            );
+            let expression_type = Expression::Concatenation(Box::new(left_side.clone()), Box::new(right_side.clone()));
             left_side = Node {
                 value: expression_type,
                 position: current_token.position,
@@ -633,11 +539,7 @@ impl<L: ILexer> Parser<L> {
         let _ = self.next_token()?;
         let right_side = match self.parse_additive_term()? {
             Some(t) => t,
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create additive term while parsing relation term.".to_owned(),
-                ))
-            }
+            None => return Err(self.create_parser_error("Couldn't create additive term while parsing relation term.".to_owned())),
         };
 
         let box_l = Box::new(left_side.clone());
@@ -650,11 +552,7 @@ impl<L: ILexer> Parser<L> {
             TokenCategory::GreaterOrEqual => Expression::GreaterEqual(box_l, box_r),
             TokenCategory::Less => Expression::Less(box_l, box_r),
             TokenCategory::LessOrEqual => Expression::LessEqual(box_l, box_r),
-            _ => {
-                return Err(self.create_parser_error(
-                    "Couldn't create additive term while parsing relation term.".to_owned(),
-                ))
-            }
+            _ => return Err(self.create_parser_error("Couldn't create additive term while parsing relation term.".to_owned())),
         };
 
         let node = Node {
@@ -672,21 +570,13 @@ impl<L: ILexer> Parser<L> {
         };
 
         let mut current_token = self.current_token();
-        while current_token.category == TokenCategory::Plus
-            || current_token.category == TokenCategory::Minus
-        {
+        while current_token.category == TokenCategory::Plus || current_token.category == TokenCategory::Minus {
             let _ = self.next_token()?;
             let right_side = match self.parse_multiplicative_term()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create multiplicative term while parsing additive term."
-                            .to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create multiplicative term while parsing additive term.".to_owned())),
             };
-            let mut expression_type =
-                Expression::Addition(Box::new(left_side.clone()), Box::new(right_side.clone()));
+            let mut expression_type = Expression::Addition(Box::new(left_side.clone()), Box::new(right_side.clone()));
             if current_token.category == TokenCategory::Minus {
                 expression_type = Expression::Subtraction(Box::new(left_side), Box::new(right_side))
             }
@@ -707,22 +597,13 @@ impl<L: ILexer> Parser<L> {
         };
 
         let mut current_token = self.current_token();
-        while current_token.category == TokenCategory::Multiply
-            || current_token.category == TokenCategory::Divide
-        {
+        while current_token.category == TokenCategory::Multiply || current_token.category == TokenCategory::Divide {
             let _ = self.next_token()?;
             let right_side = match self.parse_casted_term()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create casted term while parsing multiplicative term.".to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create casted term while parsing multiplicative term.".to_owned())),
             };
-            let mut expression_type = Expression::Multiplication(
-                Box::new(left_side.clone()),
-                Box::new(right_side.clone()),
-            );
+            let mut expression_type = Expression::Multiplication(Box::new(left_side.clone()), Box::new(right_side.clone()));
             if current_token.category == TokenCategory::Divide {
                 expression_type = Expression::Division(Box::new(left_side), Box::new(right_side))
             }
@@ -764,11 +645,7 @@ impl<L: ILexer> Parser<L> {
     fn parse_unary_term_factor(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         match self.parse_factor()? {
             Some(t) => Ok(Some(t)),
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create factor while parsing unary term.".to_owned(),
-                ))
-            }
+            None => return Err(self.create_parser_error("Couldn't create factor while parsing unary term.".to_owned())),
         }
     }
 
@@ -807,11 +684,7 @@ impl<L: ILexer> Parser<L> {
         if self.consume_if_matches(TokenCategory::ParenOpen)?.is_some() {
             let expression = match self.parse_expression()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create expression while parsing nested expression.".to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create expression while parsing nested expression.".to_owned())),
             };
             self.consume_must_be(TokenCategory::ParenClose)?;
             return Ok(Some(expression));
@@ -839,10 +712,7 @@ impl<L: ILexer> Parser<L> {
             }
             None => Expression::Variable(identifier.value),
         };
-        Ok(Some(Node {
-            value: result,
-            position,
-        }))
+        Ok(Some(Node { value: result, position }))
     }
 
     fn parse_switch_statement(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
@@ -860,11 +730,7 @@ impl<L: ILexer> Parser<L> {
         while self.current_token().category != TokenCategory::BraceClose {
             let switch_case = match self.parse_switch_case()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create switch case while parsing switch statement.".to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create switch case while parsing switch statement.".to_owned())),
             };
             switch_cases.push(switch_case);
         }
@@ -891,21 +757,14 @@ impl<L: ILexer> Parser<L> {
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             expression = match self.parse_switch_expression()? {
                 Some(t) => t,
-                None => {
-                    return Err(self.create_parser_error(
-                        "Couldn't create swicth expression while parsing switch expressions."
-                            .to_owned(),
-                    ))
-                }
+                None => return Err(self.create_parser_error("Couldn't create swicth expression while parsing switch expressions.".to_owned())),
             };
             switch_expressions.push(expression);
         }
         Ok(switch_expressions)
     }
 
-    fn parse_switch_expression(
-        &mut self,
-    ) -> Result<Option<Node<SwitchExpression>>, Box<dyn Issue>> {
+    fn parse_switch_expression(&mut self) -> Result<Option<Node<SwitchExpression>>, Box<dyn Issue>> {
         // switch_expression = expression, [ ":", identifier ];
         let expression = match self.parse_expression()? {
             Some(t) => t,
@@ -933,21 +792,13 @@ impl<L: ILexer> Parser<L> {
 
         let condition = match self.parse_expression()? {
             Some(t) => t,
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create expression while parsing switch case.".to_owned(),
-                ))
-            }
+            None => return Err(self.create_parser_error("Couldn't create expression while parsing switch case.".to_owned())),
         };
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let _ = self.consume_must_be(TokenCategory::Arrow)?;
         let block = match self.parse_statement_block()? {
             Some(t) => t,
-            None => {
-                return Err(self.create_parser_error(
-                    "Couldn't create statement block while parsing switch case.".to_owned(),
-                ))
-            }
+            None => return Err(self.create_parser_error("Couldn't create statement block while parsing switch case.".to_owned())),
         };
         let node = Node {
             value: SwitchCase { condition, block },
@@ -990,10 +841,7 @@ impl<L: ILexer> Parser<L> {
 
         let _ = self.next_token();
 
-        let node = Node {
-            value: literal,
-            position,
-        };
+        let node = Node { value: literal, position };
         Ok(Some(node))
     }
 
@@ -1113,10 +961,7 @@ mod tests {
             ],
             vec![
                 create_token(TokenCategory::BraceOpen, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -1125,17 +970,11 @@ mod tests {
             ],
             vec![
                 create_token(TokenCategory::BraceOpen, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -1203,10 +1042,7 @@ mod tests {
         let token_series = vec![vec![
             // i64 a = 5
             create_token(TokenCategory::I64, TokenValue::Null),
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("a".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("a".to_owned())),
             create_token(TokenCategory::Assign, TokenValue::Null),
             create_token(TokenCategory::I64Value, TokenValue::I64(5)),
             create_token(TokenCategory::ETX, TokenValue::Null),
@@ -1225,10 +1061,7 @@ mod tests {
         let token_series = vec![
             vec![
                 // x = 5;
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -1236,10 +1069,7 @@ mod tests {
             ],
             vec![
                 // print();
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("print".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -1273,10 +1103,7 @@ mod tests {
                 // }
                 create_token(TokenCategory::Switch, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::BraceOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
@@ -1303,10 +1130,7 @@ mod tests {
             vec![
                 // i64 a = 5;
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("a".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("a".to_owned())),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -1412,10 +1236,7 @@ mod tests {
         let token_series = vec![vec![
             // fn add(): , {}
             create_token(TokenCategory::Fn, TokenValue::Null),
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("add".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("add".to_owned())),
             create_token(TokenCategory::ParenOpen, TokenValue::Null),
             create_token(TokenCategory::ParenClose, TokenValue::Null),
             create_token(TokenCategory::Colon, TokenValue::Null),
@@ -1439,10 +1260,7 @@ mod tests {
             vec![
                 // fn add(): i64 {}
                 create_token(TokenCategory::Fn, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("add".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("add".to_owned())),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::Colon, TokenValue::Null),
@@ -1454,10 +1272,7 @@ mod tests {
             vec![
                 // fn add(): void {}
                 create_token(TokenCategory::Fn, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("add".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("add".to_owned())),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::Colon, TokenValue::Null),
@@ -1515,10 +1330,7 @@ mod tests {
         let tokens = vec![
             // i64 x,
             create_token(TokenCategory::I64, TokenValue::Null),
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("x".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
             create_token(TokenCategory::Comma, TokenValue::Null),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
@@ -1539,25 +1351,16 @@ mod tests {
             vec![
                 // i64 x
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // i64 x, i64 y
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Comma, TokenValue::Null),
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("y".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("y".to_owned())),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
@@ -1626,10 +1429,7 @@ mod tests {
                 // &i64 x = 0
                 create_token(TokenCategory::Reference, TokenValue::Null),
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(0)),
                 create_token(TokenCategory::ETX, TokenValue::Null),
@@ -1637,10 +1437,7 @@ mod tests {
             vec![
                 // i64 x
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
@@ -1704,10 +1501,7 @@ mod tests {
                 create_token(TokenCategory::For, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
                 create_token(TokenCategory::BraceOpen, TokenValue::Null),
                 create_token(TokenCategory::BraceClose, TokenValue::Null),
@@ -1731,29 +1525,17 @@ mod tests {
                 create_token(TokenCategory::For, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(0)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Less, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Assign, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Plus, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(1)),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
@@ -1766,10 +1548,7 @@ mod tests {
                 create_token(TokenCategory::For, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Less, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -1972,39 +1751,27 @@ mod tests {
         let token_series = vec![
             vec![
                 // print(;
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("print".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // print()
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("print".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // x = 5
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Comma, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
@@ -2023,10 +1790,7 @@ mod tests {
         let token_series = vec![
             vec![
                 // print();
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("print".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -2034,10 +1798,7 @@ mod tests {
             ],
             vec![
                 // x = 5;
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -2080,19 +1841,13 @@ mod tests {
             vec![
                 // i64 a
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("a".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("a".to_owned())),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // i64 a = 5
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("a".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("a".to_owned())),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::ETX, TokenValue::Null),
@@ -2320,10 +2075,7 @@ mod tests {
             vec![
                 // &x
                 create_token(TokenCategory::Reference, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
@@ -2358,20 +2110,11 @@ mod tests {
     fn parse_expression() {
         let tokens = vec![
             // a || b || c
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("a".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("a".to_owned())),
             create_token(TokenCategory::Or, TokenValue::Null),
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("b".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("b".to_owned())),
             create_token(TokenCategory::Or, TokenValue::Null),
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("c".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("c".to_owned())),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 
@@ -2407,20 +2150,11 @@ mod tests {
     fn parse_concatenation_term() {
         let tokens = vec![
             // a && b && c
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("a".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("a".to_owned())),
             create_token(TokenCategory::And, TokenValue::Null),
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("b".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("b".to_owned())),
             create_token(TokenCategory::And, TokenValue::Null),
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("c".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("c".to_owned())),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 
@@ -2585,10 +2319,7 @@ mod tests {
             create_token(TokenCategory::Plus, TokenValue::Null),
             create_token(TokenCategory::F64Value, TokenValue::F64(2.0)),
             create_token(TokenCategory::Minus, TokenValue::Null),
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("x".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 
@@ -2628,10 +2359,7 @@ mod tests {
             create_token(TokenCategory::Multiply, TokenValue::Null),
             create_token(TokenCategory::F64Value, TokenValue::F64(2.0)),
             create_token(TokenCategory::Divide, TokenValue::Null),
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("x".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 
@@ -2765,10 +2493,7 @@ mod tests {
             ],
             vec![
                 // print
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("print".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
@@ -2819,10 +2544,7 @@ mod tests {
         let token_series = vec![
             vec![
                 // print(5,)
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("print".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Comma, TokenValue::Null),
@@ -2853,28 +2575,19 @@ mod tests {
         let token_series = vec![
             vec![
                 // print
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("print".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // print()
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("print".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // print(5)
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("print".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
@@ -2882,18 +2595,12 @@ mod tests {
             ],
             vec![
                 // print(5, x)
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("print".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::Reference, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Comma, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
@@ -2971,10 +2678,7 @@ mod tests {
             // }
             create_token(TokenCategory::Switch, TokenValue::Null),
             create_token(TokenCategory::ParenOpen, TokenValue::Null),
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("x".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
             create_token(TokenCategory::ParenClose, TokenValue::Null),
             create_token(TokenCategory::BraceOpen, TokenValue::Null),
             create_token(TokenCategory::ParenOpen, TokenValue::Null),
@@ -3026,15 +2730,9 @@ mod tests {
     fn parse_switch_expressions_fail() {
         let token_series = vec![vec![
             // x: temp,
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("x".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
             create_token(TokenCategory::Colon, TokenValue::Null),
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("temp".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("temp".to_owned())),
             create_token(TokenCategory::Comma, TokenValue::Null),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ]];
@@ -3052,28 +2750,16 @@ mod tests {
         let token_series = vec![
             vec![
                 // x: temp, y
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Colon, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("temp".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("temp".to_owned())),
                 create_token(TokenCategory::Comma, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("y".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("y".to_owned())),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // x
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
@@ -3130,23 +2816,14 @@ mod tests {
         let token_series = vec![
             vec![
                 // x: temp
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::Colon, TokenValue::Null),
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("temp".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("temp".to_owned())),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // x
-                create_token(
-                    TokenCategory::Identifier,
-                    TokenValue::String("x".to_owned()),
-                ),
+                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
@@ -3272,10 +2949,7 @@ mod tests {
         let tokens = vec![
             create_token(TokenCategory::True, TokenValue::Null),
             create_token(TokenCategory::False, TokenValue::Null),
-            create_token(
-                TokenCategory::StringValue,
-                TokenValue::String("a".to_owned()),
-            ),
+            create_token(TokenCategory::StringValue, TokenValue::String("a".to_owned())),
             create_token(TokenCategory::I64Value, TokenValue::I64(5)),
             create_token(TokenCategory::F64Value, TokenValue::F64(5.0)),
             create_token(TokenCategory::ETX, TokenValue::Null),
@@ -3303,10 +2977,7 @@ mod tests {
     #[test]
     fn parse_identifier() {
         let tokens = vec![
-            create_token(
-                TokenCategory::Identifier,
-                TokenValue::String("print".to_owned()),
-            ),
+            create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 

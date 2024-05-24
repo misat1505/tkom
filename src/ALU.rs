@@ -6,12 +6,7 @@ use crate::{
 pub struct ALU();
 
 impl ALU {
-    fn check_int_operation<F>(
-        val1: Value,
-        val2: Value,
-        op: F,
-        op_name: &str,
-    ) -> Result<Value, ComputationIssue>
+    fn check_int_operation<F>(val1: Value, val2: Value, op: F, op_name: &str) -> Result<Value, ComputationIssue>
     where
         F: Fn(i64, i64) -> Option<i64>,
     {
@@ -33,12 +28,7 @@ impl ALU {
         }
     }
 
-    fn check_float_operation<F>(
-        val1: Value,
-        val2: Value,
-        op: F,
-        op_name: &str,
-    ) -> Result<Value, ComputationIssue>
+    fn check_float_operation<F>(val1: Value, val2: Value, op: F, op_name: &str) -> Result<Value, ComputationIssue>
     where
         F: Fn(f64, f64) -> f64,
     {
@@ -99,10 +89,7 @@ impl ALU {
         match val {
             Value::Bool(bool) => Ok(Value::Bool(!bool)),
             val => Err(ComputationIssue {
-                message: format!(
-                    "Cannot perform boolean negation on type '{:?}'.",
-                    val.to_type()
-                ),
+                message: format!("Cannot perform boolean negation on type '{:?}'.", val.to_type()),
             }),
         }
     }
@@ -112,22 +99,15 @@ impl ALU {
             Value::I64(i64) => Ok(Value::I64(-i64)),
             Value::F64(f64) => Ok(Value::F64(-f64)),
             val => Err(ComputationIssue {
-                message: format!(
-                    "Cannot perform arithmetic negation on type '{:?}'.",
-                    val.to_type()
-                ),
+                message: format!("Cannot perform arithmetic negation on type '{:?}'.", val.to_type()),
             }),
         }
     }
 
     pub fn add(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
         match (val1.clone(), val2.clone()) {
-            (Value::I64(_), Value::I64(_)) => {
-                Self::check_int_operation(val1, val2, i64::checked_add, "addition")
-            }
-            (Value::F64(_), Value::F64(_)) => {
-                Self::check_float_operation(val1, val2, |a, b| a + b, "addition")
-            }
+            (Value::I64(_), Value::I64(_)) => Self::check_int_operation(val1, val2, i64::checked_add, "addition"),
+            (Value::F64(_), Value::F64(_)) => Self::check_float_operation(val1, val2, |a, b| a + b, "addition"),
             (Value::String(a), Value::String(b)) => Ok(Value::String(a.clone() + &b.clone())),
             (a, b) => Err(ComputationIssue {
                 message: format!(
@@ -141,12 +121,8 @@ impl ALU {
 
     pub fn subtract(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
         match (val1.clone(), val2.clone()) {
-            (Value::I64(_), Value::I64(_)) => {
-                Self::check_int_operation(val1, val2, i64::checked_sub, "subtraction")
-            }
-            (Value::F64(_), Value::F64(_)) => {
-                Self::check_float_operation(val1, val2, |a, b| a - b, "subtraction")
-            }
+            (Value::I64(_), Value::I64(_)) => Self::check_int_operation(val1, val2, i64::checked_sub, "subtraction"),
+            (Value::F64(_), Value::F64(_)) => Self::check_float_operation(val1, val2, |a, b| a - b, "subtraction"),
             (a, b) => Err(ComputationIssue {
                 message: format!(
                     "Cannot perform subtraction between values of type '{:?}' and '{:?}'.",
@@ -159,12 +135,8 @@ impl ALU {
 
     pub fn multiplication(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
         match (val1.clone(), val2.clone()) {
-            (Value::I64(_), Value::I64(_)) => {
-                Self::check_int_operation(val1, val2, i64::checked_mul, "multiplication")
-            }
-            (Value::F64(_), Value::F64(_)) => {
-                Self::check_float_operation(val1, val2, |a, b| a * b, "multiplication")
-            }
+            (Value::I64(_), Value::I64(_)) => Self::check_int_operation(val1, val2, i64::checked_mul, "multiplication"),
+            (Value::F64(_), Value::F64(_)) => Self::check_float_operation(val1, val2, |a, b| a * b, "multiplication"),
             (a, b) => Err(ComputationIssue {
                 message: format!(
                     "Cannot perform multiplication between values of type '{:?}' and '{:?}'.",
@@ -177,12 +149,8 @@ impl ALU {
 
     pub fn division(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
         match (val1.clone(), val2.clone()) {
-            (Value::I64(_), Value::I64(_)) => {
-                Self::check_int_operation(val1, val2, i64::checked_div, "division")
-            }
-            (Value::F64(_), Value::F64(_)) => {
-                Self::check_float_operation(val1, val2, |a, b| a / b, "division")
-            }
+            (Value::I64(_), Value::I64(_)) => Self::check_int_operation(val1, val2, i64::checked_div, "division"),
+            (Value::F64(_), Value::F64(_)) => Self::check_float_operation(val1, val2, |a, b| a / b, "division"),
             (a, b) => Err(ComputationIssue {
                 message: format!(
                     "Cannot perform division between values of type '{:?}' and '{:?}'.",
@@ -252,11 +220,7 @@ impl ALU {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 < val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 < val2)),
             (a, b) => Err(ComputationIssue {
-                message: format!(
-                    "Cannot perform less between values of type '{:?}' and '{:?}'.",
-                    a.to_type(),
-                    b.to_type()
-                ),
+                message: format!("Cannot perform less between values of type '{:?}' and '{:?}'.", a.to_type(), b.to_type()),
             }),
         }
     }
@@ -282,11 +246,7 @@ impl ALU {
             (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(val1 == val2)),
             (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(val1 == val2)),
             (a, b) => Err(ComputationIssue {
-                message: format!(
-                    "Cannot perform equal between values of type '{:?}' and '{:?}'.",
-                    a.to_type(),
-                    b.to_type()
-                ),
+                message: format!("Cannot perform equal between values of type '{:?}' and '{:?}'.", a.to_type(), b.to_type()),
             }),
         }
     }
@@ -382,17 +342,10 @@ mod tests {
         let data = [
             (Value::I64(1), Value::I64(2)),
             (Value::F64(1.5), Value::F64(2.5)),
-            (
-                Value::String(String::from("Papollo")),
-                Value::String(String::from("2137")),
-            ),
+            (Value::String(String::from("Papollo")), Value::String(String::from("2137"))),
         ];
 
-        let expected = [
-            Value::I64(3),
-            Value::F64(4.0),
-            Value::String(String::from("Papollo2137")),
-        ];
+        let expected = [Value::I64(3), Value::F64(4.0), Value::String(String::from("Papollo2137"))];
 
         for idx in 0..data.len() {
             let (val1, val2) = &data[idx];
@@ -402,20 +355,13 @@ mod tests {
 
     #[test]
     fn add_fail() {
-        assert!(ALU::add(
-            Value::I64(6532475327647647762),
-            Value::I64(6532475327647647762)
-        )
-        .is_err());
+        assert!(ALU::add(Value::I64(6532475327647647762), Value::I64(6532475327647647762)).is_err());
         assert!(ALU::add(Value::I64(1), Value::F64(2.0)).is_err());
     }
 
     #[test]
     fn subtract() {
-        let data = [
-            (Value::I64(1), Value::I64(2)),
-            (Value::F64(1.5), Value::F64(2.5)),
-        ];
+        let data = [(Value::I64(1), Value::I64(2)), (Value::F64(1.5), Value::F64(2.5))];
 
         let expected = [Value::I64(-1), Value::F64(-1.0)];
 
@@ -427,25 +373,14 @@ mod tests {
 
     #[test]
     fn subtract_fail() {
-        assert!(ALU::subtract(
-            Value::I64(-6532475327647647762),
-            Value::I64(6532475327647647762)
-        )
-        .is_err());
+        assert!(ALU::subtract(Value::I64(-6532475327647647762), Value::I64(6532475327647647762)).is_err());
         assert!(ALU::subtract(Value::I64(1), Value::F64(2.0)).is_err());
-        assert!(ALU::subtract(
-            Value::String(String::from("a")),
-            Value::String(String::from("a"))
-        )
-        .is_err());
+        assert!(ALU::subtract(Value::String(String::from("a")), Value::String(String::from("a"))).is_err());
     }
 
     #[test]
     fn multiplication() {
-        let data = [
-            (Value::I64(1), Value::I64(2)),
-            (Value::F64(1.5), Value::F64(2.5)),
-        ];
+        let data = [(Value::I64(1), Value::I64(2)), (Value::F64(1.5), Value::F64(2.5))];
 
         let expected = [Value::I64(2), Value::F64(3.75)];
 
@@ -457,25 +392,14 @@ mod tests {
 
     #[test]
     fn multiplication_fail() {
-        assert!(ALU::multiplication(
-            Value::I64(6532475327647647762),
-            Value::I64(6532475327647647762)
-        )
-        .is_err());
+        assert!(ALU::multiplication(Value::I64(6532475327647647762), Value::I64(6532475327647647762)).is_err());
         assert!(ALU::multiplication(Value::I64(1), Value::F64(2.0)).is_err());
-        assert!(ALU::multiplication(
-            Value::String(String::from("a")),
-            Value::String(String::from("a"))
-        )
-        .is_err());
+        assert!(ALU::multiplication(Value::String(String::from("a")), Value::String(String::from("a"))).is_err());
     }
 
     #[test]
     fn division() {
-        let data = [
-            (Value::I64(1), Value::I64(2)),
-            (Value::F64(1.5), Value::F64(2.5)),
-        ];
+        let data = [(Value::I64(1), Value::I64(2)), (Value::F64(1.5), Value::F64(2.5))];
 
         let expected = [Value::I64(0), Value::F64(0.6)];
 
@@ -489,47 +413,24 @@ mod tests {
     fn division_fail() {
         assert!(ALU::division(Value::I64(6532475327647647762), Value::I64(0)).is_err());
         assert!(ALU::division(Value::I64(1), Value::F64(2.0)).is_err());
-        assert!(ALU::division(
-            Value::String(String::from("a")),
-            Value::String(String::from("a"))
-        )
-        .is_err());
+        assert!(ALU::division(Value::String(String::from("a")), Value::String(String::from("a"))).is_err());
     }
 
     #[test]
     fn concatenation() {
-        assert!(
-            ALU::concatenation(Value::Bool(true), Value::Bool(true)).unwrap() == Value::Bool(true)
-        );
-        assert!(
-            ALU::concatenation(Value::Bool(false), Value::Bool(true)).unwrap()
-                == Value::Bool(false)
-        );
-        assert!(
-            ALU::concatenation(Value::Bool(true), Value::Bool(false)).unwrap()
-                == Value::Bool(false)
-        );
-        assert!(
-            ALU::concatenation(Value::Bool(false), Value::Bool(false)).unwrap()
-                == Value::Bool(false)
-        );
+        assert!(ALU::concatenation(Value::Bool(true), Value::Bool(true)).unwrap() == Value::Bool(true));
+        assert!(ALU::concatenation(Value::Bool(false), Value::Bool(true)).unwrap() == Value::Bool(false));
+        assert!(ALU::concatenation(Value::Bool(true), Value::Bool(false)).unwrap() == Value::Bool(false));
+        assert!(ALU::concatenation(Value::Bool(false), Value::Bool(false)).unwrap() == Value::Bool(false));
         assert!(ALU::concatenation(Value::Bool(true), Value::I64(1)).is_err());
     }
 
     #[test]
     fn alternative() {
-        assert!(
-            ALU::alternative(Value::Bool(true), Value::Bool(true)).unwrap() == Value::Bool(true)
-        );
-        assert!(
-            ALU::alternative(Value::Bool(false), Value::Bool(true)).unwrap() == Value::Bool(true)
-        );
-        assert!(
-            ALU::alternative(Value::Bool(true), Value::Bool(false)).unwrap() == Value::Bool(true)
-        );
-        assert!(
-            ALU::alternative(Value::Bool(false), Value::Bool(false)).unwrap() == Value::Bool(false)
-        );
+        assert!(ALU::alternative(Value::Bool(true), Value::Bool(true)).unwrap() == Value::Bool(true));
+        assert!(ALU::alternative(Value::Bool(false), Value::Bool(true)).unwrap() == Value::Bool(true));
+        assert!(ALU::alternative(Value::Bool(true), Value::Bool(false)).unwrap() == Value::Bool(true));
+        assert!(ALU::alternative(Value::Bool(false), Value::Bool(false)).unwrap() == Value::Bool(false));
         assert!(ALU::alternative(Value::Bool(true), Value::I64(1)).is_err());
     }
 
@@ -549,15 +450,9 @@ mod tests {
         assert!(ALU::greater_or_equal(Value::I64(1), Value::I64(2)).unwrap() == Value::Bool(false));
         assert!(ALU::greater_or_equal(Value::I64(2), Value::I64(2)).unwrap() == Value::Bool(true));
         assert!(ALU::greater_or_equal(Value::I64(3), Value::I64(2)).unwrap() == Value::Bool(true));
-        assert!(
-            ALU::greater_or_equal(Value::F64(1.0), Value::F64(2.0)).unwrap() == Value::Bool(false)
-        );
-        assert!(
-            ALU::greater_or_equal(Value::F64(2.0), Value::F64(2.0)).unwrap() == Value::Bool(true)
-        );
-        assert!(
-            ALU::greater_or_equal(Value::F64(3.0), Value::F64(2.0)).unwrap() == Value::Bool(true)
-        );
+        assert!(ALU::greater_or_equal(Value::F64(1.0), Value::F64(2.0)).unwrap() == Value::Bool(false));
+        assert!(ALU::greater_or_equal(Value::F64(2.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
+        assert!(ALU::greater_or_equal(Value::F64(3.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
         assert!(ALU::greater_or_equal(Value::I64(2), Value::F64(3.0)).is_err());
     }
 
@@ -579,9 +474,7 @@ mod tests {
         assert!(ALU::less_or_equal(Value::I64(3), Value::I64(2)).unwrap() == Value::Bool(false));
         assert!(ALU::less_or_equal(Value::F64(1.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
         assert!(ALU::less_or_equal(Value::F64(2.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
-        assert!(
-            ALU::less_or_equal(Value::F64(3.0), Value::F64(2.0)).unwrap() == Value::Bool(false)
-        );
+        assert!(ALU::less_or_equal(Value::F64(3.0), Value::F64(2.0)).unwrap() == Value::Bool(false));
         assert!(ALU::less_or_equal(Value::I64(2), Value::F64(3.0)).is_err());
     }
 
@@ -591,22 +484,8 @@ mod tests {
         assert!(ALU::equal(Value::I64(2), Value::I64(2)).unwrap() == Value::Bool(true));
         assert!(ALU::equal(Value::F64(1.0), Value::F64(2.0)).unwrap() == Value::Bool(false));
         assert!(ALU::equal(Value::F64(2.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
-        assert!(
-            ALU::equal(
-                Value::String(String::from("a")),
-                Value::String(String::from("b"))
-            )
-            .unwrap()
-                == Value::Bool(false)
-        );
-        assert!(
-            ALU::equal(
-                Value::String(String::from("a")),
-                Value::String(String::from("a"))
-            )
-            .unwrap()
-                == Value::Bool(true)
-        );
+        assert!(ALU::equal(Value::String(String::from("a")), Value::String(String::from("b"))).unwrap() == Value::Bool(false));
+        assert!(ALU::equal(Value::String(String::from("a")), Value::String(String::from("a"))).unwrap() == Value::Bool(true));
         assert!(ALU::equal(Value::Bool(true), Value::Bool(false)).unwrap() == Value::Bool(false));
         assert!(ALU::equal(Value::Bool(true), Value::Bool(true)).unwrap() == Value::Bool(true));
         assert!(ALU::equal(Value::Bool(true), Value::I64(1)).is_err());
@@ -618,28 +497,10 @@ mod tests {
         assert!(ALU::not_equal(Value::I64(2), Value::I64(2)).unwrap() == Value::Bool(false));
         assert!(ALU::not_equal(Value::F64(1.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
         assert!(ALU::not_equal(Value::F64(2.0), Value::F64(2.0)).unwrap() == Value::Bool(false));
-        assert!(
-            ALU::not_equal(
-                Value::String(String::from("a")),
-                Value::String(String::from("b"))
-            )
-            .unwrap()
-                == Value::Bool(true)
-        );
-        assert!(
-            ALU::not_equal(
-                Value::String(String::from("a")),
-                Value::String(String::from("a"))
-            )
-            .unwrap()
-                == Value::Bool(false)
-        );
-        assert!(
-            ALU::not_equal(Value::Bool(true), Value::Bool(false)).unwrap() == Value::Bool(true)
-        );
-        assert!(
-            ALU::not_equal(Value::Bool(true), Value::Bool(true)).unwrap() == Value::Bool(false)
-        );
+        assert!(ALU::not_equal(Value::String(String::from("a")), Value::String(String::from("b"))).unwrap() == Value::Bool(true));
+        assert!(ALU::not_equal(Value::String(String::from("a")), Value::String(String::from("a"))).unwrap() == Value::Bool(false));
+        assert!(ALU::not_equal(Value::Bool(true), Value::Bool(false)).unwrap() == Value::Bool(true));
+        assert!(ALU::not_equal(Value::Bool(true), Value::Bool(true)).unwrap() == Value::Bool(false));
         assert!(ALU::not_equal(Value::Bool(true), Value::I64(1)).is_err());
     }
 }

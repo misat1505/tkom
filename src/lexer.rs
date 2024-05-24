@@ -35,11 +35,7 @@ impl<T: BufRead> ILexer for Lexer<T> {
 }
 
 impl<T: BufRead> Lexer<T> {
-    pub fn new(
-        src: LazyStreamReader<T>,
-        options: LexerOptions,
-        on_warning: fn(warning: Box<dyn Issue>),
-    ) -> Self {
+    pub fn new(src: LazyStreamReader<T>, options: LexerOptions, on_warning: fn(warning: Box<dyn Issue>)) -> Self {
         let position = src.position().clone();
         Lexer {
             src,
@@ -92,10 +88,7 @@ impl<T: BufRead> Lexer<T> {
                 break;
             }
             if (comment.len() as u32) == self.options.max_comment_length {
-                return Err(self.create_lexer_issue(format!(
-                    "Comment too long. Max comment length: {}",
-                    self.options.max_comment_length
-                )));
+                return Err(self.create_lexer_issue(format!("Comment too long. Max comment length: {}", self.options.max_comment_length)));
             }
             comment.push(current);
         }
@@ -132,11 +125,7 @@ impl<T: BufRead> Lexer<T> {
             '/' => Some(self.single_char(TokenCategory::Divide)),
             '-' => Some(self.extend_to_next('>', TokenCategory::Minus, TokenCategory::Arrow)),
             '<' => Some(self.extend_to_next('=', TokenCategory::Less, TokenCategory::LessOrEqual)),
-            '>' => Some(self.extend_to_next(
-                '=',
-                TokenCategory::Greater,
-                TokenCategory::GreaterOrEqual,
-            )),
+            '>' => Some(self.extend_to_next('=', TokenCategory::Greater, TokenCategory::GreaterOrEqual)),
             '!' => Some(self.extend_to_next('=', TokenCategory::Negate, TokenCategory::NotEqual)),
             '=' => Some(self.extend_to_next('=', TokenCategory::Assign, TokenCategory::Equal)),
             '&' => Some(self.extend_to_next('&', TokenCategory::Reference, TokenCategory::And)),
@@ -155,12 +144,7 @@ impl<T: BufRead> Lexer<T> {
         }
     }
 
-    fn extend_to_next(
-        &mut self,
-        char_to_search: char,
-        not_found: TokenCategory,
-        found: TokenCategory,
-    ) -> Token {
+    fn extend_to_next(&mut self, char_to_search: char, not_found: TokenCategory, found: TokenCategory) -> Token {
         let next_char = self.src.next().unwrap();
         if *next_char == char_to_search {
             let _ = self.src.next();
@@ -215,10 +199,7 @@ impl<T: BufRead> Lexer<T> {
                     None => {
                         (self.on_warning)(Box::new(LexerIssue::new(
                             IssueLevel::WARNING,
-                            self.prepare_warning_message(format!(
-                                "Invalid escape symbol detected '\\{}'",
-                                next_char
-                            )),
+                            self.prepare_warning_message(format!("Invalid escape symbol detected '\\{}'", next_char)),
                         )));
                         let default_escape = '\\';
                         created_string.push(default_escape);
@@ -297,8 +278,7 @@ impl<T: BufRead> Lexer<T> {
             match total.checked_mul(10) {
                 Some(result) => total = result,
                 None => {
-                    return Err(self
-                        .create_lexer_issue("Overflow occurred while parsing integer".to_owned()));
+                    return Err(self.create_lexer_issue("Overflow occurred while parsing integer".to_owned()));
                 }
             }
             match total.checked_add(digit) {
@@ -308,8 +288,7 @@ impl<T: BufRead> Lexer<T> {
                     current_char = self.src.next().unwrap();
                 }
                 None => {
-                    return Err(self
-                        .create_lexer_issue("Overflow occurred while parsing integer".to_owned()));
+                    return Err(self.create_lexer_issue("Overflow occurred while parsing integer".to_owned()));
                 }
             }
         }
@@ -328,10 +307,7 @@ impl<T: BufRead> Lexer<T> {
             return Ok(None);
         }
         let mut created_string = String::new();
-        while current_char.is_ascii_digit()
-            || current_char.is_ascii_alphabetic()
-            || current_char == '_'
-        {
+        while current_char.is_ascii_digit() || current_char.is_ascii_alphabetic() || current_char == '_' {
             if (created_string.len() as u32) == self.options.max_identifier_length {
                 return Err(self.create_lexer_issue(format!(
                     "Identifier name too long. Max identifier length: {}",

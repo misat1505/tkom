@@ -22,9 +22,7 @@ pub struct ScopeManager {
 impl ScopeManager {
     pub fn new() -> Self {
         let root_scope = Scope::new();
-        ScopeManager {
-            scopes: vec![root_scope],
-        }
+        ScopeManager { scopes: vec![root_scope] }
     }
 
     pub fn push_scope(&mut self) {
@@ -65,11 +63,7 @@ impl ScopeManager {
         }
     }
 
-    pub fn declare_variable(
-        &mut self,
-        name: String,
-        value: Value,
-    ) -> Result<(), ScopeManagerIssue> {
+    pub fn declare_variable(&mut self, name: String, value: Value) -> Result<(), ScopeManagerIssue> {
         if let Ok(_) = self.get_variable(name.clone()) {
             return Err(ScopeManagerIssue {
                 message: format!("Cannot redeclare variable '{}'.", name.clone()),
@@ -98,9 +92,7 @@ pub struct Scope {
 
 impl Scope {
     fn new() -> Self {
-        Scope {
-            variables: HashMap::new(),
-        }
+        Scope { variables: HashMap::new() }
     }
 
     fn get_variable(&self, searched: String) -> Option<&Value> {
@@ -121,7 +113,12 @@ impl Scope {
                     Ok(())
                 }
                 (a, b) => Err(ScopeManagerIssue {
-                    message: format!("Cannot assign '{:?}' to variable '{}' which was previously declared as '{:?}'.", b.to_type(), name, a.to_type()),
+                    message: format!(
+                        "Cannot assign '{:?}' to variable '{}' which was previously declared as '{:?}'.",
+                        b.to_type(),
+                        name,
+                        a.to_type()
+                    ),
                 }),
             },
         }
@@ -164,9 +161,7 @@ mod tests {
         let _ = scope.assign_variable(name.clone(), new_value.clone());
         assert!(scope.get_variable(name.clone()).unwrap().clone() == new_value);
 
-        assert!(scope
-            .assign_variable("y".to_owned(), Value::Bool(true))
-            .is_err());
+        assert!(scope.assign_variable("y".to_owned(), Value::Bool(true)).is_err());
     }
 
     #[test]
@@ -225,8 +220,6 @@ mod tests {
         let mut manager = ScopeManager::new();
 
         let _ = manager.declare_variable("x".to_owned(), Value::I64(1));
-        assert!(manager
-            .assign_variable("x".to_owned(), Value::Bool(true))
-            .is_err());
+        assert!(manager.assign_variable("x".to_owned(), Value::Bool(true)).is_err());
     }
 }

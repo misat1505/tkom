@@ -1,8 +1,5 @@
 use crate::{
-    ast::{
-        Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement,
-        SwitchCase, SwitchExpression, Type,
-    },
+    ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
     errors::Issue,
     functions_manager::FunctionsManager,
     lazy_stream_reader::Position,
@@ -66,20 +63,12 @@ impl Interpreter {
                 Ok(result)
             }
             None => Err(Box::new(InterpreterIssue {
-                message: format!(
-                    "No value produced where it is needed.\nAt {:?}.",
-                    self.position
-                ),
+                message: format!("No value produced where it is needed.\nAt {:?}.", self.position),
             })),
         }
     }
 
-    fn evaluate_binary_op<F>(
-        &mut self,
-        lhs: &Box<Node<Expression>>,
-        rhs: &Box<Node<Expression>>,
-        op: F,
-    ) -> Result<(), Box<dyn Issue>>
+    fn evaluate_binary_op<F>(&mut self, lhs: &Box<Node<Expression>>, rhs: &Box<Node<Expression>>, op: F) -> Result<(), Box<dyn Issue>>
     where
         F: Fn(Value, Value) -> Result<Value, ComputationIssue>,
     {
@@ -100,11 +89,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_unary_op<F>(
-        &mut self,
-        value: &Box<Node<Expression>>,
-        op: F,
-    ) -> Result<(), Box<dyn Issue>>
+    fn evaluate_unary_op<F>(&mut self, value: &Box<Node<Expression>>, op: F) -> Result<(), Box<dyn Issue>>
     where
         F: Fn(Value) -> Result<Value, ComputationIssue>,
     {
@@ -133,10 +118,7 @@ impl Visitor for Interpreter {
             self.visit_statement(&statement)?;
             if self.is_breaking && self.stack.is_last_scope() {
                 return Err(Box::new(InterpreterIssue {
-                    message: format!(
-                        "Break called outside for or switch.\nAt {:?}.",
-                        self.position
-                    ),
+                    message: format!("Break called outside for or switch.\nAt {:?}.", self.position),
                 }));
             }
 
@@ -163,42 +145,23 @@ impl Visitor for Interpreter {
                     Err(err) => return Err(Box::new(err)),
                 }
             }
-            Expression::BooleanNegation(value) => {
-                self.evaluate_unary_op(value, ALU::boolean_negate)?
-            }
-            Expression::ArithmeticNegation(value) => {
-                self.evaluate_unary_op(value, ALU::arithmetic_negate)?
-            }
+            Expression::BooleanNegation(value) => self.evaluate_unary_op(value, ALU::boolean_negate)?,
+            Expression::ArithmeticNegation(value) => self.evaluate_unary_op(value, ALU::arithmetic_negate)?,
             Expression::Addition(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::add)?,
-            Expression::Subtraction(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, ALU::subtract)?
-            }
-            Expression::Multiplication(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, ALU::multiplication)?
-            }
+            Expression::Subtraction(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::subtract)?,
+            Expression::Multiplication(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::multiplication)?,
             Expression::Division(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::division)?,
-            Expression::Alternative(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, ALU::alternative)?
-            }
-            Expression::Concatenation(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, ALU::concatenation)?
-            }
+            Expression::Alternative(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::alternative)?,
+            Expression::Concatenation(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::concatenation)?,
             Expression::Greater(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::greater)?,
-            Expression::GreaterEqual(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, ALU::greater_or_equal)?
-            }
+            Expression::GreaterEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::greater_or_equal)?,
             Expression::Less(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::less)?,
-            Expression::LessEqual(lhs, rhs) => {
-                self.evaluate_binary_op(lhs, rhs, ALU::less_or_equal)?
-            }
+            Expression::LessEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::less_or_equal)?,
             Expression::Equal(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::equal)?,
             Expression::NotEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::not_equal)?,
             Expression::Literal(literal) => self.visit_literal(literal.clone())?,
             Expression::Variable(variable) => self.visit_variable(variable.clone())?,
-            Expression::FunctionCall {
-                identifier,
-                arguments,
-            } => self.call_function(identifier, arguments)?,
+            Expression::FunctionCall { identifier, arguments } => self.call_function(identifier, arguments)?,
         }
         Ok(())
     }
@@ -207,15 +170,8 @@ impl Visitor for Interpreter {
         self.position = statement.position;
         match &statement.value {
             Statement::FunctionDeclaration { .. } => self.execute_function(&statement.value)?,
-            Statement::FunctionCall {
-                identifier,
-                arguments,
-            } => self.call_function(identifier, arguments)?,
-            Statement::Declaration {
-                var_type,
-                identifier,
-                value,
-            } => {
+            Statement::FunctionCall { identifier, arguments } => self.call_function(identifier, arguments)?,
+            Statement::Declaration { var_type, identifier, value } => {
                 self.visit_type(&var_type)?;
 
                 let computed_value = match value {
@@ -225,10 +181,7 @@ impl Visitor for Interpreter {
                             Ok(val) => val,
                             Err(_) => {
                                 return Err(Box::new(InterpreterIssue {
-                                    message: format!(
-                                        "Cannot declare variable '{}' with no value.\nAt {:?}.",
-                                        identifier.value, self.position
-                                    ),
+                                    message: format!("Cannot declare variable '{}' with no value.\nAt {:?}.", identifier.value, self.position),
                                 }))
                             }
                         };
@@ -241,24 +194,21 @@ impl Visitor for Interpreter {
                 };
 
                 match (var_type.value, computed_value.clone()) {
-                    (Type::I64, Value::I64(_))
-                    | (Type::F64, Value::F64(_))
-                    | (Type::Str, Value::String(_))
-                    | (Type::Bool, Value::Bool(_)) => {}
+                    (Type::I64, Value::I64(_)) | (Type::F64, Value::F64(_)) | (Type::Str, Value::String(_)) | (Type::Bool, Value::Bool(_)) => {}
                     (declared_type, computed_type) => {
                         return Err(Box::new(InterpreterIssue {
                             message: format!(
                                 "Cannot assign value of type '{:?}' to variable '{}' of type '{:?}'.\nAt {:?}.",
-                                computed_type.to_type(), identifier.value, declared_type, self.position
+                                computed_type.to_type(),
+                                identifier.value,
+                                declared_type,
+                                self.position
                             ),
                         }))
                     }
                 }
 
-                if let Err(mut err) = self
-                    .stack
-                    .declare_variable(identifier.value.clone(), computed_value)
-                {
+                if let Err(mut err) = self.stack.declare_variable(identifier.value.clone(), computed_value) {
                     err.message = format!("{}\nAt {:?}.", err.message, self.position);
                     return Err(Box::new(err));
                 }
@@ -269,10 +219,7 @@ impl Visitor for Interpreter {
                     Ok(val) => val,
                     Err(_) => {
                         return Err(Box::new(InterpreterIssue {
-                            message: format!(
-                                "Cannot assign no value to variable '{}'.\nAt {:?}.",
-                                identifier.value, self.position
-                            ),
+                            message: format!("Cannot assign no value to variable '{}'.\nAt {:?}.", identifier.value, self.position),
                         }))
                     }
                 };
@@ -290,7 +237,16 @@ impl Visitor for Interpreter {
                 let computed_condition = self.read_last_result()?;
                 let boolean_value = match computed_condition {
                     Value::Bool(bool) => bool,
-                    a => return Err(Box::new(InterpreterIssue {message: format!("Condition in if statement has to evaulate to type '{:?}' - got '{:?}'.\nAt {:?}.", Type::Bool, a.to_type(), self.position)})),
+                    a => {
+                        return Err(Box::new(InterpreterIssue {
+                            message: format!(
+                                "Condition in if statement has to evaulate to type '{:?}' - got '{:?}'.\nAt {:?}.",
+                                Type::Bool,
+                                a.to_type(),
+                                self.position
+                            ),
+                        }))
+                    }
                 };
                 if boolean_value {
                     self.visit_block(&if_block)?;
@@ -315,7 +271,16 @@ impl Visitor for Interpreter {
                 let mut computed_condition = self.read_last_result()?;
                 let mut boolean_value = match computed_condition {
                     Value::Bool(bool) => bool,
-                    a => return Err(Box::new(InterpreterIssue {message: format!("Condition in for statement has to evaulate to type '{:?}' - got '{:?}'.\nAt {:?}.", Type::Bool, a.to_type(), self.position)})),
+                    a => {
+                        return Err(Box::new(InterpreterIssue {
+                            message: format!(
+                                "Condition in for statement has to evaulate to type '{:?}' - got '{:?}'.\nAt {:?}.",
+                                Type::Bool,
+                                a.to_type(),
+                                self.position
+                            ),
+                        }))
+                    }
                 };
 
                 while boolean_value {
@@ -338,7 +303,16 @@ impl Visitor for Interpreter {
                     computed_condition = self.read_last_result()?;
                     boolean_value = match computed_condition {
                         Value::Bool(bool) => bool,
-                        a => return Err(Box::new(InterpreterIssue {message: format!("Condition in for statement has to evaulate to '{:?}' - got '{:?}'.\nAt {:?}.", Type::Bool, a.to_type(), self.position)})),
+                        a => {
+                            return Err(Box::new(InterpreterIssue {
+                                message: format!(
+                                    "Condition in for statement has to evaulate to '{:?}' - got '{:?}'.\nAt {:?}.",
+                                    Type::Bool,
+                                    a.to_type(),
+                                    self.position
+                                ),
+                            }))
+                        }
                     };
                 }
                 self.stack.pop_scope();
@@ -385,10 +359,7 @@ impl Visitor for Interpreter {
         for statement in &block.value.0 {
             if self.is_breaking && self.stack.is_last_scope() {
                 return Err(Box::new(InterpreterIssue {
-                    message: format!(
-                        "Break called outside 'for' or 'switch'.\nAt {:?}.",
-                        self.position
-                    ),
+                    message: format!("Break called outside 'for' or 'switch'.\nAt {:?}.", self.position),
                 }));
             }
 
@@ -415,7 +386,9 @@ impl Visitor for Interpreter {
                 return Err(Box::new(InterpreterIssue {
                     message: format!(
                         "Condition in switch case has to evaluate to type '{:?}' - got '{:?}'.\nAt {:?}.",
-                        Type::Bool, a.to_type(), self.position
+                        Type::Bool,
+                        a.to_type(),
+                        self.position
                     ),
                 }))
             }
@@ -426,17 +399,11 @@ impl Visitor for Interpreter {
         Ok(())
     }
 
-    fn visit_switch_expression(
-        &mut self,
-        switch_expression: &Node<SwitchExpression>,
-    ) -> Result<(), Box<dyn Issue>> {
+    fn visit_switch_expression(&mut self, switch_expression: &Node<SwitchExpression>) -> Result<(), Box<dyn Issue>> {
         if let Some(alias) = &switch_expression.value.alias {
             self.visit_expression(&switch_expression.value.expression)?;
             let computed_value = self.read_last_result()?;
-            if let Err(mut err) = self
-                .stack
-                .declare_variable(alias.value.clone(), computed_value)
-            {
+            if let Err(mut err) = self.stack.declare_variable(alias.value.clone(), computed_value) {
                 err.message = format!("{}\nAt {:?}.", err.message, self.position);
                 return Err(Box::new(err));
             }
@@ -474,21 +441,14 @@ impl Visitor for Interpreter {
 }
 
 impl Interpreter {
-    fn execute_std_function(
-        std_function: &StdFunction,
-        arguments: Vec<Value>,
-    ) -> Result<Option<Value>, Box<dyn Issue>> {
+    fn execute_std_function(std_function: &StdFunction, arguments: Vec<Value>) -> Result<Option<Value>, Box<dyn Issue>> {
         return match (std_function.execute)(arguments) {
             Ok(val) => Ok(val),
             Err(err) => Err(Box::new(err)),
         };
     }
 
-    fn call_function(
-        &mut self,
-        identifier: &Node<String>,
-        arguments: &Vec<Box<Node<Argument>>>,
-    ) -> Result<(), Box<dyn Issue>> {
+    fn call_function(&mut self, identifier: &Node<String>, arguments: &Vec<Box<Node<Argument>>>) -> Result<(), Box<dyn Issue>> {
         let name = identifier.value.clone();
 
         let mut args: Vec<Value> = vec![];
@@ -518,10 +478,7 @@ impl Interpreter {
             }
 
             if let Expression::Variable(name) = arg.value.value {
-                if let Err(mut err) = self
-                    .stack
-                    .assign_variable(name, self.returned_arguments.get(idx).unwrap().clone())
-                {
+                if let Err(mut err) = self.stack.assign_variable(name, self.returned_arguments.get(idx).unwrap().clone()) {
                     err.message = format!("{}\nAt {:?}.", err.message, self.position);
                     return Err(Box::new(err));
                 };
@@ -558,10 +515,7 @@ impl Interpreter {
                 let param_name = parameters.get(idx).unwrap().value.identifier.value.clone();
                 let value = self.last_arguments.get(idx).unwrap().clone();
                 match (desired_type, value.clone()) {
-                    (Type::Bool, Value::Bool(_))
-                    | (Type::F64, Value::F64(_))
-                    | (Type::I64, Value::I64(_))
-                    | (Type::Str, Value::String(_)) => {}
+                    (Type::Bool, Value::Bool(_)) | (Type::F64, Value::F64(_)) | (Type::I64, Value::I64(_)) | (Type::Str, Value::String(_)) => {}
                     (des, got) => {
                         return Err(Box::new(InterpreterIssue {
                             message: format!(
@@ -592,21 +546,9 @@ impl Interpreter {
                 }
 
                 self.visit_statement(&statement)?;
-                if self.is_breaking
-                    && self
-                        .stack
-                        .0
-                        .get(self.stack.0.len() - 1)
-                        .unwrap()
-                        .scope_manager
-                        .len()
-                        == 1
-                {
+                if self.is_breaking && self.stack.0.get(self.stack.0.len() - 1).unwrap().scope_manager.len() == 1 {
                     return Err(Box::new(InterpreterIssue {
-                        message: format!(
-                            "Break called outside 'for' or 'switch'.\nAt {:?}.",
-                            self.position
-                        ),
+                        message: format!("Break called outside 'for' or 'switch'.\nAt {:?}.", self.position),
                     }));
                 }
             }
@@ -1099,9 +1041,7 @@ mod tests {
         let exp = Some(Value::I64(5));
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter
-            .stack
-            .declare_variable(String::from("x"), Value::I64(5));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(5));
 
         let _ = interpreter.visit_expression(&ast);
         assert!(interpreter.last_result == exp);
@@ -1131,14 +1071,7 @@ mod tests {
         let mut interpreter = create_interpreter();
 
         let _ = interpreter.visit_statement(&ast);
-        assert!(
-            interpreter
-                .stack
-                .get_variable(String::from("x"))
-                .unwrap()
-                .clone()
-                == Value::I64(5)
-        );
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(5));
     }
 
     #[test]
@@ -1162,14 +1095,7 @@ mod tests {
         let mut interpreter = create_interpreter();
 
         let _ = interpreter.visit_statement(&ast);
-        assert!(
-            interpreter
-                .stack
-                .get_variable(String::from("x"))
-                .unwrap()
-                .clone()
-                == Value::I64(0)
-        );
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(0));
     }
 
     #[test]
@@ -1218,14 +1144,7 @@ mod tests {
         let mut interpreter = create_interpreter();
 
         let _ = interpreter.visit_statement(&ast);
-        assert!(
-            interpreter
-                .stack
-                .get_variable(String::from("x"))
-                .unwrap()
-                .clone()
-                == Value::I64(0)
-        );
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(0));
 
         assert!(interpreter.visit_statement(&ast).is_err());
     }
@@ -1252,9 +1171,7 @@ mod tests {
                         arguments: vec![Box::new(Node {
                             value: Argument {
                                 value: Node {
-                                    value: Expression::Literal(Literal::String(String::from(
-                                        "hello world",
-                                    ))),
+                                    value: Expression::Literal(Literal::String(String::from("hello world"))),
                                     position: default_position(),
                                 },
                                 passed_by: PassedBy::Value,
@@ -1291,19 +1208,10 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter
-            .stack
-            .declare_variable(String::from("x"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(0));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(
-            interpreter
-                .stack
-                .get_variable(String::from("x"))
-                .unwrap()
-                .clone()
-                == Value::I64(1)
-        );
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(1));
     }
 
     #[test]
@@ -1325,9 +1233,7 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter
-            .stack
-            .declare_variable(String::from("x"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(0));
 
         assert!(interpreter.visit_statement(&ast).is_err());
     }
@@ -1350,9 +1256,7 @@ mod tests {
                         arguments: vec![Box::new(Node {
                             value: Argument {
                                 value: Node {
-                                    value: Expression::Literal(Literal::String(String::from(
-                                        "hello world",
-                                    ))),
+                                    value: Expression::Literal(Literal::String(String::from("hello world"))),
                                     position: default_position(),
                                 },
                                 passed_by: PassedBy::Value,
@@ -1367,9 +1271,7 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter
-            .stack
-            .declare_variable(String::from("x"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(0));
 
         assert!(interpreter.visit_statement(&ast).is_err());
     }
@@ -1421,19 +1323,10 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter
-            .stack
-            .declare_variable(String::from("x"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(0));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(
-            interpreter
-                .stack
-                .get_variable(String::from("x"))
-                .unwrap()
-                .clone()
-                == Value::I64(1)
-        );
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(1));
     }
 
     #[test]
@@ -1483,19 +1376,10 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter
-            .stack
-            .declare_variable(String::from("x"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(0));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(
-            interpreter
-                .stack
-                .get_variable(String::from("x"))
-                .unwrap()
-                .clone()
-                == Value::I64(2)
-        );
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(2));
     }
 
     #[test]
@@ -1518,9 +1402,7 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter
-            .stack
-            .declare_variable(String::from("x"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(0));
 
         assert!(interpreter.visit_statement(&ast).is_err());
     }
@@ -1613,19 +1495,10 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter
-            .stack
-            .declare_variable(String::from("total"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("total"), Value::I64(0));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(
-            interpreter
-                .stack
-                .get_variable(String::from("total"))
-                .unwrap()
-                .clone()
-                == Value::I64(15)
-        );
+        assert!(interpreter.stack.get_variable(String::from("total")).unwrap().clone() == Value::I64(15));
     }
 
     #[test]
@@ -1704,22 +1577,11 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter
-            .stack
-            .declare_variable(String::from("total"), Value::I64(0));
-        let _ = interpreter
-            .stack
-            .declare_variable(String::from("i"), Value::I64(1));
+        let _ = interpreter.stack.declare_variable(String::from("total"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("i"), Value::I64(1));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(
-            interpreter
-                .stack
-                .get_variable(String::from("total"))
-                .unwrap()
-                .clone()
-                == Value::I64(15)
-        );
+        assert!(interpreter.stack.get_variable(String::from("total")).unwrap().clone() == Value::I64(15));
     }
 
     #[test]
@@ -1813,20 +1675,11 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter
-            .stack
-            .declare_variable(String::from("i"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("i"), Value::I64(0));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
         assert!(interpreter.is_breaking == false);
-        assert!(
-            interpreter
-                .stack
-                .get_variable(String::from("i"))
-                .unwrap()
-                .clone()
-                == Value::I64(5)
-        );
+        assert!(interpreter.stack.get_variable(String::from("i")).unwrap().clone() == Value::I64(5));
     }
 
     #[test]
@@ -1867,5 +1720,146 @@ mod tests {
         assert!(interpreter.visit_statement(&ast).is_ok());
         assert!(interpreter.last_result == Some(Value::I64(7)));
         assert!(interpreter.is_returning == false);
+    }
+
+    fn create_test_switch_case() -> Node<Statement> {
+        // switch (x) {
+        //      (x < 15) {
+        //          result = 15;
+        //      } (x < 10) {
+        //          result = 10;
+        //          break;
+        //      } (x < 5) {
+        //          result = 5;
+        //      }
+        // }
+
+        fn create_assignment(val: i64) -> Node<Statement> {
+            Node {
+                value: Statement::Assignment {
+                    identifier: Node {
+                        value: String::from("result"),
+                        position: default_position(),
+                    },
+                    value: Node {
+                        value: Expression::Literal(Literal::I64(val)),
+                        position: default_position(),
+                    },
+                },
+                position: default_position(),
+            }
+        }
+
+        fn create_condition(val: i64) -> Node<Expression> {
+            Node {
+                value: Expression::Less(
+                    Box::new(Node {
+                        value: Expression::Variable(String::from("x")),
+                        position: default_position(),
+                    }),
+                    Box::new(Node {
+                        value: Expression::Literal(Literal::I64(val)),
+                        position: default_position(),
+                    }),
+                ),
+                position: default_position(),
+            }
+        }
+
+        Node {
+            value: Statement::Switch {
+                expressions: vec![Node {
+                    value: SwitchExpression {
+                        expression: Node {
+                            value: Expression::Variable(String::from("x")),
+                            position: default_position(),
+                        },
+                        alias: None,
+                    },
+                    position: default_position(),
+                }],
+                cases: vec![
+                    Node {
+                        value: SwitchCase {
+                            condition: create_condition(15),
+                            block: Node {
+                                value: Block(vec![create_assignment(15)]),
+                                position: default_position(),
+                            },
+                        },
+                        position: default_position(),
+                    },
+                    Node {
+                        value: SwitchCase {
+                            condition: create_condition(10),
+                            block: Node {
+                                value: Block(vec![
+                                    create_assignment(10),
+                                    Node {
+                                        value: Statement::Break,
+                                        position: default_position(),
+                                    },
+                                ]),
+                                position: default_position(),
+                            },
+                        },
+                        position: default_position(),
+                    },
+                    Node {
+                        value: SwitchCase {
+                            condition: create_condition(5),
+                            block: Node {
+                                value: Block(vec![create_assignment(5)]),
+                                position: default_position(),
+                            },
+                        },
+                        position: default_position(),
+                    },
+                ],
+            },
+            position: default_position(),
+        }
+    }
+
+    #[test]
+    fn switch_enters() {
+        let mut interpreter = create_interpreter();
+        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(12));
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("result"), Value::default_value(Type::I64).unwrap());
+
+        let _ = interpreter.visit_statement(&create_test_switch_case());
+
+        assert!(interpreter.stack.get_variable(String::from("result")).unwrap().clone() == Value::I64(15));
+        assert!(interpreter.is_breaking == false);
+    }
+
+    #[test]
+    fn switch_breaks() {
+        let mut interpreter = create_interpreter();
+        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(3));
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("result"), Value::default_value(Type::I64).unwrap());
+
+        let _ = interpreter.visit_statement(&create_test_switch_case());
+
+        assert!(interpreter.stack.get_variable(String::from("result")).unwrap().clone() == Value::I64(10));
+        assert!(interpreter.is_breaking == false);
+    }
+
+    #[test]
+    fn switch_no_entry() {
+        let mut interpreter = create_interpreter();
+        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(2137));
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("result"), Value::default_value(Type::I64).unwrap());
+
+        let _ = interpreter.visit_statement(&create_test_switch_case());
+
+        assert!(interpreter.stack.get_variable(String::from("result")).unwrap().clone() == Value::I64(0));
+        assert!(interpreter.is_breaking == false);
     }
 }

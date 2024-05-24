@@ -1,8 +1,5 @@
 use crate::{
-    ast::{
-        Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement,
-        SwitchCase, SwitchExpression, Type,
-    },
+    ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
     errors::Issue,
     functions_manager::FunctionsManager,
     visitor::Visitor,
@@ -49,36 +46,40 @@ impl SemanticChecker {
     fn check_function_call(&mut self, function: FunctionCallType) {
         match function {
             FunctionCallType::Statement(Node {
-                value:
-                    Statement::FunctionCall {
-                        identifier,
-                        arguments,
-                    },
+                value: Statement::FunctionCall { identifier, arguments },
                 position,
             })
             | FunctionCallType::Expression(Node {
-                value:
-                    Expression::FunctionCall {
-                        identifier,
-                        arguments,
-                    },
+                value: Expression::FunctionCall { identifier, arguments },
                 position,
             }) => {
                 let name = &identifier.value;
 
                 // std function
-                if let Some(std_function) = self
-                    .functions_manager
-                    .std_functions
-                    .get(&String::from(name))
-                {
+                if let Some(std_function) = self.functions_manager.std_functions.get(&String::from(name)) {
                     if arguments.len() != std_function.params.len() {
-                        self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n", name, std_function.params.len(), arguments.len(), position) });
+                        self.errors.push(SemanticCheckerIssue {
+                            message: format!(
+                                "Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n",
+                                name,
+                                std_function.params.len(),
+                                arguments.len(),
+                                position
+                            ),
+                        });
                     }
 
                     for argument in arguments {
                         if argument.value.passed_by == PassedBy::Reference {
-                            self.errors.push(SemanticCheckerIssue { message: format!("Parameter in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n", identifier.value, argument.value.passed_by, PassedBy::Value, argument.position) })
+                            self.errors.push(SemanticCheckerIssue {
+                                message: format!(
+                                    "Parameter in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n",
+                                    identifier.value,
+                                    argument.value.passed_by,
+                                    PassedBy::Value,
+                                    argument.position
+                                ),
+                            })
                         }
                     }
 
@@ -86,27 +87,48 @@ impl SemanticChecker {
                 }
 
                 // user function
-                if let Some(function_declaration) =
-                    self.functions_manager.functions.get(&String::from(name))
-                {
-                    if let Statement::FunctionDeclaration { parameters, .. } =
-                        &function_declaration.value
-                    {
+                if let Some(function_declaration) = self.functions_manager.functions.get(&String::from(name)) {
+                    if let Statement::FunctionDeclaration { parameters, .. } = &function_declaration.value {
                         if arguments.len() != parameters.len() {
-                            self.errors.push(SemanticCheckerIssue { message: format!("Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n", name, parameters.len(), arguments.len(), position) })
+                            self.errors.push(SemanticCheckerIssue {
+                                message: format!(
+                                    "Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n",
+                                    name,
+                                    parameters.len(),
+                                    arguments.len(),
+                                    position
+                                ),
+                            })
                         }
 
                         for idx in 0..parameters.len() {
                             let parameter = parameters.get(idx).unwrap();
                             if let Some(argument) = arguments.get(idx) {
                                 if argument.value.passed_by != parameter.value.passed_by {
-                                    self.errors.push(SemanticCheckerIssue { message: format!("Parameter '{}' in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n", parameter.value.identifier.value, identifier.value, argument.value.passed_by, parameter.value.passed_by, argument.position) });
+                                    self.errors.push(SemanticCheckerIssue {
+                                        message: format!(
+                                            "Parameter '{}' in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n",
+                                            parameter.value.identifier.value,
+                                            identifier.value,
+                                            argument.value.passed_by,
+                                            parameter.value.passed_by,
+                                            argument.position
+                                        ),
+                                    });
                                 }
 
                                 if let Expression::Variable(_) = argument.value.value.value {
                                 } else {
                                     if argument.value.passed_by == PassedBy::Reference {
-                                        self.errors.push(SemanticCheckerIssue { message: format!("Parameter '{}' in function '{}' is passed by {:?}. Thus it needs to an identifier, but a complex expression was found.\nAt {:?}.\n", parameter.value.identifier.value, identifier.value, PassedBy::Reference, argument.position) });
+                                        self.errors.push(SemanticCheckerIssue {
+                                            message: format!(
+                                                "Parameter '{}' in function '{}' is passed by {:?}. Thus it needs to an identifier, but a complex expression was found.\nAt {:?}.\n",
+                                                parameter.value.identifier.value,
+                                                identifier.value,
+                                                PassedBy::Reference,
+                                                argument.position
+                                            ),
+                                        });
                                     }
                                 }
                             }
@@ -117,10 +139,7 @@ impl SemanticChecker {
                 }
 
                 self.errors.push(SemanticCheckerIssue {
-                    message: format!(
-                        "Use of undeclared function '{}'.\nAt {:?}.\n",
-                        name, position
-                    ),
+                    message: format!("Use of undeclared function '{}'.\nAt {:?}.\n", name, position),
                 })
             }
             _ => {}
@@ -161,9 +180,7 @@ impl Visitor for SemanticChecker {
                 self.visit_expression(&lhs);
                 self.visit_expression(&rhs);
             }
-            Expression::BooleanNegation(value)
-            | Expression::ArithmeticNegation(value)
-            | Expression::Casting { value, .. } => {
+            Expression::BooleanNegation(value) | Expression::ArithmeticNegation(value) | Expression::Casting { value, .. } => {
                 self.visit_expression(&value);
             }
             Expression::Literal(literal) => {
@@ -207,9 +224,7 @@ impl Visitor for SemanticChecker {
                     self.visit_argument(&arg);
                 }
             }
-            Statement::Declaration {
-                var_type, value, ..
-            } => {
+            Statement::Declaration { var_type, value, .. } => {
                 self.visit_type(&var_type);
                 if let Some(val) = value {
                     self.visit_expression(&val);
@@ -285,10 +300,7 @@ impl Visitor for SemanticChecker {
         Ok(())
     }
 
-    fn visit_switch_expression(
-        &mut self,
-        switch_expression: &Node<SwitchExpression>,
-    ) -> Result<(), Box<dyn Issue>> {
+    fn visit_switch_expression(&mut self, switch_expression: &Node<SwitchExpression>) -> Result<(), Box<dyn Issue>> {
         self.visit_expression(&switch_expression.value.expression);
         Ok(())
     }
