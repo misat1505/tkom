@@ -1006,4 +1006,37 @@ mod tests {
         let _ = interpreter.visit_expression(&ast);
         assert!(interpreter.last_result == exp);
     }
+
+    #[test]
+    fn interpret_literal() {
+        let ast = Node {
+            value: Expression::Literal(Literal::I64(5)),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::I64(5));
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
+
+    #[test]
+    fn interpret_variable() {
+        let ast = Node {
+            value: Expression::Variable(String::from("x")),
+            position: default_position(),
+        };
+
+        let exp = Some(Value::I64(5));
+
+        let mut interpreter = create_interpreter();
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("x"), Value::I64(5));
+
+        let _ = interpreter.visit_expression(&ast);
+        assert!(interpreter.last_result == exp);
+    }
 }
