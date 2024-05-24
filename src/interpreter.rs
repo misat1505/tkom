@@ -1039,4 +1039,271 @@ mod tests {
         let _ = interpreter.visit_expression(&ast);
         assert!(interpreter.last_result == exp);
     }
+
+    #[test]
+    fn declare_variable() {
+        // i64 x = 5;
+        let ast = Node {
+            value: Statement::Declaration {
+                var_type: Node {
+                    value: Type::I64,
+                    position: default_position(),
+                },
+                identifier: Node {
+                    value: String::from("x"),
+                    position: default_position(),
+                },
+                value: Some(Node {
+                    value: Expression::Literal(Literal::I64(5)),
+                    position: default_position(),
+                }),
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_statement(&ast);
+        assert!(
+            interpreter
+                .stack
+                .get_variable(String::from("x"))
+                .unwrap()
+                .clone()
+                == Value::I64(5)
+        );
+    }
+
+    #[test]
+    fn declare_variable_with_default_value() {
+        // i64 x;
+        let ast = Node {
+            value: Statement::Declaration {
+                var_type: Node {
+                    value: Type::I64,
+                    position: default_position(),
+                },
+                identifier: Node {
+                    value: String::from("x"),
+                    position: default_position(),
+                },
+                value: None,
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_statement(&ast);
+        assert!(
+            interpreter
+                .stack
+                .get_variable(String::from("x"))
+                .unwrap()
+                .clone()
+                == Value::I64(0)
+        );
+    }
+
+    #[test]
+    fn declare_variable_bad_type() {
+        // i64 x = false;
+        let ast = Node {
+            value: Statement::Declaration {
+                var_type: Node {
+                    value: Type::I64,
+                    position: default_position(),
+                },
+                identifier: Node {
+                    value: String::from("x"),
+                    position: default_position(),
+                },
+                value: Some(Node {
+                    value: Expression::Literal(Literal::False),
+                    position: default_position(),
+                }),
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+
+        assert!(interpreter.visit_statement(&ast).is_err());
+    }
+
+    #[test]
+    fn redeclare_variable_fails() {
+        let ast = Node {
+            value: Statement::Declaration {
+                var_type: Node {
+                    value: Type::I64,
+                    position: default_position(),
+                },
+                identifier: Node {
+                    value: String::from("x"),
+                    position: default_position(),
+                },
+                value: None,
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+
+        let _ = interpreter.visit_statement(&ast);
+        assert!(
+            interpreter
+                .stack
+                .get_variable(String::from("x"))
+                .unwrap()
+                .clone()
+                == Value::I64(0)
+        );
+
+        assert!(interpreter.visit_statement(&ast).is_err());
+    }
+
+    #[test]
+    fn declare_with_none_value_fails() {
+        // i64 x = print("hello world");
+        let ast = Node {
+            value: Statement::Declaration {
+                var_type: Node {
+                    value: Type::I64,
+                    position: default_position(),
+                },
+                identifier: Node {
+                    value: String::from("x"),
+                    position: default_position(),
+                },
+                value: Some(Node {
+                    value: Expression::FunctionCall {
+                        identifier: Node {
+                            value: String::from("print"),
+                            position: default_position(),
+                        },
+                        arguments: vec![Box::new(Node {
+                            value: Argument {
+                                value: Node {
+                                    value: Expression::Literal(Literal::String(String::from(
+                                        "hello world",
+                                    ))),
+                                    position: default_position(),
+                                },
+                                passed_by: PassedBy::Value,
+                            },
+                            position: default_position(),
+                        })],
+                    },
+                    position: default_position(),
+                }),
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+        assert!(interpreter.visit_statement(&ast).is_err());
+    }
+
+    #[test]
+    fn assigns_to_variable() {
+        // i64 x = 0;
+        // x = 5;
+        let ast = Node {
+            value: Statement::Assignment {
+                identifier: Node {
+                    value: String::from("x"),
+                    position: default_position(),
+                },
+                value: Node {
+                    value: Expression::Literal(Literal::I64(1)),
+                    position: default_position(),
+                },
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("x"), Value::I64(0));
+
+        assert!(interpreter.visit_statement(&ast).is_ok());
+        assert!(
+            interpreter
+                .stack
+                .get_variable(String::from("x"))
+                .unwrap()
+                .clone()
+                == Value::I64(1)
+        );
+    }
+
+    #[test]
+    fn assigns_bad_type_fails() {
+        // i64 x = 0;
+        // x = false;
+        let ast = Node {
+            value: Statement::Assignment {
+                identifier: Node {
+                    value: String::from("x"),
+                    position: default_position(),
+                },
+                value: Node {
+                    value: Expression::Literal(Literal::False),
+                    position: default_position(),
+                },
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("x"), Value::I64(0));
+
+        assert!(interpreter.visit_statement(&ast).is_err());
+    }
+
+    #[test]
+    fn assign_with_none_value_fails() {
+        // x = print("hello world");
+        let ast = Node {
+            value: Statement::Assignment {
+                identifier: Node {
+                    value: String::from("x"),
+                    position: default_position(),
+                },
+                value: Node {
+                    value: Expression::FunctionCall {
+                        identifier: Node {
+                            value: String::from("print"),
+                            position: default_position(),
+                        },
+                        arguments: vec![Box::new(Node {
+                            value: Argument {
+                                value: Node {
+                                    value: Expression::Literal(Literal::String(String::from(
+                                        "hello world",
+                                    ))),
+                                    position: default_position(),
+                                },
+                                passed_by: PassedBy::Value,
+                            },
+                            position: default_position(),
+                        })],
+                    },
+                    position: default_position(),
+                },
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("x"), Value::I64(0));
+
+        assert!(interpreter.visit_statement(&ast).is_err());
+    }
 }
