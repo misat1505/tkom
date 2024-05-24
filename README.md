@@ -43,12 +43,12 @@ Język silnie i statycznie typowany. Wszystkie zmienne są mutowalne. Argumenty 
 **function_declaration** = “fn”, identifier, "(", parameters, ")", “:”, type | “void”, statement_block;
 
 ```
-fn do_sth(&i64 x, i64 y=0): void {}
+fn do_sth(&i64 x, i64 y): void {}
 ```
 
 **parameters** = [ parameter, { ",", parameter } ];
 
-**parameter** = [“&”], type, identifier, [ "=", expression ];
+**parameter** = [“&”], type, identifier;
 
 **statement_block** = "{", {statement}, "}";
 

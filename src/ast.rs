@@ -131,7 +131,6 @@ pub struct Parameter {
     pub passed_by: PassedBy,
     pub parameter_type: Node<Type>,
     pub identifier: Node<String>,
-    pub value: Option<Node<Expression>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

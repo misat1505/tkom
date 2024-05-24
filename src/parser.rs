@@ -203,16 +203,11 @@ impl<L: ILexer> Parser<L> {
                 ))
             }
         };
-        let value = match self.consume_if_matches(TokenCategory::Assign)? {
-            Some(_) => self.parse_expression()?,
-            None => None,
-        };
         let node = Node {
             value: Parameter {
                 passed_by,
                 parameter_type,
                 identifier,
-                value,
             },
             position,
         };
@@ -1580,7 +1575,6 @@ mod tests {
                         value: "x".to_owned(),
                         position: default_position(),
                     },
-                    value: None,
                 },
                 position: default_position(),
             }],
@@ -1596,7 +1590,6 @@ mod tests {
                             value: "x".to_owned(),
                             position: default_position(),
                         },
-                        value: None,
                     },
                     position: default_position(),
                 },
@@ -1611,7 +1604,6 @@ mod tests {
                             value: "y".to_owned(),
                             position: default_position(),
                         },
-                        value: None,
                     },
                     position: default_position(),
                 },
@@ -1664,10 +1656,6 @@ mod tests {
                     value: "x".to_owned(),
                     position: default_position(),
                 },
-                value: Some(Node {
-                    value: Expression::Literal(Literal::I64(0)),
-                    position: default_position(),
-                }),
             },
             Parameter {
                 passed_by: PassedBy::Value,
@@ -1679,7 +1667,6 @@ mod tests {
                     value: "x".to_owned(),
                     position: default_position(),
                 },
-                value: None,
             },
         ];
 
