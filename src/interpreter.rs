@@ -1306,4 +1306,155 @@ mod tests {
 
         assert!(interpreter.visit_statement(&ast).is_err());
     }
+
+    #[test]
+    fn if_true_branch() {
+        // i64 x = 0;
+        // if (true) {x = 1;} else {x = 2;}
+        let ast = Node {
+            value: Statement::Conditional {
+                condition: Node {
+                    value: Expression::Literal(Literal::True),
+                    position: default_position(),
+                },
+                if_block: Node {
+                    value: Block(vec![Node {
+                        value: Statement::Assignment {
+                            identifier: Node {
+                                value: String::from("x"),
+                                position: default_position(),
+                            },
+                            value: Node {
+                                value: Expression::Literal(Literal::I64(1)),
+                                position: default_position(),
+                            },
+                        },
+                        position: default_position(),
+                    }]),
+                    position: default_position(),
+                },
+                else_block: Some(Node {
+                    value: Block(vec![Node {
+                        value: Statement::Assignment {
+                            identifier: Node {
+                                value: String::from("x"),
+                                position: default_position(),
+                            },
+                            value: Node {
+                                value: Expression::Literal(Literal::I64(2)),
+                                position: default_position(),
+                            },
+                        },
+                        position: default_position(),
+                    }]),
+                    position: default_position(),
+                }),
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("x"), Value::I64(0));
+
+        assert!(interpreter.visit_statement(&ast).is_ok());
+        assert!(
+            interpreter
+                .stack
+                .get_variable(String::from("x"))
+                .unwrap()
+                .clone()
+                == Value::I64(1)
+        );
+    }
+
+    #[test]
+    fn if_false_branch() {
+        // i64 x = 0;
+        // if (true) {x = 1;} else {x = 2;}
+        let ast = Node {
+            value: Statement::Conditional {
+                condition: Node {
+                    value: Expression::Literal(Literal::False),
+                    position: default_position(),
+                },
+                if_block: Node {
+                    value: Block(vec![Node {
+                        value: Statement::Assignment {
+                            identifier: Node {
+                                value: String::from("x"),
+                                position: default_position(),
+                            },
+                            value: Node {
+                                value: Expression::Literal(Literal::I64(1)),
+                                position: default_position(),
+                            },
+                        },
+                        position: default_position(),
+                    }]),
+                    position: default_position(),
+                },
+                else_block: Some(Node {
+                    value: Block(vec![Node {
+                        value: Statement::Assignment {
+                            identifier: Node {
+                                value: String::from("x"),
+                                position: default_position(),
+                            },
+                            value: Node {
+                                value: Expression::Literal(Literal::I64(2)),
+                                position: default_position(),
+                            },
+                        },
+                        position: default_position(),
+                    }]),
+                    position: default_position(),
+                }),
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("x"), Value::I64(0));
+
+        assert!(interpreter.visit_statement(&ast).is_ok());
+        assert!(
+            interpreter
+                .stack
+                .get_variable(String::from("x"))
+                .unwrap()
+                .clone()
+                == Value::I64(2)
+        );
+    }
+
+    #[test]
+    fn if_bad_condition_type_fails() {
+        // i64 x = 0;
+        // if (2137) {}
+        let ast = Node {
+            value: Statement::Conditional {
+                condition: Node {
+                    value: Expression::Literal(Literal::I64(2137)),
+                    position: default_position(),
+                },
+                if_block: Node {
+                    value: Block(vec![]),
+                    position: default_position(),
+                },
+                else_block: None,
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("x"), Value::I64(0));
+
+        assert!(interpreter.visit_statement(&ast).is_err());
+    }
 }
