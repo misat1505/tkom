@@ -1457,4 +1457,222 @@ mod tests {
 
         assert!(interpreter.visit_statement(&ast).is_err());
     }
+
+    #[test]
+    fn for_loop() {
+        // i64 total = 0;
+        // for (i64 i = 1; i <= 5; i = i + 1) {total = total + i;}
+        let ast = Node {
+            value: Statement::ForLoop {
+                declaration: Some(Box::new(Node {
+                    value: Statement::Declaration {
+                        var_type: Node {
+                            value: Type::I64,
+                            position: default_position(),
+                        },
+                        identifier: Node {
+                            value: String::from("i"),
+                            position: default_position(),
+                        },
+                        value: Some(Node {
+                            value: Expression::Literal(Literal::I64(1)),
+                            position: default_position(),
+                        }),
+                    },
+                    position: default_position(),
+                })),
+                condition: Node {
+                    value: Expression::LessEqual(
+                        Box::new(Node {
+                            value: Expression::Variable(String::from("i")),
+                            position: default_position(),
+                        }),
+                        Box::new(Node {
+                            value: Expression::Literal(Literal::I64(5)),
+                            position: default_position(),
+                        }),
+                    ),
+                    position: default_position(),
+                },
+                assignment: Some(Box::new(Node {
+                    value: Statement::Assignment {
+                        identifier: Node {
+                            value: String::from("i"),
+                            position: default_position(),
+                        },
+                        value: Node {
+                            value: Expression::Addition(
+                                Box::new(Node {
+                                    value: Expression::Variable(String::from("i")),
+                                    position: default_position(),
+                                }),
+                                Box::new(Node {
+                                    value: Expression::Literal(Literal::I64(1)),
+                                    position: default_position(),
+                                }),
+                            ),
+                            position: default_position(),
+                        },
+                    },
+                    position: default_position(),
+                })),
+                block: Node {
+                    value: Block(vec![Node {
+                        value: Statement::Assignment {
+                            identifier: Node {
+                                value: String::from("total"),
+                                position: default_position(),
+                            },
+                            value: Node {
+                                value: Expression::Addition(
+                                    Box::new(Node {
+                                        value: Expression::Variable(String::from("total")),
+                                        position: default_position(),
+                                    }),
+                                    Box::new(Node {
+                                        value: Expression::Variable(String::from("i")),
+                                        position: default_position(),
+                                    }),
+                                ),
+                                position: default_position(),
+                            },
+                        },
+                        position: default_position(),
+                    }]),
+                    position: default_position(),
+                },
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("total"), Value::I64(0));
+
+        assert!(interpreter.visit_statement(&ast).is_ok());
+        assert!(
+            interpreter
+                .stack
+                .get_variable(String::from("total"))
+                .unwrap()
+                .clone()
+                == Value::I64(15)
+        );
+    }
+
+    #[test]
+    fn for_loop_second_variant() {
+        // i64 total = 0;
+        // i64 i = 1;
+        // for (;i <= 5;) {total = total + i; i = i + 1}
+        let ast = Node {
+            value: Statement::ForLoop {
+                declaration: None,
+                condition: Node {
+                    value: Expression::LessEqual(
+                        Box::new(Node {
+                            value: Expression::Variable(String::from("i")),
+                            position: default_position(),
+                        }),
+                        Box::new(Node {
+                            value: Expression::Literal(Literal::I64(5)),
+                            position: default_position(),
+                        }),
+                    ),
+                    position: default_position(),
+                },
+                assignment: None,
+                block: Node {
+                    value: Block(vec![Node {
+                        value: Statement::Assignment {
+                            identifier: Node {
+                                value: String::from("total"),
+                                position: default_position(),
+                            },
+                            value: Node {
+                                value: Expression::Addition(
+                                    Box::new(Node {
+                                        value: Expression::Variable(String::from("total")),
+                                        position: default_position(),
+                                    }),
+                                    Box::new(Node {
+                                        value: Expression::Variable(String::from("i")),
+                                        position: default_position(),
+                                    }),
+                                ),
+                                position: default_position(),
+                            },
+                        },
+                        position: default_position(),
+                    }, Node {
+                        value: Statement::Assignment {
+                            identifier: Node {
+                                value: String::from("i"),
+                                position: default_position(),
+                            },
+                            value: Node {
+                                value: Expression::Addition(
+                                    Box::new(Node {
+                                        value: Expression::Variable(String::from("i")),
+                                        position: default_position(),
+                                    }),
+                                    Box::new(Node {
+                                        value: Expression::Literal(Literal::I64(1)),
+                                        position: default_position(),
+                                    }),
+                                ),
+                                position: default_position(),
+                            },
+                        },
+                        position: default_position(),
+                    }]),
+                    position: default_position(),
+                },
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("total"), Value::I64(0));
+        let _ = interpreter
+            .stack
+            .declare_variable(String::from("i"), Value::I64(1));
+
+        assert!(interpreter.visit_statement(&ast).is_ok());
+        assert!(
+            interpreter
+                .stack
+                .get_variable(String::from("total"))
+                .unwrap()
+                .clone()
+                == Value::I64(15)
+        );
+    }
+
+    #[test]
+    fn for_loop_bad_condition_type() {
+        // for (;1;) {}
+        let ast = Node {
+            value: Statement::ForLoop {
+                declaration: None,
+                condition: Node {
+                    value: Expression::Literal(Literal::I64(1)),
+                    position: default_position(),
+                },
+                assignment: None,
+                block: Node {
+                    value: Block(vec![]),
+                    position: default_position(),
+                },
+            },
+            position: default_position(),
+        };
+
+        let mut interpreter = create_interpreter();
+
+        assert!(interpreter.visit_statement(&ast).is_err());
+    }
 }
