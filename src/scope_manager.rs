@@ -80,6 +80,7 @@ impl ScopeManager {
         }
     }
 
+    #[allow(dead_code)]
     pub fn len(&self) -> u32 {
         self.scopes.len() as u32
     }

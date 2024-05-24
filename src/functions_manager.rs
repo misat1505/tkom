@@ -51,3 +51,67 @@ impl FunctionsManager {
         std_functions
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        ast::{Block, Type},
+        lazy_stream_reader::Position,
+    };
+
+    use super::*;
+
+    fn default_position() -> Position {
+        Position {
+            line: 0,
+            column: 0,
+            offset: 0,
+        }
+    }
+
+    fn create_function_ast(name: &str) -> Node<Statement> {
+        Node {
+            value: Statement::FunctionDeclaration {
+                identifier: Node {
+                    value: String::from(name),
+                    position: default_position(),
+                },
+                parameters: vec![],
+                return_type: Node {
+                    value: Type::Void,
+                    position: default_position(),
+                },
+                block: Node {
+                    value: Block(vec![]),
+                    position: default_position(),
+                },
+            },
+            position: default_position(),
+        }
+    }
+
+    #[test]
+    fn inserts_new_function() {
+        let program = Program {
+            statements: vec![create_function_ast("my_func")],
+        };
+        let manager = FunctionsManager::new(&program).unwrap();
+        assert!(manager.functions.get(&String::from("my_func")).unwrap().clone() == create_function_ast("my_func"));
+    }
+
+    #[test]
+    fn doesnt_allow_overwriting_defined_functions() {
+        let program = Program {
+            statements: vec![create_function_ast("my_func"), create_function_ast("my_func")],
+        };
+        assert!(FunctionsManager::new(&program).is_err());
+    }
+
+    #[test]
+    fn doesnt_allow_overwriting_std_functions() {
+        let program = Program {
+            statements: vec![create_function_ast("print")],
+        };
+        assert!(FunctionsManager::new(&program).is_err());
+    }
+}

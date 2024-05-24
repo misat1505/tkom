@@ -116,9 +116,9 @@ impl Visitor for Interpreter {
             }
 
             self.visit_statement(&statement)?;
-            if self.is_breaking && self.stack.is_last_scope() {
+            if self.is_breaking {
                 return Err(Box::new(InterpreterIssue {
-                    message: format!("Break called outside for or switch.\nAt {:?}.", self.position),
+                    message: format!("Break called outside 'for' or 'switch'.\nAt {:?}.", self.position),
                 }));
             }
 
@@ -357,15 +357,10 @@ impl Visitor for Interpreter {
     fn visit_block(&mut self, block: &Node<Block>) -> Result<(), Box<dyn Issue>> {
         self.stack.push_scope();
         for statement in &block.value.0 {
-            if self.is_breaking && self.stack.is_last_scope() {
-                return Err(Box::new(InterpreterIssue {
-                    message: format!("Break called outside 'for' or 'switch'.\nAt {:?}.", self.position),
-                }));
-            }
-
             if self.is_breaking || self.is_returning {
                 break;
             }
+
             self.visit_statement(statement)?;
         }
         self.stack.pop_scope();
@@ -546,7 +541,7 @@ impl Interpreter {
                 }
 
                 self.visit_statement(&statement)?;
-                if self.is_breaking && self.stack.0.get(self.stack.0.len() - 1).unwrap().scope_manager.len() == 1 {
+                if self.is_breaking {
                     return Err(Box::new(InterpreterIssue {
                         message: format!("Break called outside 'for' or 'switch'.\nAt {:?}.", self.position),
                     }));
