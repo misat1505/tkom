@@ -13,7 +13,7 @@ fn sum(i64 x): i64 {
   return x + sum(x - 1);
 }
 
-i64 x = max(3, 6);
+i64 x = max(8, 6);
 print("The sum of " + x as str + " first integers is " + sum(x) as str + ".");
 f64 b = (2 + 2.1 as i64) as f64;
 print(b as str);

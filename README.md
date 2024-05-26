@@ -26,7 +26,7 @@ Język silnie i statycznie typowany. Wszystkie zmienne są mutowalne. Argumenty 
     - i64 i f64 mogą być castowane na siebie nawzajem, na stringa i na boolean (jeżeli są <= 0 to będzie false inaczej prawda)
     - string może być castowany na i64 i na f64, ze zgłoszeniem błędów, oraz na boolean (pusty string oznacza false inaczej true)
 11. Funkcje wbudowane:
-    - print(...): wypisuje argumenty na standardowe wyjście wraz ze znakiem końca linii
+    - print(...): wypisuje string na standardowe wyjście wraz ze znakiem końca linii
 
 ## Gramatyka
 
@@ -389,7 +389,8 @@ add(2, 2);
 fn print_int(&i64 x): void {
     print(x as str);
 }
-print_int(&2);
+i64 a = 5;
+print_int(&a);
 
 fn sum_up_to(i64 x): i64 {
     if (x == 0) {return 0;}			# rekurencja

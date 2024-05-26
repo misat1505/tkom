@@ -559,7 +559,7 @@ impl Interpreter {
                     return Err(Box::new(InterpreterIssue {
                         message: format!(
                             "Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.\nAt {:?}.",
-                            name, exp, res, self.position
+                            name, exp, res.unwrap().to_type(), self.position
                         ),
                     }))
                 }
