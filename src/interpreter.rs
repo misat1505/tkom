@@ -24,7 +24,7 @@ impl Issue for InterpreterIssue {
 pub struct Interpreter {
     program: Program,
     functions_manager: FunctionsManager,
-    stack: Stack,
+    pub stack: Stack,
     last_result: Option<Value>,
     is_breaking: bool,
     is_returning: bool,
@@ -144,8 +144,8 @@ impl Visitor for Interpreter {
                     }
                     Err(mut err) => {
                         err.message = format!("{}\nAt: {:?}", err.message, self.position);
-                        return Err(Box::new(err))
-                    },
+                        return Err(Box::new(err));
+                    }
                 }
             }
             Expression::BooleanNegation(value) => self.evaluate_unary_op(value, ALU::boolean_negate)?,
@@ -330,7 +330,7 @@ impl Visitor for Interpreter {
                     if self.is_returning {
                         break;
                     }
-                    
+
                     if self.is_breaking {
                         self.is_breaking = false;
                         break;
@@ -566,7 +566,10 @@ impl Interpreter {
                     return Err(Box::new(InterpreterIssue {
                         message: format!(
                             "Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.\nAt {:?}.",
-                            name, exp, res.unwrap().to_type(), self.position
+                            name,
+                            exp,
+                            res.unwrap().to_type(),
+                            self.position
                         ),
                     }))
                 }
