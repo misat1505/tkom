@@ -4,7 +4,8 @@ Język silnie i statycznie typowany. Wszystkie zmienne są mutowalne. Argumenty 
 
 1. Funkcje:
    - Język obsługuje definicje funkcji.
-   - Funkcje mogą przyjmować parametry i zwracać wartości określonego typu.
+   - Funkcje mogą przyjmować parametry przez wartość i referencję
+   - Funkcje mogą zwracać wartość określonego typu (możliwość funkcji nic nie zwracającej).
 2. Obsługiwane typy danych:
    - i64 (liczby całkowite), f64 (liczby zmiennoprzecinkowe), str (łańcuchy znaków), bool (prawda / fałsz).
    - void (brak zwracanej wartości z funkcji)
@@ -13,10 +14,11 @@ Język silnie i statycznie typowany. Wszystkie zmienne są mutowalne. Argumenty 
 4. Pętle:
    - Pętla for, w której iterator nie musi być definiowany ani aktualizowany.
 5. Instrukcje Kontroli Przepływu:
-   - Instrukcja break są używane do przerwania wykonania pętli lub bloku instrukcji.
+   - Instrukcja break są używane do przerwania wykonania pętli lub bloku switch.
 6. Instrukcje Wyboru:
    - Instrukcje switch pozwalają na wielokrotne rozgałęzianie programu w zależności od różnych warunków.
    - Wykonywany jest każdy blok instrukcji pod spełnionym warunkiem, chyba że w którymś poprzednim był break
+   - Możliwa jest deklaracja zmiennej widzialnej w bloku switch
 7. Rekurencja: Język wspiera rekurencję.
 8. Operacje na Zmiennych:
    - Dostępne są operacje przypisania (=), operatory arytmetyczne (+, -, \*, /), porównania (==, <, <=, >, >=, !=), oraz operatory logiczne (np. !=).
@@ -26,7 +28,9 @@ Język silnie i statycznie typowany. Wszystkie zmienne są mutowalne. Argumenty 
     - i64 i f64 mogą być castowane na siebie nawzajem, na stringa i na boolean (jeżeli są <= 0 to będzie false inaczej prawda)
     - string może być castowany na i64 i na f64, ze zgłoszeniem błędów, oraz na boolean (pusty string oznacza false inaczej true)
 11. Funkcje wbudowane:
-    - print(...): wypisuje string na standardowe wyjście wraz ze znakiem końca linii
+    - print(text): wypisuje string na standardowe wyjście wraz ze znakiem końca linii
+    - input(text): wypisuje string na standardowe wyjście i oczekuje na wprowadzenie tekstu od użytkownika, zwraca string
+    - mod(a, b): przyjmuje dwie liczyb i zwraca wartość a % b
 
 ## Gramatyka
 
@@ -414,7 +418,9 @@ switch (x: temp1, y: temp2) {
 
 ## Funkcje wbudowane
 
-1. print(...) - wyświetla tekst na standardowe wyjście wraz ze znakiem końca linii
+1. print(text) - wyświetla tekst na standardowe wyjście wraz ze znakiem końca linii
+2. input(text): wypisuje string na standardowe wyjście i oczekuje na wprowadzenie tekstu od użytkownika, zwraca string
+3. mod(a, b): przyjmuje dwie liczyb i zwraca wartość a % b
 
 ## Obsługa błędów
 
