@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::
-        io::BufReader
-    ;
+    use std::io::BufReader;
 
     use crate::{
         errors::Issue,
@@ -10,7 +8,8 @@ mod tests {
         lazy_stream_reader::LazyStreamReader,
         lexer::{Lexer, LexerOptions},
         parser::{IParser, Parser},
-        semantic_checker::SemanticChecker, value::Value,
+        semantic_checker::SemanticChecker,
+        value::Value,
     };
 
     fn on_warning(_err: Box<dyn Issue>) {}
@@ -158,5 +157,32 @@ mod tests {
         interpreter.interpret().unwrap();
         assert!(interpreter.stack.get_variable(String::from("is_5")).unwrap().clone() == Value::Bool(true));
         assert!(interpreter.stack.get_variable(String::from("is_6")).unwrap().clone() == Value::Bool(false));
+    }
+
+    #[test]
+    fn pattern_matching() {
+        let text = BufReader::new(
+            r#"
+    str text;
+    i64 x = 10;
+    switch (x) {
+      (x > 0) -> {
+        text = ">0";
+      }
+      (x > 1) -> {
+        text = ">1";
+        break;
+      }
+      (x > 2) -> {
+        text = ">2";
+      }
+    }
+    "#
+            .as_bytes(),
+        );
+
+        let mut interpreter = before_each(text);
+        interpreter.interpret().unwrap();
+        assert!(interpreter.stack.get_variable(String::from("text")).unwrap().clone() == Value::String(String::from(">1")));
     }
 }
