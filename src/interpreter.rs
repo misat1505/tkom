@@ -324,6 +324,10 @@ impl Visitor for Interpreter {
                 }
                 for case in cases {
                     self.visit_switch_case(&case)?;
+                    if self.is_returning {
+                        break;
+                    }
+                    
                     if self.is_breaking {
                         self.is_breaking = false;
                         break;

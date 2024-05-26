@@ -32,3 +32,16 @@ fn calc(i64 x): i64 {
 
 i64 g = 6;
 print("calc(" + g as str + ") = " + calc(g) as str + ".");
+
+fn switch_test(i64 x): str {
+  switch (x) {
+    (x < 10) -> {
+      return "Less than 10.";
+    }
+    (x < 5) -> {
+      return "Less than 5.";
+    }
+  }
+}
+
+print(switch_test(6));
