@@ -142,7 +142,10 @@ impl Visitor for Interpreter {
                         self.last_result = Some(val);
                         return Ok(());
                     }
-                    Err(err) => return Err(Box::new(err)),
+                    Err(mut err) => {
+                        err.message = format!("{}\nAt: {:?}", err.message, self.position);
+                        return Err(Box::new(err))
+                    },
                 }
             }
             Expression::BooleanNegation(value) => self.evaluate_unary_op(value, ALU::boolean_negate)?,

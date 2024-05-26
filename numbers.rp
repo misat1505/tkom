@@ -1,0 +1,11 @@
+switch (input("Pick a number: ") as i64: x) {
+  (x < 0) -> {
+    print("Negative");
+  }
+  (x == 0) -> {
+    print("Zero");
+  }
+  (x > 0) -> {
+    print("Positive");
+  }
+}
