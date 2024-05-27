@@ -1,5 +1,9 @@
+use std::collections::HashMap;
+
 use crate::{
-    ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
+    ast::{
+        Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
+    },
     errors::{Issue, IssueLevel, ParserIssue},
     lexer::ILexer,
     tokens::{Token, TokenCategory, TokenValue},
@@ -25,14 +29,27 @@ impl<L: ILexer> IParser<L> for Parser<L> {
         let _ = self.next_token()?; // skip STX
 
         let mut statements: Vec<Node<Statement>> = vec![];
+        let mut functions: HashMap<String, Node<FunctionDeclaration>> = HashMap::new();
 
-        while let Some(statement) = self.parse_program_statement()? {
-            statements.push(statement);
+        loop {
+            if let Some(statement) = self.parse_program_statement()? {
+                statements.push(statement);
+            } else if let Some(function_declaration) = self.parse_function_declaration()? {
+                if let Some(func) = functions.get(&function_declaration.value.identifier.value) {
+                    return Err(Box::new(ParserIssue {
+                        level: IssueLevel::ERROR,
+                        message: format!("Redeclaration of function '{}'.", func.value.identifier.value.clone()),
+                    }));
+                }
+                functions.insert(function_declaration.value.identifier.value.clone(), function_declaration);
+            } else {
+                break;
+            }
         }
 
         self.consume_must_be(TokenCategory::ETX)?;
 
-        let program = Program { statements };
+        let program = Program { statements, functions };
         Ok(program)
     }
 }
@@ -72,10 +89,9 @@ impl<L: ILexer> Parser<L> {
     }
 
     fn parse_program_statement(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
-        // program = { function_declaration | assign_or_call | if_statement | for_statement | switch_statement | declaration, ";" };
+        // program = { assign_or_call | if_statement | for_statement | switch_statement | declaration, ";" };
         let generators = [
             Self::parse_assign_or_call,
-            Self::parse_function_declaration,
             Self::parse_if_statement,
             Self::parse_for_statement,
             Self::parse_switch_statement,
@@ -106,7 +122,7 @@ impl<L: ILexer> Parser<L> {
         }
     }
 
-    fn parse_function_declaration(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
+    fn parse_function_declaration(&mut self) -> Result<Option<Node<FunctionDeclaration>>, Box<dyn Issue>> {
         // function_declaration = “fn”, identifier, "(", parameters, ")", “:”, type | “void”, statement_block;
         let fn_token = match self.consume_must_be(TokenCategory::Fn) {
             Ok(t) => t,
@@ -133,7 +149,7 @@ impl<L: ILexer> Parser<L> {
             None => return Err(self.create_parser_error("Couldn't create statement block while parsing function declaration.".to_owned())),
         };
         let node = Node {
-            value: Statement::FunctionDeclaration {
+            value: FunctionDeclaration {
                 identifier,
                 parameters,
                 return_type,
@@ -1284,7 +1300,7 @@ mod tests {
         ];
 
         let expected = [
-            Statement::FunctionDeclaration {
+            FunctionDeclaration {
                 identifier: Node {
                     value: "add".to_owned(),
                     position: default_position(),
@@ -1299,7 +1315,7 @@ mod tests {
                     position: default_position(),
                 },
             },
-            Statement::FunctionDeclaration {
+            FunctionDeclaration {
                 identifier: Node {
                     value: "add".to_owned(),
                     position: default_position(),

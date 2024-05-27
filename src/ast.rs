@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
 use crate::lazy_stream_reader::Position;
 
@@ -98,12 +98,6 @@ pub struct Argument {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
-    FunctionDeclaration {
-        identifier: Node<String>,
-        parameters: Vec<Node<Parameter>>,
-        return_type: Node<Type>,
-        block: Node<Block>,
-    },
     FunctionCall {
         identifier: Node<String>,
         arguments: Vec<BNode<Argument>>,
@@ -159,6 +153,15 @@ pub struct SwitchCase {
 pub struct Block(pub Vec<Node<Statement>>);
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct FunctionDeclaration {
+    pub identifier: Node<String>,
+    pub parameters: Vec<Node<Parameter>>,
+    pub return_type: Node<Type>,
+    pub block: Node<Block>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Program {
     pub statements: Vec<Node<Statement>>,
+    pub functions: HashMap<String, Node<FunctionDeclaration>>,
 }

@@ -1,5 +1,7 @@
 use crate::{
-    ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
+    ast::{
+        Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
+    },
     errors::Issue,
     functions_manager::FunctionsManager,
     lazy_stream_reader::Position,
@@ -111,9 +113,9 @@ impl Interpreter {
 impl Visitor for Interpreter {
     fn visit_program(&mut self, program: &Program) -> Result<(), Box<dyn Issue>> {
         for statement in &program.statements {
-            if let Statement::FunctionDeclaration { .. } = statement.value {
-                continue;
-            }
+            // if let Statement::FunctionDeclaration { .. } = statement.value {
+            //     continue;
+            // }
 
             self.visit_statement(&statement)?;
             if self.is_breaking {
@@ -172,7 +174,7 @@ impl Visitor for Interpreter {
     fn visit_statement(&mut self, statement: &Node<Statement>) -> Result<(), Box<dyn Issue>> {
         self.position = statement.position;
         match &statement.value {
-            Statement::FunctionDeclaration { .. } => self.execute_function(&statement.value)?,
+            // Statement::FunctionDeclaration { .. } => self.execute_function(&statement.value)?,
             Statement::FunctionCall { identifier, arguments } => self.call_function(identifier, arguments)?,
             Statement::Declaration { var_type, identifier, value } => {
                 self.visit_type(&var_type)?;
@@ -468,8 +470,9 @@ impl Interpreter {
             }
         }
 
-        if let Some(function_declaration) = self.functions_manager.functions.get(&name).cloned() {
-            self.visit_statement(&function_declaration)?;
+        if let Some(function_declaration) = self.program.functions.get(&name).cloned() {
+            // self.visit_statement(&function_declaration)?;
+            self.execute_function(&function_declaration.value)?;
         }
 
         // update these passed by reference
@@ -497,101 +500,111 @@ impl Interpreter {
         Ok(())
     }
 
-    fn execute_function(&mut self, function_declaration: &Statement) -> Result<(), Box<dyn Issue>> {
-        if let Statement::FunctionDeclaration {
-            identifier,
-            parameters,
-            return_type,
-            block,
-        } = function_declaration
-        {
-            let name = identifier.value.clone();
-            let statements = &block.value.0;
-            if let Err(err) = self.stack.push_stack_frame() {
-                return Err(Box::new(err));
-            };
+    fn execute_function(&mut self, function_declaration: &FunctionDeclaration) -> Result<(), Box<dyn Issue>> {
+        // if let Statement::FunctionDeclaration {
+        //     identifier,
+        //     parameters,
+        //     return_type,
+        //     block,
+        // } = function_declaration
 
-            // args
-            for idx in 0..self.last_arguments.len() {
-                let desired_type = parameters.get(idx).unwrap().value.parameter_type.value;
-                let param_name = parameters.get(idx).unwrap().value.identifier.value.clone();
-                let value = self.last_arguments.get(idx).unwrap().clone();
-                match (desired_type, value.clone()) {
-                    (Type::Bool, Value::Bool(_)) | (Type::F64, Value::F64(_)) | (Type::I64, Value::I64(_)) | (Type::Str, Value::String(_)) => {}
-                    (des, got) => {
-                        return Err(Box::new(InterpreterIssue {
-                            message: format!(
-                                "Function '{}' expected '{:?}', but got '{:?}'.\nAt {:?}.",
-                                name,
-                                des,
-                                got.to_type(),
-                                self.position
-                            ),
-                        }))
-                    }
-                }
-                if let Err(mut err) = self.stack.declare_variable(param_name, value) {
-                    err.message = format!("{}\nAt {:?}.", err.message, self.position);
-                    return Err(Box::new(err));
-                };
-            }
+        let name = function_declaration.identifier.value.clone();
+        let statements = &function_declaration.block.value.0;
+        if let Err(err) = self.stack.push_stack_frame() {
+            return Err(Box::new(err));
+        };
 
-            // execute
-            for statement in statements {
-                if self.is_returning {
-                    self.is_returning = false;
-                    break;
-                }
-
-                if let Statement::FunctionDeclaration { .. } = statement.value {
-                    continue;
-                }
-
-                self.visit_statement(&statement)?;
-                if self.is_breaking {
-                    return Err(Box::new(InterpreterIssue {
-                        message: format!("Break called outside 'for' or 'switch'.\nAt {:?}.", self.position),
-                    }));
-                }
-            }
-
-            // check return type
-            match (self.last_result.clone(), return_type.value) {
-                (None, Type::Void)
-                | (Some(Value::I64(_)), Type::I64)
-                | (Some(Value::F64(_)), Type::F64)
-                | (Some(Value::String(_)), Type::Str)
-                | (Some(Value::Bool(_)), Type::Bool) => {}
-                (res, exp) => {
+        // args
+        for idx in 0..self.last_arguments.len() {
+            let desired_type = function_declaration.parameters.get(idx).unwrap().value.parameter_type.value;
+            let param_name = function_declaration.parameters.get(idx).unwrap().value.identifier.value.clone();
+            let value = self.last_arguments.get(idx).unwrap().clone();
+            match (desired_type, value.clone()) {
+                (Type::Bool, Value::Bool(_)) | (Type::F64, Value::F64(_)) | (Type::I64, Value::I64(_)) | (Type::Str, Value::String(_)) => {}
+                (des, got) => {
                     return Err(Box::new(InterpreterIssue {
                         message: format!(
-                            "Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.\nAt {:?}.",
+                            "Function '{}' expected '{:?}', but got '{:?}'.\nAt {:?}.",
                             name,
-                            exp,
-                            res.unwrap().to_type(),
+                            des,
+                            got.to_type(),
                             self.position
                         ),
                     }))
                 }
             }
+            if let Err(mut err) = self.stack.declare_variable(param_name, value) {
+                err.message = format!("{}\nAt {:?}.", err.message, self.position);
+                return Err(Box::new(err));
+            };
+        }
 
-            // for reference
-            let mut returned_arguments: Vec<Value> = vec![];
-            for parameter in parameters {
-                let param_name = parameter.value.identifier.value.clone();
-                returned_arguments.push(self.stack.get_variable(param_name).unwrap().clone());
+        // execute
+        for statement in statements {
+            if self.is_returning {
+                self.is_returning = false;
+                break;
             }
 
-            self.returned_arguments = returned_arguments;
+            // if let Statement::FunctionDeclaration { .. } = statement.value {
+            //     continue;
+            // }
 
-            self.stack.pop_stack_frame();
+            self.visit_statement(&statement)?;
+
+            if self.is_breaking {
+                return Err(Box::new(InterpreterIssue {
+                    message: format!("Break called outside 'for' or 'switch'.\nAt {:?}.", self.position),
+                }));
+            }
         }
+
+        // self.visit_block(block)?;
+
+        // if self.is_breaking {
+        //     return Err(Box::new(InterpreterIssue {
+        //         message: format!("Break called outside 'for' or 'switch'.\nAt {:?}.", self.position),
+        //     }));
+        // }
+
+        // check return type
+        match (self.last_result.clone(), function_declaration.return_type.value) {
+            (None, Type::Void)
+            | (Some(Value::I64(_)), Type::I64)
+            | (Some(Value::F64(_)), Type::F64)
+            | (Some(Value::String(_)), Type::Str)
+            | (Some(Value::Bool(_)), Type::Bool) => {}
+            (res, exp) => {
+                return Err(Box::new(InterpreterIssue {
+                    message: format!(
+                        "Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.\nAt {:?}.",
+                        name, exp, res, self.position
+                    ),
+                }))
+            }
+        }
+
+        // for reference
+        let mut returned_arguments: Vec<Value> = vec![];
+        for parameter in &function_declaration.parameters {
+            let param_name = parameter.value.identifier.value.clone();
+            returned_arguments.push(self.stack.get_variable(param_name).unwrap().clone());
+        }
+
+        self.returned_arguments = returned_arguments;
+
+        self.stack.pop_stack_frame();
+
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use crate::ast::FunctionDeclaration;
+
     use super::*;
 
     fn default_position() -> Position {
@@ -603,13 +616,18 @@ mod tests {
     }
 
     fn create_interpreter() -> Interpreter {
-        Interpreter::new(Program { statements: vec![] })
+        Interpreter::new(Program {
+            statements: vec![],
+            functions: HashMap::new(),
+        })
     }
 
     fn create_interpreter_with_add_function() -> Interpreter {
-        Interpreter::new(Program {
-            statements: vec![Node {
-                value: Statement::FunctionDeclaration {
+        let mut functions: HashMap<String, Node<FunctionDeclaration>> = HashMap::new();
+        functions.insert(
+            String::from("add"),
+            Node {
+                value: FunctionDeclaration {
                     identifier: Node {
                         value: String::from("add"),
                         position: default_position(),
@@ -669,7 +687,12 @@ mod tests {
                     },
                 },
                 position: default_position(),
-            }],
+            },
+        );
+
+        Interpreter::new(Program {
+            statements: vec![],
+            functions,
         })
     }
 

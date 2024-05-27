@@ -1,6 +1,7 @@
 switch (input("Pick a number: ") as i64: x) {
-  (x < 0) -> {
+  (x <= 0) -> {
     print("Negative");
+    break;
   }
   (x == 0) -> {
     print("Zero");

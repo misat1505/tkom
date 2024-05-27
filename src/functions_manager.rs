@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    ast::{Node, Program, Statement},
+    ast::{FunctionDeclaration, Node, Program},
     errors::Issue,
     std_functions::StdFunction,
 };
@@ -19,24 +19,21 @@ impl Issue for FunctionManagerIssue {
 
 #[derive(Debug, Clone)]
 pub struct FunctionsManager {
-    pub functions: HashMap<String, Node<Statement>>,
+    pub functions: HashMap<String, Node<FunctionDeclaration>>,
     pub std_functions: HashMap<String, StdFunction>,
 }
 
 impl FunctionsManager {
     pub fn new(program: &Program) -> Result<Self, Box<dyn Issue>> {
         let std_functions = Self::init_std();
-        let mut functions: HashMap<String, Node<Statement>> = HashMap::new();
+        let functions = program.functions.clone();
 
-        for statement in &program.statements {
-            if let Statement::FunctionDeclaration { identifier, .. } = statement.value.clone() {
-                let function_name = &identifier.value;
-                if functions.contains_key(function_name) || std_functions.contains_key(function_name) {
-                    return Err(Box::new(FunctionManagerIssue {
-                        message: format!("Redeclaration of function '{}'.\nAt {:?}.\n", function_name, statement.position),
-                    }));
-                }
-                functions.insert(function_name.to_string(), statement.clone());
+        for (_, statement) in &program.functions {
+            let function_name = &statement.value.identifier.value;
+            if std_functions.contains_key(function_name) {
+                return Err(Box::new(FunctionManagerIssue {
+                    message: format!("Redeclaration of function '{}'.\nAt {:?}.\n", function_name, statement.position),
+                }));
             }
         }
 
@@ -69,9 +66,9 @@ mod tests {
         }
     }
 
-    fn create_function_ast(name: &str) -> Node<Statement> {
+    fn create_function_ast(name: &str) -> Node<FunctionDeclaration> {
         Node {
-            value: Statement::FunctionDeclaration {
+            value: FunctionDeclaration {
                 identifier: Node {
                     value: String::from(name),
                     position: default_position(),
@@ -92,26 +89,28 @@ mod tests {
 
     #[test]
     fn inserts_new_function() {
+        let mut functions: HashMap<String, Node<FunctionDeclaration>> = HashMap::new();
+        functions.insert(String::from("my_func"), create_function_ast("my_func"));
+
         let program = Program {
-            statements: vec![create_function_ast("my_func")],
+            statements: vec![],
+            functions,
         };
+
         let manager = FunctionsManager::new(&program).unwrap();
         assert!(manager.functions.get(&String::from("my_func")).unwrap().clone() == create_function_ast("my_func"));
     }
 
     #[test]
-    fn doesnt_allow_overwriting_defined_functions() {
-        let program = Program {
-            statements: vec![create_function_ast("my_func"), create_function_ast("my_func")],
-        };
-        assert!(FunctionsManager::new(&program).is_err());
-    }
-
-    #[test]
     fn doesnt_allow_overwriting_std_functions() {
+        let mut functions: HashMap<String, Node<FunctionDeclaration>> = HashMap::new();
+        functions.insert(String::from("print"), create_function_ast("print"));
+
         let program = Program {
-            statements: vec![create_function_ast("print")],
+            statements: vec![],
+            functions,
         };
+
         assert!(FunctionsManager::new(&program).is_err());
     }
 }
