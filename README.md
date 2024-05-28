@@ -528,8 +528,59 @@ cargo build --release
 
 ## Sposób realizacji
 
-Program będzie się składać z analizatora leksykalnego, składniowego i interpretera.
+Głównymi komponentami programu są analizator leksykalny, składniowy, semantyczny i interpreter.
+
+### Analizator leksykalny
+
+Lexer działa wraz z klasą LazyStreamReader. LazyStreamReader przyjmuje na swoje wejście źródło i oferuje 3 metody:
+
+- current() - zwraca obecny znak
+- next() - konsumuje 1 znak i go zwraca
+- position() - zwraca obecną pozycję
+
+Lexer pracuje w sposób leniwy - udostępnia metodę 'generate_token'. Odpytuje LazyStreamReader o kolejne znaki i na ich podstawie próbuje stworzyć token. Gdy nie uda mu się stworzyć tokenu z jakielkolwiek kategorii zgłasza błąd.
+
+### Analizator składniowy
+
+Głównym zadaniem parsera jest stworzenie drzewa rozbioru składniowego zgodnego z przyjętą gramatyką. Odpytuje on Lexer o kolejne tokeny poprzez 'generate_token'. Wynikiem jego działania jest drzewo programu podzielone na główne statementy programu, definicję funkcji uzytkownika i funckje wbudowane.
+
+### Analizator semantyczny
+
+Implementuje trait wizytatora, przechodząc wgłąb drzewa szuka wywołań funkcji i sprawdza czy są one poprawne. Jego działanie nie kończy się błędem, ale przechowuje on je w polu wewnątrz siebie.
+
+### Interpreter
+
+Interpreter implementuje trait wizytatora i wykonuje program. W celu komunikacji pomiędzy wizytacjami wprowadzono do interpretera następujące pola:
+
+- 'last_result' - przetrzymuje wyniki pośrednie obliczeń,
+- 'last_arguments' - przechowuje argumenty wywołania funkcji,
+- 'returned_arguments' - przechowuje wartości argumenty po wykonaniu się funkcji, w celu implementacji referencji.
+- flagi 'is_breaking' i 'is_returning', które są zapalane podczas odwiedzin break'a i return'a, a zgaszane zostają przy natrafieniu na konstrukcję umożliwiającą to.
+
+Interpreter współpracuje z klasą Stack, która przechowuje stos wywołań funkcji. Pojedyńczy StackFrame przechowuje instancję klasy ScopeManager'a, która jest również stosem, ale służy ona zarządzania zasięgiem zmiennych. Pojedyńcze pole w stosie ScopeManager'a (Scope) przechowuje HashMap'ę nazwa_zmiennej -> wartość. Wartości reprezentowane są przez enumerację Value, a operacje na nich wykonuje klasa ALU.
 
 ## Opis sposobu testowania
 
-Moduły wymienione w punktach wyżej będą przetestowane testami jednostkowymi, testy integracyjne na całość projektu
+1. Testy leksera
+
+   - Sprawdzenie czy poprawnie tworzone są tokeny.
+   - Sprawdzenie czy lekser reaguje odpowiednio na niepoprawne wejście.
+
+2. Testy parsera
+
+   - Sprawdzenie poprawności drzewa rozbioru.
+   - Sprawdzenie czy parser reaguje na błędy składniowe.
+
+3. Testy interpretera
+
+   - Sprawdzenie czy interpreter poprawnie reaguje na podane drzewa ast.
+
+4. Testy jednostkowe na:
+
+   - LazyStreamReader,
+   - ALU,
+   - Value,
+   - Scope i ScopeManager,
+   - Stack
+
+5. Testy integracyjne na całość projektu
