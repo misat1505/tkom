@@ -149,6 +149,10 @@ impl Visitor for SemanticChecker {
         for statement in program.statements.clone() {
             self.visit_statement(&statement);
         }
+
+        for (_, function) in program.functions.clone() {
+            self.visit_block(&function.value.block);
+        }
         Ok(())
     }
 
