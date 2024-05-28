@@ -3,10 +3,7 @@ use std::collections::HashMap;
 use crate::{
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
-    },
-    errors::{Issue, IssueLevel, ParserIssue},
-    lexer::ILexer,
-    tokens::{Token, TokenCategory, TokenValue},
+    }, errors::{Issue, IssueLevel, ParserIssue}, lexer::ILexer, std_functions::get_std_functions, tokens::{Token, TokenCategory, TokenValue}
 };
 
 pub struct Parser<L: ILexer> {
@@ -30,18 +27,20 @@ impl<L: ILexer> IParser<L> for Parser<L> {
 
         let mut statements: Vec<Node<Statement>> = vec![];
         let mut functions: HashMap<String, Node<FunctionDeclaration>> = HashMap::new();
+        let std_functions = get_std_functions();
 
         loop {
             if let Some(statement) = self.parse_program_statement()? {
                 statements.push(statement);
             } else if let Some(function_declaration) = self.parse_function_declaration()? {
-                if let Some(func) = functions.get(&function_declaration.value.identifier.value) {
+                let function_name = function_declaration.value.identifier.value.clone();
+                if functions.contains_key(&function_name) || std_functions.contains_key(&function_name) {
                     return Err(Box::new(ParserIssue {
                         level: IssueLevel::ERROR,
-                        message: format!("Redeclaration of function '{}'.", func.value.identifier.value.clone()),
+                        message: format!("Redeclaration of function '{}'.", function_name),
                     }));
                 }
-                functions.insert(function_declaration.value.identifier.value.clone(), function_declaration);
+                functions.insert(function_name, function_declaration);
             } else {
                 break;
             }
@@ -49,7 +48,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
 
         self.consume_must_be(TokenCategory::ETX)?;
 
-        let program = Program { statements, functions };
+        let program = Program { statements, functions, std_functions };
         Ok(program)
     }
 }

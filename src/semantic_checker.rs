@@ -1,7 +1,6 @@
 use crate::{
     ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
     errors::Issue,
-    functions_manager::FunctionsManager,
     visitor::Visitor,
 };
 
@@ -23,18 +22,15 @@ impl Issue for SemanticCheckerIssue {
 
 pub struct SemanticChecker {
     program: Program,
-    functions_manager: FunctionsManager,
     pub errors: Vec<SemanticCheckerIssue>,
 }
 
 impl SemanticChecker {
     #![allow(unused_must_use)]
     pub fn new(program: Program) -> Result<Self, Box<dyn Issue>> {
-        let functions_manager = FunctionsManager::new(&program)?;
         let errors: Vec<SemanticCheckerIssue> = vec![];
         Ok(Self {
             program,
-            functions_manager,
             errors,
         })
     }
@@ -56,7 +52,7 @@ impl SemanticChecker {
                 let name = &identifier.value;
 
                 // std function
-                if let Some(std_function) = self.functions_manager.std_functions.get(&String::from(name)) {
+                if let Some(std_function) = self.program.std_functions.get(&String::from(name)) {
                     if arguments.len() != std_function.params.len() {
                         self.errors.push(SemanticCheckerIssue {
                             message: format!(
@@ -87,8 +83,7 @@ impl SemanticChecker {
                 }
 
                 // user function
-                if let Some(function_declaration) = self.functions_manager.functions.get(&String::from(name)) {
-                    // if let FunctionDeclaration { parameters, .. } = &function_declaration.value {
+                if let Some(function_declaration) = self.program.functions.get(&String::from(name)) {
                     let parameters = &function_declaration.value.parameters;
                     if arguments.len() != parameters.len() {
                         self.errors.push(SemanticCheckerIssue {

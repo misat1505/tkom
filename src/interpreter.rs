@@ -3,7 +3,6 @@ use crate::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
     },
     errors::Issue,
-    functions_manager::FunctionsManager,
     lazy_stream_reader::Position,
     stack::Stack,
     std_functions::StdFunction,
@@ -25,7 +24,6 @@ impl Issue for InterpreterIssue {
 
 pub struct Interpreter {
     program: Program,
-    functions_manager: FunctionsManager,
     pub stack: Stack,
     last_result: Option<Value>,
     is_breaking: bool,
@@ -39,7 +37,6 @@ impl Interpreter {
     pub fn new(program: Program) -> Self {
         Interpreter {
             program: program.clone(),
-            functions_manager: FunctionsManager::new(&program).unwrap(),
             stack: Stack::new(),
             last_result: None,
             is_breaking: false,
@@ -464,15 +461,14 @@ impl Interpreter {
 
         self.last_arguments = args.clone();
 
-        if let Some(std_function) = self.functions_manager.std_functions.get(&name) {
+        if let Some(std_function) = self.program.std_functions.get(&name) {
             if let Some(return_value) = Self::execute_std_function(std_function, args.clone())? {
                 self.last_result = Some(return_value);
             }
         }
 
-        if let Some(function_declaration) = self.program.functions.get(&name).cloned() {
-            // self.visit_statement(&function_declaration)?;
-            self.execute_function(&function_declaration.value)?;
+        if let Some(function_declaration) = self.program.functions.get(&name) {
+            self.execute_function(&function_declaration.value.clone())?;
         }
 
         // update these passed by reference
@@ -501,13 +497,6 @@ impl Interpreter {
     }
 
     fn execute_function(&mut self, function_declaration: &FunctionDeclaration) -> Result<(), Box<dyn Issue>> {
-        // if let Statement::FunctionDeclaration {
-        //     identifier,
-        //     parameters,
-        //     return_type,
-        //     block,
-        // } = function_declaration
-
         let name = function_declaration.identifier.value.clone();
         let statements = &function_declaration.block.value.0;
         if let Err(err) = self.stack.push_stack_frame() {
@@ -619,6 +608,7 @@ mod tests {
         Interpreter::new(Program {
             statements: vec![],
             functions: HashMap::new(),
+            std_functions: HashMap::new()
         })
     }
 
@@ -693,6 +683,7 @@ mod tests {
         Interpreter::new(Program {
             statements: vec![],
             functions,
+            std_functions: HashMap::new()
         })
     }
 

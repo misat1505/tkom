@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::{collections::HashMap, io::{self, Write}};
 
 use crate::{ast::Type, errors::Issue, value::Value};
 
@@ -13,14 +13,14 @@ impl Issue for StdFunctionIssue {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct StdFunction {
     pub params: Vec<Type>,
     pub execute: fn(Vec<Value>) -> Result<Option<Value>, StdFunctionIssue>,
 }
 
 impl StdFunction {
-    pub fn print() -> Self {
+    fn print() -> Self {
         let params = vec![Type::Str];
         let execute = |params: Vec<Value>| -> Result<Option<Value>, StdFunctionIssue> {
             match params.get(0).unwrap() {
@@ -40,7 +40,7 @@ impl StdFunction {
         StdFunction { params, execute }
     }
 
-    pub fn input() -> Self {
+    fn input() -> Self {
         let params = vec![Type::Str];
         let execute = |params: Vec<Value>| -> Result<Option<Value>, StdFunctionIssue> {
             match params.get(0).unwrap() {
@@ -67,7 +67,7 @@ impl StdFunction {
         StdFunction { params, execute }
     }
 
-    pub fn modulo() -> Self {
+    fn modulo() -> Self {
         let params = vec![Type::I64, Type::I64];
         let execute = |params: Vec<Value>| -> Result<Option<Value>, StdFunctionIssue> {
             match (params.get(0), params.get(1)) {
@@ -83,4 +83,12 @@ impl StdFunction {
         };
         StdFunction { params, execute }
     }
+}
+
+pub fn get_std_functions() -> HashMap<String, StdFunction> {
+    let mut std_functions: HashMap<String, StdFunction> = HashMap::new();
+    std_functions.insert("print".to_owned(), StdFunction::print());
+    std_functions.insert("input".to_owned(), StdFunction::input());
+    std_functions.insert("mod".to_owned(), StdFunction::modulo());
+    std_functions
 }

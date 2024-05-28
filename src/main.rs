@@ -16,7 +16,6 @@ use crate::{
 mod ALU;
 mod ast;
 mod errors;
-mod functions_manager;
 mod interpreter;
 mod lexer;
 mod parser;

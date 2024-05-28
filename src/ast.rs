@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Debug};
 
-use crate::lazy_stream_reader::Position;
+use crate::{lazy_stream_reader::Position, std_functions::StdFunction};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Node<T> {
@@ -164,4 +164,5 @@ pub struct FunctionDeclaration {
 pub struct Program {
     pub statements: Vec<Node<Statement>>,
     pub functions: HashMap<String, Node<FunctionDeclaration>>,
+    pub std_functions: HashMap<String, StdFunction>
 }
