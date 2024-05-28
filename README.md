@@ -1,36 +1,115 @@
 ## Funkcjonalność
 
-Język silnie i statycznie typowany. Wszystkie zmienne są mutowalne. Argumenty do funkcji mogą być przekazywane przez wartość albo przez referencję. Z funkcji można zwrócić tylko wartość albo nic.
+Język silnie i statycznie typowany.
 
-1. Funkcje:
-   - Język obsługuje definicje funkcji.
-   - Funkcje mogą przyjmować parametry przez wartość i referencję
-   - Funkcje mogą zwracać wartość określonego typu (możliwość funkcji nic nie zwracającej).
-2. Obsługiwane typy danych:
-   - i64 (liczby całkowite), f64 (liczby zmiennoprzecinkowe), str (łańcuchy znaków), bool (prawda / fałsz).
+1. Obsługiwane typy danych:
+   - i64 (liczby całkowite)
+   - f64 (liczby zmiennoprzecinkowe)
+   - str (łańcuchy znaków)
+   - bool (prawda / fałsz)
    - void (brak zwracanej wartości z funkcji)
-3. Instrukcje Warunkowe:
-   - Instrukcje warunkowe if wraz z opcjonalnym else.
-4. Pętle:
-   - Pętla for, w której iterator nie musi być definiowany ani aktualizowany.
-5. Instrukcje Kontroli Przepływu:
-   - Instrukcja break są używane do przerwania wykonania pętli lub bloku switch.
-6. Instrukcje Wyboru:
-   - Instrukcje switch pozwalają na wielokrotne rozgałęzianie programu w zależności od różnych warunków.
-   - Wykonywany jest każdy blok instrukcji pod spełnionym warunkiem, chyba że w którymś poprzednim był break
-   - Możliwa jest deklaracja zmiennej widzialnej w bloku switch
-7. Rekurencja: Język wspiera rekurencję.
-8. Operacje na Zmiennych:
-   - Dostępne są operacje przypisania (=), operatory arytmetyczne (+, -, \*, /), porównania (==, <, <=, >, >=, !=), oraz operatory logiczne (np. !=).
-9. Operacje na Tekście:
-   - Wprowadzenie tekstu, konkatenacja i wyświetlenie go na konsoli.
-10. Castowanie:
-    - i64 i f64 mogą być castowane na siebie nawzajem, na stringa i na boolean (jeżeli są <= 0 to będzie false inaczej prawda)
-    - string może być castowany na i64 i na f64, ze zgłoszeniem błędów, oraz na boolean (pusty string oznacza false inaczej true)
-11. Funkcje wbudowane:
-    - print(text): wypisuje string na standardowe wyjście wraz ze znakiem końca linii
-    - input(text): wypisuje string na standardowe wyjście i oczekuje na wprowadzenie tekstu od użytkownika, zwraca string
-    - mod(a, b): przyjmuje dwie liczyb i zwraca wartość a % b
+2. Zmienne:
+   - Przyjmują jeden z wyżej wymienionych typów oprócz void.
+   - Wszystkie są mutowalne.
+   - Zmienna widoczna jedynie w bloku instrukcji, w którym została zadeklarowana.
+   - Możliwość zadeklarowania zmiennej danego typu bez podania wartości. W takim przypadku zostanie przypisana wartość domyślna dla tego typu.
+3. Operacje na Zmiennych:
+   - Przypisanie (=)
+   - Arytmetyczne (+, -, \*, /)
+   - Porównania (==, <, <=, >, >=, !=)
+   - Operatory logiczne (||, &&)
+4. Konwersja typów:
+   - i64 i f64 mogą być castowane na siebie nawzajem, na stringa i na boolean (jeżeli są <= 0 to będzie false inaczej prawda)
+   - string może być castowany na i64 i na f64, ze zgłoszeniem błędów, oraz na boolean (pusty string oznacza false inaczej true)
+5. Funkcje:
+   - Mogą przyjmować parametry przez wartość i referencję
+   - Mogą zwracać wartość określonego typu (możliwość funkcji nie zwracającej nic).
+   - Funkcje mogą być wywoływane rekurencyjnie
+6. Instrukcja if:
+   - Opcjonalny else.
+7. Pętla for:
+   - Iterator nie musi być deklarowany, ani aktualizowany
+   - Zadeklarowany iterator nie jest widoczny poza for'em
+8. Instrukcja switch (pattern matching):
+   - Możliwość zadeklarowania zmiennej widocznej jedynie wewnątrz switch'a
+   - Uruchamiany jest każdy blok, dla którego warunek jest spełniony
+   - Możliwość przedwczesnego wyjścia przy pomocy break
+9. Funkcje wbudowane:
+   - print(text): wypisuje string na standardowe wyjście wraz ze znakiem końca linii
+   - input(text): wypisuje string na standardowe wyjście i oczekuje na wprowadzenie tekstu od użytkownika, zwraca string
+   - mod(a, b): przyjmuje dwie liczby i zwraca wartość a % b
+
+## Przykłady wykorzystania języka
+
+1. Funkcja sprawdzająca czy podana liczba jest liczbą pierwszą. Dodatkowo otrzymuje licznik iteracji przez referencję.
+
+```
+fn is_prime(i64 x, &i64 total_iters): bool {
+  if (x < 2) {
+    return false;
+  }
+
+  for (i64 i = 2; i < x; i = i + 1) {
+    total_iters = total_iters + 1;
+    if (mod(x, i) == 0) {
+      return false;
+    }
+  }
+
+  return true;
+}
+```
+
+2. Funkcja wyliczająca podany wyraz ciągu Fibonacciego metodą iteracyjną.
+
+```
+fn fib_iter(i64 x): i64 {
+  i64 prev2 = 1;
+  i64 prev1 = 1;
+  i64 total;
+
+  if (x == 1 || x == 2) {
+    return 1;
+  }
+
+  for (i64 i = 2; i < x; i = i + 1) {
+    total = prev1 + prev2;
+    prev2 = prev1;
+    prev1 = total;
+  }
+
+  return total;
+}
+```
+
+3. Funkcja wyliczająca podany wyraz ciągu Fibonacciego metodą rekurencyjną.
+
+```
+fn fib_rec(i64 x): i64 {
+  if (x == 1 || x == 2) {
+    return 1;
+  }
+
+  return fib_rec(x - 1) + fib_rec(x - 2);
+}
+```
+
+4. Program proszący użytkownika o liczbę i wyświetlający informacje o jej znaku.
+
+```
+switch (input("Pick a number: ") as i64: x) {
+  (x < 0) -> {
+    print("Negative");
+  }
+  (x == 0) -> {
+    print("Zero");
+  }
+  (x > 0) -> {
+    print("Positive");
+  }
+}
+
+```
 
 ## Gramatyka
 
@@ -40,14 +119,12 @@ Język silnie i statycznie typowany. Wszystkie zmienne są mutowalne. Argumenty 
 
 **comment** = "#" , {unicode_character - "\n"}, "\n";
 
-```
-# some 1 line comment
-```
-
 **function_declaration** = “fn”, identifier, "(", parameters, ")", “:”, type | “void”, statement_block;
 
 ```
-fn do_sth(&i64 x, i64 y): void {}
+fn is_prime(i64 x, &i64 total_iters): bool {
+    return true;
+}
 ```
 
 **parameters** = [ parameter, { ",", parameter } ];
@@ -80,7 +157,14 @@ if (x == 5) {} else {}
 **for_statement** = "for", "(", [ declaration ], “;”, expression, “;”, [ identifier, "=", expression ], ")", statement_block;
 
 ```
-for (i64 x = a - 1; i < a + 1; i = i + 1) {}
+for (i64 i = 0; i < 10; i = i + 1) {}
+```
+
+```
+i64 i = 0
+for (; i < 10 ;) {
+    i = i + 1;
+}
 ```
 
 **break_statement** = "break", ";";
@@ -334,136 +418,31 @@ switch (x: temp1, y: temp2) {
   </tr>
 </table>
 
-## Przykłady kodu
-
-**Tworzenie zmiennych**
-
-```
-i64 x = 2;
-f64 y = 3.0;
-bool is_true = false;
-str my_string = “hello world”;
-str string_with_escapes = "hello \"world"       # hello "world
-```
-
-**Wyrażenia**
-
-```
-i64 x = 2+2\*2                      # 6
-i64 y = (2+2)\*2                    # 8
-i64 a = 2 + 2.1 as i64              # 4
-f64 b = (2 + 2.1 as i64) as f64     # 4.0
-```
-
-**Instrukcje warunkowe**
-
-```
-i64 x = 2;
-i64 y = 2;
-if (x == y) {
-    print(“equal”);
-} else {
-    print(“not equal”);
-}
-```
-
-**Pętle**
-
-```
-for (i64 i = 0; i < 5; i=i+1) {}
-
-i64 j = 0;
-for (; j < 5;) {
-    j=j+1;
-}
-
-for (i64 i = 0; i < 5; i=i+1) {
-    if (i == 2) {break;}
-}
-```
-
-**Funkcje**
-
-```
-fn add(i64 x, i64 y): i64 {
-    return x + y;
-}
-add(2, 2);
-
-fn print_int(&i64 x): void {
-    print(x as str);
-}
-i64 a = 5;
-print_int(&a);
-
-fn sum_up_to(i64 x): i64 {
-    if (x == 0) {return 0;}			# rekurencja
-    return x + sum_up_to(x - 1);
-}
-```
-
-**Pattern matching**
-
-```
-switch (x: temp1, y: temp2) {
-    (x < 5 && temp2 < 5) -> {
-      print("Less than 5.");
-    }
-    (temp1 < 10 && y < 10) -> {
-      print("Less than 10.");
-      break;
-    }
-}
-```
-
-## Funkcje wbudowane
-
-1. print(text) - wyświetla tekst na standardowe wyjście wraz ze znakiem końca linii
-2. input(text): wypisuje string na standardowe wyjście i oczekuje na wprowadzenie tekstu od użytkownika, zwraca string
-3. mod(a, b): przyjmuje dwie liczyb i zwraca wartość a % b
-
 ## Obsługa błędów
 
 Podział na errory i warningi:
 
 1. errory: zgłaszają błąd komponentowi wyżej, oznaczają brak możliwości kontynuacji działania
-2. warningi: komponent wyższego poziomu tworzy funkcję który ma być uruchomiona w razie wystąpienia warninga, działanie nie musi być zatrzymywane
+2. warningi: komponent wyższego poziomu tworzy funkcję, która ma być uruchomiona w razie wystąpienia warninga, działanie nie jest zatrzymywane
 
-Przykładowe errory:
+### Błędy lexera
 
-```
-Can’t assign type ‘string’ to type ‘i64’
-at line: 5, column: 10
-i64 x = “hello world”;
-      ^
-```
+Lexer zgłasza błąd gdy nie może przypisać podanego ciągu znaków do żadnego tokenu. Ponadto, wyłapuje on przepełnienia liczb wpisanych przez uzytkownika oraz za długie komentarze i identyfikatory.
 
 ```
-Can’t add value of type ‘i64’ to value of type ‘f64’
-at line: 10, column: 6
-2.1 + 2;
-    ^
+Overflow occurred while parsing integer
+At line: 13, column: 28
+
+At line:
+i64 a = 7647326473264873264873264;
+                           ^
 ```
 
-```
-Not enough arguments passed - expected 2 given 1
-at line: 6, column: 5
-add(2);
-     ^
-```
+Lexer zgłasza warningi w przypadku, gdy może się domyśleć o co chodziło użytkownikowi, ale nie zostało przez niego poprawnie napisane.
 
 ```
-An overflow occurred during integer creation
-at line: 10, column: 21
-i64 x = 864736473267463264732647326476324;
-                                ^
-```
-
-Przykładowe warningi:
-
-```
-Expected ‘|’
-at line: 5, column: 11
+Expected '|'
+At line: 18, column: 15
 ```
 
 ```
@@ -471,11 +450,78 @@ String not closed
 at line: 21, column: 37
 ```
 
+### Błędy parsera
+
+Parser zgłasza błąd gdy natrafi na token, który nie zgadza się ze specyfikacją gramatyki języka oraz gdy wykryje redeklarację funkcji.
+
+```
+Couldn't create statement block while parsing if statement.
+At line: 13, column: 12.
+```
+
+```
+Redeclaration of function 'print'.
+At: line: 14, column: 1.
+```
+
+### Błędy analizatora semantycznego
+
+Analizator semantyczny zgłasza błąd, gdy znajdzie w drzewie rozbioru wywołanie funkcji nieistniejącej, ze złą liczbą argumentów, albo z argumentami przekazanymi w niewłaściwy sposób.
+
+```
+Invalid number of arguments for function 'foo'. Expected 1, given 0.
+At line: 18, column: 1.
+```
+
+```
+Parameter 'x' in function 'foo' passed by Reference - should be passed by Value.
+At line: 19, column: 6.
+```
+
+### Błędy interpretera
+
+Interpreter zgłasza błąd, gdy natrafi na niedozwoloną operację, tj:
+
+- dodanie wartości różnych typów,
+- przypisanie wartości o innym typie niż zmienna,
+- przekazanie złego typu jako argumentu funkcji,
+- zwrócenie złego typu z funkcji,
+- ponowne zadeklarowanie zmiennej,
+- gdy warunek w blokach if, switch, for nie są typu bool,
+- gdy break jest użyty poza for'em lub switch'em,
+- gdy return jest użyty poza funkcją,
+- gdy nastąpi przepełnienie stosu wywołań funkcji,
+- podczas przepełnienia w operacjach arytmetycznych,
+- podczas błędu konwersji typów
+
+```
+Cannot perform addition between values of type 'i64' and 'f64'.
+At line: 13, column: 13.
+```
+
+```
+Cannot assign value of type 'str' to variable 's' of type 'i64'.
+At line: 18, column: 9.
+```
+
+```
+Cannot cast String 'abc' to i64.
+At: line: 18, column: 9
+```
+
 ## Sposób uruchomienia
+
+1. Uruchomienie w trybie do debuggowania
 
 ```
 cargo run ścieżka_do_pliku
-./tkom.exe ścieżka_do_pliku (po zbudowaniu projektu)
+```
+
+2. Zbudowanie projektu
+
+```
+cargo build --release
+.\target\release\tkom.exe ścieżka_do_pliku
 ```
 
 **Analiza wymagań funkcjonalnych i niefunkcjonalnych**

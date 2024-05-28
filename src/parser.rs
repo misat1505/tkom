@@ -37,7 +37,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
                 if functions.contains_key(&function_name) || std_functions.contains_key(&function_name) {
                     return Err(Box::new(ParserIssue {
                         level: IssueLevel::ERROR,
-                        message: format!("Redeclaration of function '{}'.", function_name),
+                        message: format!("Redeclaration of function '{}'.\nAt: {:?}.", function_name, function_declaration.position),
                     }));
                 }
                 functions.insert(function_name, function_declaration);

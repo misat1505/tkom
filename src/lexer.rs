@@ -168,7 +168,7 @@ impl<T: BufRead> Lexer<T> {
         } else {
             (self.on_warning)(Box::new(LexerIssue::new(
                 IssueLevel::WARNING,
-                self.prepare_warning_message(format!("Expected {}", char_to_search)),
+                self.prepare_warning_message(format!("Expected '{}'", char_to_search)),
             )));
         }
         return Token {

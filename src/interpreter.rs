@@ -110,10 +110,6 @@ impl Interpreter {
 impl Visitor for Interpreter {
     fn visit_program(&mut self, program: &Program) -> Result<(), Box<dyn Issue>> {
         for statement in &program.statements {
-            // if let Statement::FunctionDeclaration { .. } = statement.value {
-            //     continue;
-            // }
-
             self.visit_statement(&statement)?;
             if self.is_breaking {
                 return Err(Box::new(InterpreterIssue {
@@ -171,7 +167,6 @@ impl Visitor for Interpreter {
     fn visit_statement(&mut self, statement: &Node<Statement>) -> Result<(), Box<dyn Issue>> {
         self.position = statement.position;
         match &statement.value {
-            // Statement::FunctionDeclaration { .. } => self.execute_function(&statement.value)?,
             Statement::FunctionCall { identifier, arguments } => self.call_function(identifier, arguments)?,
             Statement::Declaration { var_type, identifier, value } => {
                 self.visit_type(&var_type)?;
