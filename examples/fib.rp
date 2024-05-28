@@ -16,26 +16,17 @@ fn fib_iter(i64 x): i64 {
   return total;
 }
 
-fn fib_rec(i64 x): i64 {
+fn fib_rec(i64 x, &i64 y): i64 {
+  y = y + 1;
   if (x == 1 || x == 2) {
     return 1;
   }
 
-  return fib_rec(x - 1) + fib_rec(x - 2);
-}
-
-i64 x = 5;
-for (i64 i = 0; i < x; i = i + 1) {
-  for (i64 j = 0; j < x; j = j + 1) {
-    print("(" + i as str + ", " + j as str + ")");
-    if (i == j) {
-      break;
-    }
-  }
+  return fib_rec(x - 1, &y) + fib_rec(x - 2, &y);
 }
 
 for (i64 num = 1; num <= 20; num = num + 1) {
   i64 i = 0;
   print("fib_iter(" + num as str + ") = " + fib_iter(num) as str);
-  print("fib_rec(" + num as str + ") = " + fib_rec(num) as str + " - recursive calls: " + i as str + "\n");
+  print("fib_rec(" + num as str + ") = " + fib_rec(num, &i) as str + " - recursive calls: " + i as str + "\n");
 }
