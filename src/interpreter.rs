@@ -441,7 +441,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
 }
 
 impl<'a> Interpreter<'a> {
-    fn execute_std_function(std_function: &StdFunction, arguments: Vec<Value>) -> Result<Option<Value>, Box<dyn Issue>> {
+    fn execute_std_function(std_function: &StdFunction, arguments: &Vec<Rc<RefCell<Value>>>) -> Result<Option<Value>, Box<dyn Issue>> {
         return match (std_function.execute)(arguments) {
             Ok(val) => Ok(val),
             Err(err) => Err(Box::new(err)),
@@ -469,14 +469,10 @@ impl<'a> Interpreter<'a> {
             };
         }
 
-        self.last_arguments = args.clone();
+        self.last_arguments = args;
 
         if let Some(std_function) = self.program.std_functions.get(name) {
-            let mut values: Vec<Value> = vec![];
-            for arg in &args {
-                values.push(arg.borrow().clone());
-            }
-            if let Some(return_value) = Self::execute_std_function(std_function, values)? {
+            if let Some(return_value) = Self::execute_std_function(std_function, &self.last_arguments)? {
                 self.last_result = Some(return_value);
             }
         }
