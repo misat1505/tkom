@@ -466,7 +466,6 @@ impl Interpreter {
         }
 
         self.last_arguments = args.clone();
-        // println!("{} {:?}", name,  self.last_arguments);
 
         if let Some(std_function) = self.program.std_functions.get(&name) {
             let mut values: Vec<Value> = vec![];
@@ -479,7 +478,8 @@ impl Interpreter {
         }
 
         if let Some(function_declaration) = self.program.functions.get(&name) {
-            self.execute_function(&function_declaration.value.clone())?;
+            let f_ref = Rc::clone(function_declaration);
+            self.execute_function(&(*f_ref).value)?;
         }
 
         if self.is_returning {
@@ -501,8 +501,8 @@ impl Interpreter {
         // args
         for idx in 0..self.last_arguments.len() {
             let desired_type = function_declaration.parameters.get(idx).unwrap().value.parameter_type.value;
-            let param_name = function_declaration.parameters.get(idx).unwrap().value.identifier.value.clone();
-            let value = self.last_arguments.get(idx).unwrap().clone();
+            let param_name = &function_declaration.parameters.get(idx).unwrap().value.identifier.value;
+            let value = self.last_arguments.get(idx).unwrap();
             match (desired_type, value.borrow().clone()) {
                 (Type::Bool, Value::Bool(_)) | (Type::F64, Value::F64(_)) | (Type::I64, Value::I64(_)) | (Type::Str, Value::String(_)) => {}
                 (des, got) => {
@@ -517,7 +517,7 @@ impl Interpreter {
                     }))
                 }
             }
-            if let Err(mut err) = self.stack.declare_variable(param_name, value) {
+            if let Err(mut err) = self.stack.declare_variable(param_name.to_string(), value.clone()) {
                 err.message = format!("{}\nAt {:?}.", err.message, self.position);
                 return Err(Box::new(err));
             };
@@ -530,10 +530,6 @@ impl Interpreter {
                 break;
             }
 
-            // if let Statement::FunctionDeclaration { .. } = statement.value {
-            //     continue;
-            // }
-
             self.visit_statement(&statement)?;
 
             if self.is_breaking {
@@ -544,7 +540,7 @@ impl Interpreter {
         }
 
         // check return type
-        match (self.last_result.clone(), function_declaration.return_type.value) {
+        match (&self.last_result, function_declaration.return_type.value) {
             (None, Type::Void)
             | (Some(Value::I64(_)), Type::I64)
             | (Some(Value::F64(_)), Type::F64)
@@ -591,10 +587,10 @@ mod tests {
     }
 
     fn create_interpreter_with_add_function() -> Interpreter {
-        let mut functions: HashMap<String, Node<FunctionDeclaration>> = HashMap::new();
+        let mut functions: HashMap<String, Rc<Node<FunctionDeclaration>>> = HashMap::new();
         functions.insert(
             String::from("add"),
-            Node {
+            Rc::new(Node {
                 value: FunctionDeclaration {
                     identifier: Node {
                         value: String::from("add"),
@@ -655,7 +651,7 @@ mod tests {
                     },
                 },
                 position: default_position(),
-            },
+            }),
         );
 
         Interpreter::new(Program {

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     ast::{
@@ -26,7 +26,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
         let _ = self.next_token()?; // skip STX
 
         let mut statements: Vec<Node<Statement>> = vec![];
-        let mut functions: HashMap<String, Node<FunctionDeclaration>> = HashMap::new();
+        let mut functions: HashMap<String, Rc<Node<FunctionDeclaration>>> = HashMap::new();
         let std_functions = get_std_functions();
 
         loop {
@@ -40,7 +40,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
                         message: format!("Redeclaration of function '{}'.\nAt: {:?}.", function_name, function_declaration.position),
                     }));
                 }
-                functions.insert(function_name, function_declaration);
+                functions.insert(function_name, Rc::new(function_declaration));
             } else {
                 break;
             }

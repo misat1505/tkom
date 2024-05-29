@@ -45,7 +45,7 @@ impl Stack {
     }
 
     pub fn push_stack_frame(&mut self) -> Result<(), StackOverflowIssue> {
-        if self.0.len() == 50 {
+        if self.0.len() == 500 {
             return Err(StackOverflowIssue {
                 message: "Stack overflow.".to_owned(),
             });
