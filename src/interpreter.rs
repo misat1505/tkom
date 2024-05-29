@@ -32,7 +32,6 @@ pub struct Interpreter {
     is_returning: bool,
     position: Position,
     last_arguments: Vec<Rc<RefCell<Value>>>,
-    returned_arguments: Vec<Value>,
 }
 
 impl Interpreter {
@@ -49,7 +48,6 @@ impl Interpreter {
                 offset: 0,
             },
             last_arguments: vec![],
-            returned_arguments: vec![],
         }
     }
 
@@ -468,7 +466,7 @@ impl Interpreter {
         }
 
         self.last_arguments = args.clone();
-        println!("{} {:?}", name,  self.last_arguments);
+        // println!("{} {:?}", name,  self.last_arguments);
 
         if let Some(std_function) = self.program.std_functions.get(&name) {
             let mut values: Vec<Value> = vec![];
@@ -484,27 +482,11 @@ impl Interpreter {
             self.execute_function(&function_declaration.value.clone())?;
         }
 
-        // update these passed by reference
-        // for idx in 0..arguments.len() {
-        //     let arg = arguments.get(idx).unwrap().value.clone();
-        //     if arg.passed_by == PassedBy::Value {
-        //         continue;
-        //     }
-
-        //     if let Expression::Variable(name) = arg.value.value {
-        //         if let Err(mut err) = self.stack.assign_variable(name, self.returned_arguments.get(idx).unwrap().clone()) {
-        //             err.message = format!("{}\nAt {:?}.", err.message, self.position);
-        //             return Err(Box::new(err));
-        //         };
-        //     }
-        // }
-
         if self.is_returning {
             self.is_returning = false;
         }
 
         self.last_arguments = vec![];
-        self.returned_arguments = vec![];
 
         Ok(())
     }
@@ -561,14 +543,6 @@ impl Interpreter {
             }
         }
 
-        // self.visit_block(block)?;
-
-        // if self.is_breaking {
-        //     return Err(Box::new(InterpreterIssue {
-        //         message: format!("Break called outside 'for' or 'switch'.\nAt {:?}.", self.position),
-        //     }));
-        // }
-
         // check return type
         match (self.last_result.clone(), function_declaration.return_type.value) {
             (None, Type::Void)
@@ -585,15 +559,6 @@ impl Interpreter {
                 }))
             }
         }
-
-        // for reference
-        // let mut returned_arguments: Vec<Value> = vec![];
-        // for parameter in &function_declaration.parameters {
-        //     let param_name = parameter.value.identifier.value.clone();
-        //     returned_arguments.push(self.stack.get_variable(param_name).unwrap().clone());
-        // }
-
-        // self.returned_arguments = returned_arguments;
 
         self.stack.pop_stack_frame();
 

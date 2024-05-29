@@ -101,22 +101,22 @@ pub struct Scope {
         }
 
         fn assign_variable(&mut self, name: String, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerIssue> {
-            let current_value_option = self.get_variable(name.clone()).cloned();
+            let current_value_option = self.get_variable(name.clone());
             match current_value_option {
                 None => Err(ScopeManagerIssue {
                     message: format!("Variable '{}' not declared.", name),
                 }),
                 Some(prev_val) => {
-                    let prev_val_borrow = prev_val.borrow();
+                    let mut prev_val_borrow = prev_val.borrow_mut();
                     let new_val_borrow = value.borrow();
                     match (&*prev_val_borrow, &*new_val_borrow) {
                         (Value::I64(_), Value::I64(_))
                         | (Value::F64(_), Value::F64(_))
                         | (Value::String(_), Value::String(_))
                         | (Value::Bool(_), Value::Bool(_)) => {
+                            *prev_val_borrow = new_val_borrow.clone();
                             drop(prev_val_borrow);
                             drop(new_val_borrow);
-                            self.variables.insert(name, value);
                             Ok(())
                         }
                         (a, b) => Err(ScopeManagerIssue {

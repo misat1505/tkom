@@ -25,7 +25,7 @@ fn fib_rec(i64 x, &i64 y): i64 {
   return fib_rec(x - 1, &y) + fib_rec(x - 2, &y);
 }
 
-for (i64 num = 25; num <= 25; num = num + 1) {
+for (i64 num = 1; num <= 25; num = num + 1) {
   i64 i = 0;
   print("fib_iter(" + num as str + ") = " + fib_iter(num) as str);
   print("fib_rec(" + num as str + ") = " + fib_rec(num, &i) as str + " - recursive calls: " + i as str + "\n");
