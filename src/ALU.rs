@@ -6,12 +6,12 @@ use crate::{
 pub struct ALU();
 
 impl ALU {
-    fn check_int_operation<F>(val1: Value, val2: Value, op: F, op_name: &str) -> Result<Value, ComputationIssue>
+    fn check_int_operation<F>(val1: &Value, val2: &Value, op: F, op_name: &str) -> Result<Value, ComputationIssue>
     where
         F: Fn(i64, i64) -> Option<i64>,
     {
-        match (val1.clone(), val2.clone()) {
-            (Value::I64(a), Value::I64(b)) => match op(a, b) {
+        match (val1, val2) {
+            (Value::I64(a), Value::I64(b)) => match op(*a, *b) {
                 Some(result) => Ok(Value::I64(result)),
                 None => Err(ComputationIssue {
                     message: format!("Overflow occurred when performing {} on i64s.", op_name),
@@ -28,13 +28,13 @@ impl ALU {
         }
     }
 
-    fn check_float_operation<F>(val1: Value, val2: Value, op: F, op_name: &str) -> Result<Value, ComputationIssue>
+    fn check_float_operation<F>(val1: &Value, val2: &Value, op: F, op_name: &str) -> Result<Value, ComputationIssue>
     where
         F: Fn(f64, f64) -> f64,
     {
-        match (val1.clone(), val2.clone()) {
+        match (val1, val2) {
             (Value::F64(a), Value::F64(b)) => {
-                let result = op(a, b);
+                let result = op(*a, *b);
                 if result.is_infinite() || result.is_nan() {
                     Err(ComputationIssue {
                         message: format!("Invalid result when performing {} on f64s.", op_name),
@@ -105,10 +105,10 @@ impl ALU {
     }
 
     pub fn add(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
-        match (val1.clone(), val2.clone()) {
-            (Value::I64(_), Value::I64(_)) => Self::check_int_operation(val1, val2, i64::checked_add, "addition"),
-            (Value::F64(_), Value::F64(_)) => Self::check_float_operation(val1, val2, |a, b| a + b, "addition"),
-            (Value::String(a), Value::String(b)) => Ok(Value::String(a.clone() + &b.clone())),
+        match (&val1, &val2) {
+            (Value::I64(_), Value::I64(_)) => Self::check_int_operation(&val1, &val2, i64::checked_add, "addition"),
+            (Value::F64(_), Value::F64(_)) => Self::check_float_operation(&val1, &val2, |a, b| a + b, "addition"),
+            (Value::String(a), Value::String(b)) => Ok(Value::String(a.clone() + b)),
             (a, b) => Err(ComputationIssue {
                 message: format!(
                     "Cannot perform addition between values of type '{:?}' and '{:?}'.",
@@ -120,9 +120,9 @@ impl ALU {
     }
 
     pub fn subtract(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
-        match (val1.clone(), val2.clone()) {
-            (Value::I64(_), Value::I64(_)) => Self::check_int_operation(val1, val2, i64::checked_sub, "subtraction"),
-            (Value::F64(_), Value::F64(_)) => Self::check_float_operation(val1, val2, |a, b| a - b, "subtraction"),
+        match (&val1, &val2) {
+            (Value::I64(_), Value::I64(_)) => Self::check_int_operation(&val1, &val2, i64::checked_sub, "subtraction"),
+            (Value::F64(_), Value::F64(_)) => Self::check_float_operation(&val1, &val2, |a, b| a - b, "subtraction"),
             (a, b) => Err(ComputationIssue {
                 message: format!(
                     "Cannot perform subtraction between values of type '{:?}' and '{:?}'.",
@@ -134,9 +134,9 @@ impl ALU {
     }
 
     pub fn multiplication(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
-        match (val1.clone(), val2.clone()) {
-            (Value::I64(_), Value::I64(_)) => Self::check_int_operation(val1, val2, i64::checked_mul, "multiplication"),
-            (Value::F64(_), Value::F64(_)) => Self::check_float_operation(val1, val2, |a, b| a * b, "multiplication"),
+        match (&val1, &val2) {
+            (Value::I64(_), Value::I64(_)) => Self::check_int_operation(&val1, &val2, i64::checked_mul, "multiplication"),
+            (Value::F64(_), Value::F64(_)) => Self::check_float_operation(&val1, &val2, |a, b| a * b, "multiplication"),
             (a, b) => Err(ComputationIssue {
                 message: format!(
                     "Cannot perform multiplication between values of type '{:?}' and '{:?}'.",
@@ -148,9 +148,9 @@ impl ALU {
     }
 
     pub fn division(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
-        match (val1.clone(), val2.clone()) {
-            (Value::I64(_), Value::I64(_)) => Self::check_int_operation(val1, val2, i64::checked_div, "division"),
-            (Value::F64(_), Value::F64(_)) => Self::check_float_operation(val1, val2, |a, b| a / b, "division"),
+        match (&val1, &val2) {
+            (Value::I64(_), Value::I64(_)) => Self::check_int_operation(&val1, &val2, i64::checked_div, "division"),
+            (Value::F64(_), Value::F64(_)) => Self::check_float_operation(&val1, &val2, |a, b| a / b, "division"),
             (a, b) => Err(ComputationIssue {
                 message: format!(
                     "Cannot perform division between values of type '{:?}' and '{:?}'.",
