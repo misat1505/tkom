@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::io::BufReader;
+    use std::{cell::RefCell, io::BufReader, rc::Rc};
 
     use crate::{
         errors::Issue,
@@ -48,7 +48,7 @@ mod tests {
 
         let mut interpreter = before_each(text);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable(String::from("text")).unwrap().clone() == Value::String(String::from("equal")));
+        assert!(interpreter.stack.get_variable(String::from("text")).unwrap().clone() == Rc::new(RefCell::new(Value::String(String::from("equal")))));
     }
 
     #[test]
@@ -67,7 +67,7 @@ mod tests {
 
         let mut interpreter = before_each(text);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable(String::from("i")).unwrap().clone() == Value::I64(2));
+        assert!(interpreter.stack.get_variable(String::from("i")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(2))));
     }
 
     #[test]
@@ -85,7 +85,7 @@ mod tests {
 
         let mut interpreter = before_each(text);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable(String::from("a")).unwrap().clone() == Value::I64(3));
+        assert!(interpreter.stack.get_variable(String::from("a")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(3))));
     }
 
     #[test]
@@ -104,7 +104,7 @@ mod tests {
 
         let mut interpreter = before_each(text);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(3));
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(3))));
     }
 
     #[test]
@@ -126,7 +126,7 @@ mod tests {
 
         let mut interpreter = before_each(text);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(8));
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(8))));
     }
 
     #[test]
@@ -155,8 +155,8 @@ mod tests {
 
         let mut interpreter = before_each(text);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable(String::from("is_5")).unwrap().clone() == Value::Bool(true));
-        assert!(interpreter.stack.get_variable(String::from("is_6")).unwrap().clone() == Value::Bool(false));
+        assert!(interpreter.stack.get_variable(String::from("is_5")).unwrap().clone() == Rc::new(RefCell::new(Value::Bool(true))));
+        assert!(interpreter.stack.get_variable(String::from("is_6")).unwrap().clone() == Rc::new(RefCell::new(Value::Bool(false))));
     }
 
     #[test]
@@ -183,6 +183,6 @@ mod tests {
 
         let mut interpreter = before_each(text);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable(String::from("text")).unwrap().clone() == Value::String(String::from(">1")));
+        assert!(interpreter.stack.get_variable(String::from("text")).unwrap().clone() == Rc::new(RefCell::new(Value::String(String::from(">1")))));
     }
 }

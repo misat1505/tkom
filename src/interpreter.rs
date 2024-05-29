@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
@@ -29,7 +31,7 @@ pub struct Interpreter {
     is_breaking: bool,
     is_returning: bool,
     position: Position,
-    last_arguments: Vec<Value>,
+    last_arguments: Vec<Rc<RefCell<Value>>>,
     returned_arguments: Vec<Value>,
 }
 
@@ -205,7 +207,7 @@ impl Visitor for Interpreter {
                     }
                 }
 
-                if let Err(mut err) = self.stack.declare_variable(identifier.value.clone(), computed_value) {
+                if let Err(mut err) = self.stack.declare_variable(identifier.value.clone(), Rc::new(RefCell::new(computed_value))) {
                     err.message = format!("{}\nAt {:?}.", err.message, self.position);
                     return Err(Box::new(err));
                 }
@@ -220,7 +222,7 @@ impl Visitor for Interpreter {
                         }))
                     }
                 };
-                if let Err(mut err) = self.stack.assign_variable(identifier.value.clone(), value) {
+                if let Err(mut err) = self.stack.assign_variable(identifier.value.clone(), Rc::new(RefCell::new(value))) {
                     err.message = format!("{}\nAt {:?}.", err.message, self.position);
                     return Err(Box::new(err));
                 }
@@ -399,7 +401,7 @@ impl Visitor for Interpreter {
         if let Some(alias) = &switch_expression.value.alias {
             self.visit_expression(&switch_expression.value.expression)?;
             let computed_value = self.read_last_result()?;
-            if let Err(mut err) = self.stack.declare_variable(alias.value.clone(), computed_value) {
+            if let Err(mut err) = self.stack.declare_variable(alias.value.clone(), Rc::new(RefCell::new(computed_value))) {
                 err.message = format!("{}\nAt {:?}.", err.message, self.position);
                 return Err(Box::new(err));
             }
@@ -428,10 +430,10 @@ impl Visitor for Interpreter {
     fn visit_variable(&mut self, variable: String) -> Result<(), Box<dyn Issue>> {
         // read value of variable
         let value = match self.stack.get_variable(variable) {
-            Ok(val) => val,
+            Ok(val) => val.borrow().to_owned(),
             Err(err) => return Err(Box::new(err)),
         };
-        self.last_result = Some(value.clone());
+        self.last_result = Some(value);
         Ok(())
     }
 }
@@ -447,17 +449,33 @@ impl Interpreter {
     fn call_function(&mut self, identifier: &Node<String>, arguments: &Vec<Box<Node<Argument>>>) -> Result<(), Box<dyn Issue>> {
         let name = identifier.value.clone();
 
-        let mut args: Vec<Value> = vec![];
+        let mut args: Vec<Rc<RefCell<Value>>> = vec![];
         for arg in arguments {
             self.visit_expression(&arg.value.value)?;
             let value = self.read_last_result()?;
-            args.push(value);
+            match arg.value.passed_by {
+                PassedBy::Value => args.push(Rc::new(RefCell::new(value))),
+                PassedBy::Reference => {
+                    if let Expression::Variable(var_name) = &arg.value.value.value {
+                        let var_ref = match self.stack.get_variable(var_name.to_string()) {
+                            Ok(r) => r,
+                            Err(err) => return Err(Box::new(err))
+                        };
+                        args.push(Rc::clone(var_ref));
+                    }
+                }
+            };
         }
 
         self.last_arguments = args.clone();
+        println!("{} {:?}", name,  self.last_arguments);
 
         if let Some(std_function) = self.program.std_functions.get(&name) {
-            if let Some(return_value) = Self::execute_std_function(std_function, args.clone())? {
+            let mut values: Vec<Value> = vec![];
+            for arg in &args {
+                values.push(arg.borrow().clone());
+            }
+            if let Some(return_value) = Self::execute_std_function(std_function, values)? {
                 self.last_result = Some(return_value);
             }
         }
@@ -467,19 +485,19 @@ impl Interpreter {
         }
 
         // update these passed by reference
-        for idx in 0..arguments.len() {
-            let arg = arguments.get(idx).unwrap().value.clone();
-            if arg.passed_by == PassedBy::Value {
-                continue;
-            }
+        // for idx in 0..arguments.len() {
+        //     let arg = arguments.get(idx).unwrap().value.clone();
+        //     if arg.passed_by == PassedBy::Value {
+        //         continue;
+        //     }
 
-            if let Expression::Variable(name) = arg.value.value {
-                if let Err(mut err) = self.stack.assign_variable(name, self.returned_arguments.get(idx).unwrap().clone()) {
-                    err.message = format!("{}\nAt {:?}.", err.message, self.position);
-                    return Err(Box::new(err));
-                };
-            }
-        }
+        //     if let Expression::Variable(name) = arg.value.value {
+        //         if let Err(mut err) = self.stack.assign_variable(name, self.returned_arguments.get(idx).unwrap().clone()) {
+        //             err.message = format!("{}\nAt {:?}.", err.message, self.position);
+        //             return Err(Box::new(err));
+        //         };
+        //     }
+        // }
 
         if self.is_returning {
             self.is_returning = false;
@@ -503,7 +521,7 @@ impl Interpreter {
             let desired_type = function_declaration.parameters.get(idx).unwrap().value.parameter_type.value;
             let param_name = function_declaration.parameters.get(idx).unwrap().value.identifier.value.clone();
             let value = self.last_arguments.get(idx).unwrap().clone();
-            match (desired_type, value.clone()) {
+            match (desired_type, value.borrow().clone()) {
                 (Type::Bool, Value::Bool(_)) | (Type::F64, Value::F64(_)) | (Type::I64, Value::I64(_)) | (Type::Str, Value::String(_)) => {}
                 (des, got) => {
                     return Err(Box::new(InterpreterIssue {
@@ -569,13 +587,13 @@ impl Interpreter {
         }
 
         // for reference
-        let mut returned_arguments: Vec<Value> = vec![];
-        for parameter in &function_declaration.parameters {
-            let param_name = parameter.value.identifier.value.clone();
-            returned_arguments.push(self.stack.get_variable(param_name).unwrap().clone());
-        }
+        // let mut returned_arguments: Vec<Value> = vec![];
+        // for parameter in &function_declaration.parameters {
+        //     let param_name = parameter.value.identifier.value.clone();
+        //     returned_arguments.push(self.stack.get_variable(param_name).unwrap().clone());
+        // }
 
-        self.returned_arguments = returned_arguments;
+        // self.returned_arguments = returned_arguments;
 
         self.stack.pop_stack_frame();
 
@@ -1055,7 +1073,7 @@ mod tests {
         let exp = Some(Value::I64(5));
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(5));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Rc::new(RefCell::new(Value::I64(5))));
 
         let _ = interpreter.visit_expression(&ast);
         assert!(interpreter.last_result == exp);
@@ -1085,7 +1103,7 @@ mod tests {
         let mut interpreter = create_interpreter();
 
         let _ = interpreter.visit_statement(&ast);
-        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(5));
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(5))));
     }
 
     #[test]
@@ -1109,7 +1127,7 @@ mod tests {
         let mut interpreter = create_interpreter();
 
         let _ = interpreter.visit_statement(&ast);
-        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(0));
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(0))));
     }
 
     #[test]
@@ -1158,7 +1176,7 @@ mod tests {
         let mut interpreter = create_interpreter();
 
         let _ = interpreter.visit_statement(&ast);
-        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(0));
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_err());
     }
@@ -1222,10 +1240,10 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(1));
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(1))));
     }
 
     #[test]
@@ -1247,7 +1265,7 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_err());
     }
@@ -1285,7 +1303,7 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_err());
     }
@@ -1337,10 +1355,10 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(1));
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(1))));
     }
 
     #[test]
@@ -1390,10 +1408,10 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Value::I64(2));
+        assert!(interpreter.stack.get_variable(String::from("x")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(2))));
     }
 
     #[test]
@@ -1416,7 +1434,7 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_err());
     }
@@ -1509,10 +1527,10 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("total"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("total"), Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(interpreter.stack.get_variable(String::from("total")).unwrap().clone() == Value::I64(15));
+        assert!(interpreter.stack.get_variable(String::from("total")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(15))));
     }
 
     #[test]
@@ -1591,11 +1609,11 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("total"), Value::I64(0));
-        let _ = interpreter.stack.declare_variable(String::from("i"), Value::I64(1));
+        let _ = interpreter.stack.declare_variable(String::from("total"), Rc::new(RefCell::new(Value::I64(0))));
+        let _ = interpreter.stack.declare_variable(String::from("i"), Rc::new(RefCell::new(Value::I64(1))));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(interpreter.stack.get_variable(String::from("total")).unwrap().clone() == Value::I64(15));
+        assert!(interpreter.stack.get_variable(String::from("total")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(15))));
     }
 
     #[test]
@@ -1689,11 +1707,11 @@ mod tests {
         };
 
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("i"), Value::I64(0));
+        let _ = interpreter.stack.declare_variable(String::from("i"), Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
         assert!(interpreter.is_breaking == false);
-        assert!(interpreter.stack.get_variable(String::from("i")).unwrap().clone() == Value::I64(5));
+        assert!(interpreter.stack.get_variable(String::from("i")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(5))));
     }
 
     #[test]
@@ -1838,42 +1856,42 @@ mod tests {
     #[test]
     fn switch_enters() {
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(12));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Rc::new(RefCell::new(Value::I64(12))));
         let _ = interpreter
             .stack
-            .declare_variable(String::from("result"), Value::default_value(Type::I64).unwrap());
+            .declare_variable(String::from("result"), Rc::new(RefCell::new(Value::default_value(Type::I64).unwrap())));
 
         let _ = interpreter.visit_statement(&create_test_switch_case());
 
-        assert!(interpreter.stack.get_variable(String::from("result")).unwrap().clone() == Value::I64(15));
+        assert!(interpreter.stack.get_variable(String::from("result")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(15))));
         assert!(interpreter.is_breaking == false);
     }
 
     #[test]
     fn switch_breaks() {
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(3));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Rc::new(RefCell::new(Value::I64(3))));
         let _ = interpreter
             .stack
-            .declare_variable(String::from("result"), Value::default_value(Type::I64).unwrap());
+            .declare_variable(String::from("result"), Rc::new(RefCell::new(Value::default_value(Type::I64).unwrap())));
 
         let _ = interpreter.visit_statement(&create_test_switch_case());
 
-        assert!(interpreter.stack.get_variable(String::from("result")).unwrap().clone() == Value::I64(10));
+        assert!(interpreter.stack.get_variable(String::from("result")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(10))));
         assert!(interpreter.is_breaking == false);
     }
 
     #[test]
     fn switch_no_entry() {
         let mut interpreter = create_interpreter();
-        let _ = interpreter.stack.declare_variable(String::from("x"), Value::I64(2137));
+        let _ = interpreter.stack.declare_variable(String::from("x"), Rc::new(RefCell::new(Value::I64(2137))));
         let _ = interpreter
             .stack
-            .declare_variable(String::from("result"), Value::default_value(Type::I64).unwrap());
+            .declare_variable(String::from("result"), Rc::new(RefCell::new(Value::default_value(Type::I64).unwrap())));
 
         let _ = interpreter.visit_statement(&create_test_switch_case());
 
-        assert!(interpreter.stack.get_variable(String::from("result")).unwrap().clone() == Value::I64(0));
+        assert!(interpreter.stack.get_variable(String::from("result")).unwrap().clone() == Rc::new(RefCell::new(Value::I64(0))));
         assert!(interpreter.is_breaking == false);
     }
 }

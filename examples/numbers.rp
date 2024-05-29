@@ -10,7 +10,3 @@ switch (input("Pick a number: ") as i64: x) {
     print("Positive");
   }
 }
-
-fn print(i64 x): void {
-
-}
