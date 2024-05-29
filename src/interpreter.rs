@@ -190,7 +190,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                     },
                 };
 
-                match (var_type.value, computed_value.clone()) {
+                match (var_type.value, &computed_value) {
                     (Type::I64, Value::I64(_)) | (Type::F64, Value::F64(_)) | (Type::Str, Value::String(_)) | (Type::Bool, Value::Bool(_)) => {}
                     (declared_type, computed_type) => {
                         return Err(Box::new(InterpreterIssue {
@@ -449,7 +449,7 @@ impl<'a> Interpreter<'a> {
     }
 
     fn call_function(&mut self, identifier: &Node<String>, arguments: &'a Vec<Box<Node<Argument>>>) -> Result<(), Box<dyn Issue>> {
-        let name = identifier.value.clone();
+        let name = identifier.value.as_str();
 
         let mut args: Vec<Rc<RefCell<Value>>> = vec![];
         for arg in arguments {
@@ -471,7 +471,7 @@ impl<'a> Interpreter<'a> {
 
         self.last_arguments = args.clone();
 
-        if let Some(std_function) = self.program.std_functions.get(&name) {
+        if let Some(std_function) = self.program.std_functions.get(name) {
             let mut values: Vec<Value> = vec![];
             for arg in &args {
                 values.push(arg.borrow().clone());
@@ -481,9 +481,7 @@ impl<'a> Interpreter<'a> {
             }
         }
 
-        if let Some(function_declaration) = self.program.functions.get(&name) {
-            // let f_ref = Rc::clone(function_declaration);
-            // self.execute_function(&(*f_ref).value)?;
+        if let Some(function_declaration) = self.program.functions.get(name) {
             self.execute_function(&(*function_declaration).value)?;
         }
 
@@ -497,7 +495,7 @@ impl<'a> Interpreter<'a> {
     }
 
     fn execute_function(&mut self, function_declaration: &'a FunctionDeclaration) -> Result<(), Box<dyn Issue>> {
-        let name = function_declaration.identifier.value.clone();
+        let name = function_declaration.identifier.value.as_str();
         let statements = &function_declaration.block.value.0;
         if let Err(err) = self.stack.push_stack_frame() {
             return Err(Box::new(err));
@@ -508,7 +506,7 @@ impl<'a> Interpreter<'a> {
             let desired_type = function_declaration.parameters.get(idx).unwrap().value.parameter_type.value;
             let param_name = &function_declaration.parameters.get(idx).unwrap().value.identifier.value;
             let value = self.last_arguments.get(idx).unwrap();
-            match (desired_type, value.borrow().clone()) {
+            match (desired_type, &*value.borrow()) {
                 (Type::Bool, Value::Bool(_)) | (Type::F64, Value::F64(_)) | (Type::I64, Value::I64(_)) | (Type::Str, Value::String(_)) => {}
                 (des, got) => {
                     return Err(Box::new(InterpreterIssue {
