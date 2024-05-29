@@ -553,11 +553,10 @@ Implementuje trait wizytatora, przechodząc wgłąb drzewa szuka wywołań funkc
 Interpreter implementuje trait wizytatora i wykonuje program. W celu komunikacji pomiędzy wizytacjami wprowadzono do interpretera następujące pola:
 
 - 'last_result' - przetrzymuje wyniki pośrednie obliczeń,
-- 'last_arguments' - przechowuje argumenty wywołania funkcji,
-- 'returned_arguments' - przechowuje wartości argumenty po wykonaniu się funkcji, w celu implementacji referencji.
+- 'last_arguments' - przechowuje argumenty wywołania funkcji (wskaźniki na wartości),
 - flagi 'is_breaking' i 'is_returning', które są zapalane podczas odwiedzin break'a i return'a, a zgaszane zostają przy natrafieniu na konstrukcję umożliwiającą to.
 
-Interpreter współpracuje z klasą Stack, która przechowuje stos wywołań funkcji. Pojedyńczy StackFrame przechowuje instancję klasy ScopeManager'a, która jest również stosem, ale służy ona zarządzania zasięgiem zmiennych. Pojedyńcze pole w stosie ScopeManager'a (Scope) przechowuje HashMap'ę nazwa_zmiennej -> wartość. Wartości reprezentowane są przez enumerację Value, a operacje na nich wykonuje klasa ALU.
+Interpreter współpracuje z klasą Stack, która przechowuje stos wywołań funkcji. Pojedyńczy StackFrame przechowuje instancję klasy ScopeManager'a, która jest również stosem, ale służy ona zarządzania zasięgiem zmiennych. Pojedyńcze pole w stosie ScopeManager'a (Scope) przechowuje HashMap'ę nazwa_zmiennej -> wskaźnik_na_wartość. Wartości reprezentowane są przez enumerację Value, a operacje na nich wykonuje klasa ALU.
 
 ## Opis sposobu testowania
 
