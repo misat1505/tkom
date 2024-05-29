@@ -157,8 +157,8 @@ impl Visitor for Interpreter {
             Expression::LessEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::less_or_equal)?,
             Expression::Equal(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::equal)?,
             Expression::NotEqual(lhs, rhs) => self.evaluate_binary_op(lhs, rhs, ALU::not_equal)?,
-            Expression::Literal(literal) => self.visit_literal(literal.clone())?,
-            Expression::Variable(variable) => self.visit_variable(variable.clone())?,
+            Expression::Literal(literal) => self.visit_literal(literal)?,
+            Expression::Variable(variable) => self.visit_variable(variable)?,
             Expression::FunctionCall { identifier, arguments } => self.call_function(identifier, arguments)?,
         }
         Ok(())
@@ -411,12 +411,12 @@ impl Visitor for Interpreter {
         Ok(())
     }
 
-    fn visit_literal(&mut self, literal: Literal) -> Result<(), Box<dyn Issue>> {
+    fn visit_literal(&mut self, literal: &Literal) -> Result<(), Box<dyn Issue>> {
         // change literal to value
         let value = match literal {
-            Literal::F64(f64) => Value::F64(f64),
-            Literal::I64(i64) => Value::I64(i64),
-            Literal::String(str) => Value::String(str),
+            Literal::F64(f64) => Value::F64(*f64),
+            Literal::I64(i64) => Value::I64(*i64),
+            Literal::String(str) => Value::String(str.to_string()),
             Literal::False => Value::Bool(false),
             Literal::True => Value::Bool(true),
         };
@@ -425,9 +425,9 @@ impl Visitor for Interpreter {
         Ok(())
     }
 
-    fn visit_variable(&mut self, variable: String) -> Result<(), Box<dyn Issue>> {
+    fn visit_variable(&mut self, variable: &String) -> Result<(), Box<dyn Issue>> {
         // read value of variable
-        let value = match self.stack.get_variable(variable) {
+        let value = match self.stack.get_variable(variable.to_string()) {
             Ok(val) => val.borrow().to_owned(),
             Err(err) => return Err(Box::new(err)),
         };

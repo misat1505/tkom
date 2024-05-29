@@ -114,11 +114,11 @@ mod tests {
     fn test_stack_overflow() {
         let mut stack = Stack::new();
 
-        for _ in 0..49 {
+        for _ in 0..499 {
             stack.push_stack_frame().unwrap();
         }
 
-        assert_eq!(stack.0.len(), 50);
+        assert_eq!(stack.0.len(), 500);
         let result = stack.push_stack_frame();
         assert!(result.is_err());
         if let Err(e) = result {

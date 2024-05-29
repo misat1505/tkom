@@ -1,0 +1,9 @@
+fn fib(i64 x): i64 {
+  if (x == 1 || x == 2) {
+    return 1;
+  }
+
+  return fib(x - 1) + fib(x - 2);
+}
+
+print(fib(33) as str);

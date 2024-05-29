@@ -184,10 +184,10 @@ impl Visitor for SemanticChecker {
                 self.visit_expression(&value);
             }
             Expression::Literal(literal) => {
-                self.visit_literal(literal);
+                self.visit_literal(&literal);
             }
             Expression::Variable(variable) => {
-                self.visit_variable(variable);
+                self.visit_variable(&variable);
             }
             Expression::FunctionCall { arguments, .. } => {
                 for arg in arguments {
@@ -298,12 +298,12 @@ impl Visitor for SemanticChecker {
         Ok(())
     }
 
-    fn visit_literal(&mut self, _literal: Literal) -> Result<(), Box<dyn Issue>> {
+    fn visit_literal(&mut self, _literal: &Literal) -> Result<(), Box<dyn Issue>> {
         // println!("{:?}", _literal);
         Ok(())
     }
 
-    fn visit_variable(&mut self, _variable: String) -> Result<(), Box<dyn Issue>> {
+    fn visit_variable(&mut self, _variable: &String) -> Result<(), Box<dyn Issue>> {
         // println!("{:?}", _variable);
         Ok(())
     }
