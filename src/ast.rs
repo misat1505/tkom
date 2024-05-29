@@ -164,5 +164,5 @@ pub struct FunctionDeclaration {
 pub struct Program {
     pub statements: Vec<Node<Statement>>,
     pub functions: HashMap<String, Rc<Node<FunctionDeclaration>>>,
-    pub std_functions: HashMap<String, StdFunction>
+    pub std_functions: HashMap<String, StdFunction>,
 }

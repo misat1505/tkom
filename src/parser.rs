@@ -3,7 +3,11 @@ use std::{collections::HashMap, rc::Rc};
 use crate::{
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
-    }, errors::{Issue, IssueLevel, ParserIssue}, lexer::ILexer, std_functions::get_std_functions, tokens::{Token, TokenCategory, TokenValue}
+    },
+    errors::{Issue, IssueLevel, ParserIssue},
+    lexer::ILexer,
+    std_functions::get_std_functions,
+    tokens::{Token, TokenCategory, TokenValue},
 };
 
 pub struct Parser<L: ILexer> {
@@ -48,7 +52,11 @@ impl<L: ILexer> IParser<L> for Parser<L> {
 
         self.consume_must_be(TokenCategory::ETX)?;
 
-        let program = Program { statements, functions, std_functions };
+        let program = Program {
+            statements,
+            functions,
+            std_functions,
+        };
         Ok(program)
     }
 }

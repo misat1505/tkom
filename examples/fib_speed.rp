@@ -6,4 +6,4 @@ fn fib(i64 x): i64 {
   return fib(x - 1) + fib(x - 2);
 }
 
-print(fib(33) as str);
+print(fib(35) as str);

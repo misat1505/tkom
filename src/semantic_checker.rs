@@ -29,10 +29,7 @@ impl SemanticChecker {
     #![allow(unused_must_use)]
     pub fn new(program: Program) -> Result<Self, Box<dyn Issue>> {
         let errors: Vec<SemanticCheckerIssue> = vec![];
-        Ok(Self {
-            program,
-            errors,
-        })
+        Ok(Self { program, errors })
     }
 
     pub fn check(&mut self) {

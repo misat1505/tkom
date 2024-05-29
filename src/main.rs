@@ -62,7 +62,7 @@ fn main() {
 
     let start = Instant::now();
     let program = match parser.parse() {
-        Ok(p) => p,
+        Ok(p) => p.clone(),
         Err(err) => return eprintln!("{}", err.message()),
     };
 
@@ -80,7 +80,7 @@ fn main() {
         return;
     }
 
-    let mut interpreter = Interpreter::new(program.clone());
+    let mut interpreter = Interpreter::new(&program);
     match interpreter.interpret() {
         Ok(_) => {}
         Err(err) => {

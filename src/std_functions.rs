@@ -1,4 +1,7 @@
-use std::{collections::HashMap, io::{self, Write}};
+use std::{
+    collections::HashMap,
+    io::{self, Write},
+};
 
 use crate::{ast::Type, errors::Issue, value::Value};
 
