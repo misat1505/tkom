@@ -149,7 +149,7 @@ mod tests {
         let var_value = Rc::new(RefCell::new(Value::I64(42)));
 
         stack.declare_variable(var_name, var_value.clone()).unwrap();
-        let retrieved_value = stack.get_variable(var_name.clone()).unwrap();
+        let retrieved_value = stack.get_variable(var_name).unwrap();
         assert_eq!(retrieved_value, &var_value);
 
         let new_value = Rc::new(RefCell::new(Value::I64(43)));

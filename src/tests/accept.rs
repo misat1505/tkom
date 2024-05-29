@@ -137,13 +137,13 @@
 //       if (x < 2) {
 //         return false;
 //       }
-    
+
 //       for (i64 i = 2; i < x / 2; i = i + 1) {
 //         if (mod(x, i) == 0) {
 //           return false;
 //         }
 //       }
-    
+
 //       return true;
 //     }
 
