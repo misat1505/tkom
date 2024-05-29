@@ -9,6 +9,7 @@ use crate::{
     stack::Stack,
     std_functions::StdFunction,
     value::{ComputationIssue, Value},
+    visitor::Visitor,
     ALU::ALU,
 };
 
@@ -106,7 +107,7 @@ impl<'a> Interpreter<'a> {
     }
 }
 
-impl<'a> Interpreter<'a> {
+impl<'a> Visitor<'a> for Interpreter<'a> {
     fn visit_program(&mut self, program: &'a Program) -> Result<(), Box<dyn Issue>> {
         for statement in &program.statements {
             self.visit_statement(&statement)?;

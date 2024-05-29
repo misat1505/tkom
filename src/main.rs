@@ -66,7 +66,7 @@ fn main() {
         Err(err) => return eprintln!("{}", err.message()),
     };
 
-    let mut semantic_checker = match SemanticChecker::new(program.clone()) {
+    let mut semantic_checker = match SemanticChecker::new(&program) {
         Ok(checker) => checker,
         Err(err) => return eprintln!("{}", err.message()),
     };

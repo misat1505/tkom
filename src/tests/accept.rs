@@ -3,29 +3,36 @@ mod tests {
     use std::{cell::RefCell, io::BufReader, rc::Rc};
 
     use crate::{
-        ast::Program, errors::Issue, interpreter::Interpreter, lazy_stream_reader::LazyStreamReader, lexer::{Lexer, LexerOptions}, parser::{IParser, Parser}, semantic_checker::SemanticChecker, value::Value
+        ast::Program,
+        errors::Issue,
+        interpreter::Interpreter,
+        lazy_stream_reader::LazyStreamReader,
+        lexer::{Lexer, LexerOptions},
+        parser::{IParser, Parser},
+        semantic_checker::SemanticChecker,
+        value::Value,
     };
 
     fn on_warning(_err: Box<dyn Issue>) {}
 
     fn setup_program(text: BufReader<&[u8]>) -> Program {
-      let options = LexerOptions {
-        max_comment_length: 100,
-        max_identifier_length: 100,
-      };
-      let reader = LazyStreamReader::new(text);
-      let lexer = Lexer::new(reader, options, on_warning);
-      let mut parser = Parser::new(lexer);
-      let program = parser.parse().unwrap();
-      let mut checker = SemanticChecker::new(program.clone()).unwrap();
-      checker.check();
-      assert!(checker.errors.len() == 0);
-      program
+        let options = LexerOptions {
+            max_comment_length: 100,
+            max_identifier_length: 100,
+        };
+        let reader = LazyStreamReader::new(text);
+        let lexer = Lexer::new(reader, options, on_warning);
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse().unwrap();
+        let mut checker = SemanticChecker::new(&program).unwrap();
+        checker.check();
+        assert!(checker.errors.len() == 0);
+        program
     }
 
     fn create_interpreter<'a>(program: &'a Program) -> Interpreter<'a> {
-      Interpreter::new(program)
-  }
+        Interpreter::new(program)
+    }
 
     #[test]
     fn if_statement() {

@@ -20,20 +20,20 @@ impl Issue for SemanticCheckerIssue {
     }
 }
 
-pub struct SemanticChecker {
-    program: Program,
+pub struct SemanticChecker<'a> {
+    program: &'a Program,
     pub errors: Vec<SemanticCheckerIssue>,
 }
 
-impl SemanticChecker {
+impl<'a> SemanticChecker<'a> {
     #![allow(unused_must_use)]
-    pub fn new(program: Program) -> Result<Self, Box<dyn Issue>> {
+    pub fn new(program: &'a Program) -> Result<Self, Box<dyn Issue>> {
         let errors: Vec<SemanticCheckerIssue> = vec![];
         Ok(Self { program, errors })
     }
 
     pub fn check(&mut self) {
-        self.visit_program(&self.program.clone());
+        self.visit_program(self.program);
     }
 
     fn check_function_call(&mut self, function: FunctionCallType) {
@@ -140,20 +140,20 @@ impl SemanticChecker {
     }
 }
 
-impl Visitor for SemanticChecker {
+impl<'a> Visitor<'a> for SemanticChecker<'a> {
     #![allow(unused_must_use)]
-    fn visit_program(&mut self, program: &Program) -> Result<(), Box<dyn Issue>> {
-        for statement in program.statements.clone() {
+    fn visit_program(&mut self, program: &'a Program) -> Result<(), Box<dyn Issue>> {
+        for statement in &program.statements {
             self.visit_statement(&statement);
         }
 
-        for (_, function) in program.functions.clone() {
+        for (_, function) in &program.functions {
             self.visit_block(&function.value.block);
         }
         Ok(())
     }
 
-    fn visit_expression(&mut self, expression: &Node<Expression>) -> Result<(), Box<dyn Issue>> {
+    fn visit_expression(&mut self, expression: &'a Node<Expression>) -> Result<(), Box<dyn Issue>> {
         match &expression.value {
             Expression::FunctionCall { .. } => {
                 self.check_function_call(FunctionCallType::Expression(expression.clone()));
@@ -161,7 +161,7 @@ impl Visitor for SemanticChecker {
             _ => {}
         }
 
-        match expression.value.clone() {
+        match &expression.value {
             Expression::Alternative(lhs, rhs)
             | Expression::Concatenation(lhs, rhs)
             | Expression::Greater(lhs, rhs)
@@ -195,7 +195,7 @@ impl Visitor for SemanticChecker {
         Ok(())
     }
 
-    fn visit_statement(&mut self, statement: &Node<Statement>) -> Result<(), Box<dyn Issue>> {
+    fn visit_statement(&mut self, statement: &'a Node<Statement>) -> Result<(), Box<dyn Issue>> {
         match &statement.value {
             &Statement::FunctionCall { .. } => {
                 self.check_function_call(FunctionCallType::Statement(statement.clone()));
@@ -203,7 +203,7 @@ impl Visitor for SemanticChecker {
             _ => {}
         }
 
-        match statement.value.clone() {
+        match &statement.value {
             Statement::FunctionCall { arguments, .. } => {
                 for arg in arguments {
                     self.visit_argument(&arg);
@@ -262,45 +262,45 @@ impl Visitor for SemanticChecker {
         Ok(())
     }
 
-    fn visit_argument(&mut self, argument: &Node<Argument>) -> Result<(), Box<dyn Issue>> {
+    fn visit_argument(&mut self, argument: &'a Node<Argument>) -> Result<(), Box<dyn Issue>> {
         self.visit_expression(&argument.value.value);
         Ok(())
     }
 
-    fn visit_block(&mut self, block: &Node<Block>) -> Result<(), Box<dyn Issue>> {
+    fn visit_block(&mut self, block: &'a Node<Block>) -> Result<(), Box<dyn Issue>> {
         for statement in &block.value.0 {
             self.visit_statement(statement);
         }
         Ok(())
     }
 
-    fn visit_parameter(&mut self, parameter: &Node<Parameter>) -> Result<(), Box<dyn Issue>> {
+    fn visit_parameter(&mut self, parameter: &'a Node<Parameter>) -> Result<(), Box<dyn Issue>> {
         self.visit_type(&parameter.value.parameter_type);
         Ok(())
     }
 
-    fn visit_switch_case(&mut self, switch_case: &Node<SwitchCase>) -> Result<(), Box<dyn Issue>> {
+    fn visit_switch_case(&mut self, switch_case: &'a Node<SwitchCase>) -> Result<(), Box<dyn Issue>> {
         self.visit_expression(&switch_case.value.condition);
         self.visit_block(&switch_case.value.block);
         Ok(())
     }
 
-    fn visit_switch_expression(&mut self, switch_expression: &Node<SwitchExpression>) -> Result<(), Box<dyn Issue>> {
+    fn visit_switch_expression(&mut self, switch_expression: &'a Node<SwitchExpression>) -> Result<(), Box<dyn Issue>> {
         self.visit_expression(&switch_expression.value.expression);
         Ok(())
     }
 
-    fn visit_type(&mut self, _node_type: &Node<Type>) -> Result<(), Box<dyn Issue>> {
+    fn visit_type(&mut self, _node_type: &'a Node<Type>) -> Result<(), Box<dyn Issue>> {
         // println!("{:?}", _node_type);
         Ok(())
     }
 
-    fn visit_literal(&mut self, _literal: &Literal) -> Result<(), Box<dyn Issue>> {
+    fn visit_literal(&mut self, _literal: &'a Literal) -> Result<(), Box<dyn Issue>> {
         // println!("{:?}", _literal);
         Ok(())
     }
 
-    fn visit_variable(&mut self, _variable: &String) -> Result<(), Box<dyn Issue>> {
+    fn visit_variable(&mut self, _variable: &'a String) -> Result<(), Box<dyn Issue>> {
         // println!("{:?}", _variable);
         Ok(())
     }
