@@ -9,7 +9,6 @@ use crate::{
     stack::Stack,
     std_functions::StdFunction,
     value::{ComputationIssue, Value},
-    visitor::Visitor,
     ALU::ALU,
 };
 
@@ -353,6 +352,7 @@ impl<'a> Interpreter<'a> {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn visit_argument(&mut self, argument: &'a Node<Argument>) -> Result<(), Box<dyn Issue>> {
         self.visit_expression(&argument.value.value)?;
         Ok(())
