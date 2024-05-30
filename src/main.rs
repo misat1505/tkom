@@ -62,7 +62,7 @@ fn main() {
 
     let start = Instant::now();
     let program = match parser.parse() {
-        Ok(p) => p.clone(),
+        Ok(p) => p,
         Err(err) => return eprintln!("{}", err.message()),
     };
 
