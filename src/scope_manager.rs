@@ -47,24 +47,19 @@ impl<'a> ScopeManager<'a> {
     }
 
     pub fn assign_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerIssue> {
-        match self.get_variable(name) {
-            Err(_) => Err(ScopeManagerIssue {
-                message: format!("Variable '{}' not declared.", name),
-            }),
-            Ok(_) => {
-                for scope in &mut self.scopes {
-                    if let Some(_) = scope.get_variable(name) {
-                        return scope.assign_variable(name, value);
-                    }
-                }
-
-                Ok(())
+        for scope in &mut self.scopes {
+            if let Some(_) = scope.get_variable(name) {
+                return scope.assign_variable(name, value);
             }
         }
+
+        Err(ScopeManagerIssue {
+            message: format!("Variable '{}' not declared in this scope.", name),
+        })
     }
 
     pub fn declare_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerIssue> {
-        if let Ok(_) = self.get_variable(name) {
+        if self.get_variable(name).is_ok() {
             return Err(ScopeManagerIssue {
                 message: format!("Cannot redeclare variable '{}'.", name),
             });
@@ -191,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    fn manager_variables() {
+    fn manages_variables() {
         // i64 x = 1;
         // {x = 5; i64 y = 2;}
         // {y; i64 y = 3;}
@@ -229,5 +224,13 @@ mod tests {
 
         let _ = manager.declare_variable("x", Rc::new(RefCell::new(Value::I64(1))));
         assert!(manager.assign_variable("x", Rc::new(RefCell::new(Value::Bool(true)))).is_err());
+    }
+
+    #[test]
+    fn doesnt_allow_redclare() {
+        let mut manager = ScopeManager::new();
+
+        let _ = manager.declare_variable("x", Rc::new(RefCell::new(Value::I64(1))));
+        assert!(manager.declare_variable("x", Rc::new(RefCell::new(Value::I64(6)))).is_err());
     }
 }
