@@ -438,10 +438,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
 
 impl<'a> Interpreter<'a> {
     fn execute_std_function(std_function: &StdFunction, arguments: &Vec<Rc<RefCell<Value>>>) -> Result<Option<Value>, Box<dyn Issue>> {
-        return match (std_function.execute)(arguments) {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Box::new(err)),
-        };
+        (std_function.execute)(arguments).map_err(|err| Box::new(err) as Box<dyn Issue>)
     }
 
     fn call_function(&mut self, identifier: &Node<String>, arguments: &'a Vec<Box<Node<Argument>>>) -> Result<(), Box<dyn Issue>> {
@@ -455,10 +452,10 @@ impl<'a> Interpreter<'a> {
                 PassedBy::Value => args.push(Rc::new(RefCell::new(value))),
                 PassedBy::Reference => {
                     if let Expression::Variable(var_name) = &arg.value.value.value {
-                        let var_ref = match self.stack.get_variable(var_name.as_str()) {
-                            Ok(r) => r,
-                            Err(err) => return Err(Box::new(err)),
-                        };
+                        let var_ref = self
+                            .stack
+                            .get_variable(var_name.as_str())
+                            .map_err(|err| Box::new(err) as Box<dyn Issue>)?;
                         args.push(Rc::clone(var_ref));
                     }
                 }

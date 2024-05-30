@@ -1,7 +1,5 @@
 use crate::{
-    ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
-    errors::Issue,
-    visitor::Visitor,
+    ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type}, errors::Issue, visitor::Visitor
 };
 
 enum FunctionCallType {
@@ -110,25 +108,23 @@ impl<'a> SemanticChecker<'a> {
                                 });
                             }
 
-                            if let Expression::Variable(_) = argument.value.value.value {
-                            } else {
-                                if argument.value.passed_by == PassedBy::Reference {
+                            if argument.value.passed_by == PassedBy::Reference {
+                                if let Expression::Variable(_) = argument.value.value.value {} else {
                                     self.errors.push(SemanticCheckerIssue {
-                                            message: format!(
-                                                "Parameter '{}' in function '{}' is passed by {:?}. Thus it needs to an identifier, but a complex expression was found.\nAt {:?}.\n",
-                                                parameter.value.identifier.value,
-                                                identifier.value,
-                                                PassedBy::Reference,
-                                                argument.position
-                                            ),
-                                        });
+                                        message: format!(
+                                            "Parameter '{}' in function '{}' is passed by {:?}. Thus it needs to an identifier, but a complex expression was found.\nAt {:?}.\n",
+                                            parameter.value.identifier.value,
+                                            identifier.value,
+                                            PassedBy::Reference,
+                                            argument.position
+                                        ),
+                                    });
                                 }
                             }
                         }
-                        // }
-
-                        return;
                     }
+
+                    return;
                 }
 
                 self.errors.push(SemanticCheckerIssue {
