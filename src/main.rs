@@ -72,20 +72,16 @@ fn main() {
     };
     semantic_checker.check();
 
-    for error in &semantic_checker.errors {
-        eprintln!("{}", error.message());
-    }
-
     if semantic_checker.errors.len() > 0 {
+        for error in &semantic_checker.errors {
+            eprintln!("{}", error.message());
+        }
         return;
     }
 
     let mut interpreter = Interpreter::new(&program);
-    match interpreter.interpret() {
-        Ok(_) => {}
-        Err(err) => {
-            eprintln!("{}", err.message())
-        }
+    if let Err(err) = interpreter.interpret() {
+        eprintln!("{}", err.message());
     };
 
     println!("\nExecution time: {:?}", Instant::now() - start);

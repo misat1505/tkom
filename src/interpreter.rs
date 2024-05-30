@@ -59,7 +59,7 @@ impl<'a> Interpreter<'a> {
         self.last_result.take().ok_or_else(|| {
             return Box::new(InterpreterIssue {
                 message: format!("No value produced where it is needed.\nAt {:?}.", self.position),
-            }) as Box<dyn Issue>
+            }) as Box<dyn Issue>;
         })
     }
 
