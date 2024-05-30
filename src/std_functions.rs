@@ -60,7 +60,7 @@ impl StdFunction {
                 match &*value {
                     Value::String(prompt) => {
                         print!("{}", prompt);
-                        io::stdout().flush().unwrap(); // Flush stdout to ensure prompt is displayed
+                        io::stdout().flush().unwrap();
                         let mut input = String::new();
                         match io::stdin().read_line(&mut input) {
                             Ok(_) => Ok(Some(Value::String(input.trim().to_string()))),
