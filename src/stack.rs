@@ -74,7 +74,7 @@ impl<'a> Stack<'a> {
         if let Some(last_frame) = self.0.last_mut() {
             return last_frame.scope_manager.get_variable(name);
         }
-        panic!();
+        unreachable!();
     }
 
     pub fn assign_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerIssue> {
