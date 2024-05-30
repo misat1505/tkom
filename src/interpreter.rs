@@ -56,15 +56,11 @@ impl<'a> Interpreter<'a> {
     }
 
     fn read_last_result(&mut self) -> Result<Value, Box<dyn Issue>> {
-        match self.last_result.clone() {
-            Some(result) => {
-                self.last_result = None;
-                Ok(result)
-            }
-            None => Err(Box::new(InterpreterIssue {
+        self.last_result.take().ok_or_else(|| {
+            return Box::new(InterpreterIssue {
                 message: format!("No value produced where it is needed.\nAt {:?}.", self.position),
-            })),
-        }
+            }) as Box<dyn Issue>
+        })
     }
 
     fn evaluate_binary_op<F>(&mut self, lhs: &'a Box<Node<Expression>>, rhs: &'a Box<Node<Expression>>, op: F) -> Result<(), Box<dyn Issue>>
