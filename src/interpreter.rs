@@ -512,7 +512,7 @@ impl<'a> Interpreter<'a> {
                     }))
                 }
             }
-            if let Err(mut err) = self.stack.declare_variable(param_name.as_str(), value.clone()) {
+            if let Err(mut err) = self.stack.declare_variable(param_name.as_str(), Rc::clone(value)) {
                 err.message = format!("{}\nAt {:?}.", err.message, self.position);
                 return Err(Box::new(err));
             };
