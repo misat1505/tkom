@@ -1,5 +1,7 @@
 use crate::{
-    ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type}, errors::Issue, visitor::Visitor
+    ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
+    errors::Issue,
+    visitor::Visitor,
 };
 
 enum FunctionCallType {
@@ -109,7 +111,8 @@ impl<'a> SemanticChecker<'a> {
                             }
 
                             if argument.value.passed_by == PassedBy::Reference {
-                                if let Expression::Variable(_) = argument.value.value.value {} else {
+                                if let Expression::Variable(_) = argument.value.value.value {
+                                } else {
                                     self.errors.push(SemanticCheckerIssue {
                                         message: format!(
                                             "Parameter '{}' in function '{}' is passed by {:?}. Thus it needs to an identifier, but a complex expression was found.\nAt {:?}.\n",

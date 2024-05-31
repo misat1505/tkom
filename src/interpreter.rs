@@ -246,10 +246,8 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                 };
                 if boolean_value {
                     self.visit_block(&if_block)?;
-                } else {
-                    if let Some(else_blk) = else_block {
-                        self.visit_block(&else_blk)?;
-                    }
+                } else if let Some(else_blk) = else_block {
+                    self.visit_block(&else_blk)?;
                 }
             }
             Statement::ForLoop {
@@ -486,9 +484,7 @@ impl<'a> Interpreter<'a> {
     fn execute_function(&mut self, function_declaration: &'a FunctionDeclaration) -> Result<(), Box<dyn Issue>> {
         let name = function_declaration.identifier.value.as_str();
         let statements = &function_declaration.block.value.0;
-        if let Err(err) = self.stack.push_stack_frame() {
-            return Err(Box::new(err));
-        };
+        self.stack.push_stack_frame().map_err(|err| Box::new(err) as Box<dyn Issue>)?;
 
         // args
         for idx in 0..self.last_arguments.len() {
