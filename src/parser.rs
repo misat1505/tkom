@@ -277,15 +277,14 @@ impl<L: ILexer> Parser<L> {
         };
 
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
-        let condition = match self.parse_expression()? {
-            Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create expression while parsing if statement.".to_owned())),
-        };
+        let condition = self
+            .parse_expression()?
+            .ok_or_else(|| self.create_parser_error("Couldn't create expression while parsing if statement.".to_owned()))?;
+
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
-        let true_block = match self.parse_statement_block()? {
-            Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create statement block while parsing if statement.".to_owned())),
-        };
+        let true_block = self
+            .parse_statement_block()?
+            .ok_or_else(|| self.create_parser_error("Couldn't create statement block while parsing if statement.".to_owned()))?;
 
         let false_block = match self.consume_if_matches(TokenCategory::Else)? {
             Some(_) => self.parse_statement_block()?,
@@ -312,10 +311,10 @@ impl<L: ILexer> Parser<L> {
 
         let mut statements: Vec<Node<Statement>> = vec![];
         while self.consume_if_matches(TokenCategory::BraceClose)?.is_none() {
-            let statement = match self.parse_statement()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create statement while parsing statement block.".to_owned())),
-            };
+            let statement = self
+                .parse_statement()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create statement while parsing statement block.".to_owned()))?;
+
             statements.push(statement);
         }
         Ok(Some(Node {
@@ -365,10 +364,10 @@ impl<L: ILexer> Parser<L> {
         let position = identifier.position;
 
         if self.consume_if_matches(TokenCategory::Assign)?.is_some() {
-            let expr = match self.parse_expression()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create expression while parsing assignment.".to_owned())),
-            };
+            let expr = self
+                .parse_expression()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create expression while parsing assignment.".to_owned()))?;
+
             let node = Node {
                 value: Statement::Assignment { identifier, value: expr },
                 position,
@@ -399,10 +398,10 @@ impl<L: ILexer> Parser<L> {
         };
 
         let position = declaration_type.position;
-        let identifier = match self.parse_identifier()? {
-            Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create identifier while parsing variable declaration.".to_owned())),
-        };
+        let identifier = self
+            .parse_identifier()?
+            .ok_or_else(|| self.create_parser_error("Couldn't create identifier while parsing variable declaration.".to_owned()))?;
+
         let value = match self.consume_if_matches(TokenCategory::Assign)? {
             Some(_) => self.parse_expression()?,
             None => None,
@@ -458,10 +457,10 @@ impl<L: ILexer> Parser<L> {
 
         let mut arguments = vec![expression];
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
-            let argument = match self.parse_argument()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create argument while parsing arguments.".to_owned())),
-            };
+            let argument = self
+                .parse_argument()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create argument while parsing arguments.".to_owned()))?;
+
             arguments.push(argument);
         }
         Ok(arguments)
@@ -480,7 +479,7 @@ impl<L: ILexer> Parser<L> {
         };
         let argument = Argument {
             value: expression.clone(),
-            passed_by: passed_by,
+            passed_by,
         };
         Ok(Some(Node {
             value: argument,
@@ -498,10 +497,10 @@ impl<L: ILexer> Parser<L> {
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Or {
             let _ = self.next_token()?;
-            let right_side = match self.parse_concatenation_term()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create concatenation term while parsing expression.".to_owned())),
-            };
+            let right_side = self
+                .parse_concatenation_term()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create concatenation term while parsing expression.".to_owned()))?;
+
             let expression_type = Expression::Alternative(Box::new(left_side.clone()), Box::new(right_side.clone()));
             left_side = Node {
                 value: expression_type,
@@ -522,10 +521,10 @@ impl<L: ILexer> Parser<L> {
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::And {
             let _ = self.next_token()?;
-            let right_side = match self.parse_relation_term()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create relation term while parsing concatenation term.".to_owned())),
-            };
+            let right_side = self
+                .parse_relation_term()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create relation term while parsing concatenation term.".to_owned()))?;
+
             let expression_type = Expression::Concatenation(Box::new(left_side.clone()), Box::new(right_side.clone()));
             left_side = Node {
                 value: expression_type,
@@ -558,10 +557,9 @@ impl<L: ILexer> Parser<L> {
         }
 
         let _ = self.next_token()?;
-        let right_side = match self.parse_additive_term()? {
-            Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create additive term while parsing relation term.".to_owned())),
-        };
+        let right_side = self
+            .parse_additive_term()?
+            .ok_or_else(|| self.create_parser_error("Couldn't create additive term while parsing relation term.".to_owned()))?;
 
         let box_l = Box::new(left_side.clone());
         let box_r = Box::new(right_side);
@@ -593,10 +591,8 @@ impl<L: ILexer> Parser<L> {
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Plus || current_token.category == TokenCategory::Minus {
             let _ = self.next_token()?;
-            let right_side = match self.parse_multiplicative_term()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create multiplicative term while parsing additive term.".to_owned())),
-            };
+            let right_side = self.parse_multiplicative_term()?.ok_or_else(|| self.create_parser_error("Couldn't create multiplicative term while parsing additive term.".to_owned()))?;
+
             let mut expression_type = Expression::Addition(Box::new(left_side.clone()), Box::new(right_side.clone()));
             if current_token.category == TokenCategory::Minus {
                 expression_type = Expression::Subtraction(Box::new(left_side), Box::new(right_side))
@@ -620,10 +616,8 @@ impl<L: ILexer> Parser<L> {
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Multiply || current_token.category == TokenCategory::Divide {
             let _ = self.next_token()?;
-            let right_side = match self.parse_casted_term()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create casted term while parsing multiplicative term.".to_owned())),
-            };
+            let right_side = self.parse_casted_term()?.ok_or_else(|| self.create_parser_error("Couldn't create casted term while parsing multiplicative term.".to_owned()))?;
+
             let mut expression_type = Expression::Multiplication(Box::new(left_side.clone()), Box::new(right_side.clone()));
             if current_token.category == TokenCategory::Divide {
                 expression_type = Expression::Division(Box::new(left_side), Box::new(right_side))
@@ -647,17 +641,15 @@ impl<L: ILexer> Parser<L> {
         let position = unary_term.position.clone();
         match self.consume_if_matches(TokenCategory::As)? {
             Some(_) => {
-                let type_parsed = match self.parse_type()? {
-                    Some(t) => t,
-                    None => return Err(self.create_parser_error("Couldn't parse type.".to_owned())),
-                };
-                return Ok(Some(Node {
+                let type_parsed = self.parse_type()?.ok_or_else(|| self.create_parser_error("Couldn't parse type.".to_owned()))?;
+
+                Ok(Some(Node {
                     value: Expression::Casting {
                         value: Box::new(unary_term),
                         to_type: type_parsed,
                     },
                     position,
-                }));
+                }))
             }
             None => Ok(Some(unary_term)),
         }
