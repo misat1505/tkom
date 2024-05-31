@@ -292,13 +292,12 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                 self.stack.pop_scope();
             }
             Statement::Return(value) => {
-                let returned_value = match value {
-                    Some(val) => {
-                        self.visit_expression(&val)?;
-                        Some(self.read_last_result()?)
-                    }
-                    None => None,
+                let mut returned_value = None;
+                if let Some(val) = value {
+                    self.visit_expression(&val)?;
+                    returned_value = Some(self.read_last_result()?);
                 };
+
                 self.is_returning = true;
                 self.last_result = returned_value;
             }
@@ -378,11 +377,11 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
 
     fn visit_variable(&mut self, variable: &'a String) -> Result<(), Box<dyn Issue>> {
         // read value of variable
-        let value = match self.stack.get_variable(variable.as_str()) {
-            Ok(val) => val.borrow().to_owned(),
-            Err(err) => return Err(Box::new(err)),
-        };
-        self.last_result = Some(value);
+        let value = self
+            .stack
+            .get_variable(variable.as_str())
+            .map_err(|err| Box::new(err) as Box<dyn Issue>)?;
+        self.last_result = Some(value.borrow().to_owned());
         Ok(())
     }
 }
