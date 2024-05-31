@@ -591,7 +591,9 @@ impl<L: ILexer> Parser<L> {
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Plus || current_token.category == TokenCategory::Minus {
             let _ = self.next_token()?;
-            let right_side = self.parse_multiplicative_term()?.ok_or_else(|| self.create_parser_error("Couldn't create multiplicative term while parsing additive term.".to_owned()))?;
+            let right_side = self
+                .parse_multiplicative_term()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create multiplicative term while parsing additive term.".to_owned()))?;
 
             let mut expression_type = Expression::Addition(Box::new(left_side.clone()), Box::new(right_side.clone()));
             if current_token.category == TokenCategory::Minus {
@@ -616,7 +618,9 @@ impl<L: ILexer> Parser<L> {
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Multiply || current_token.category == TokenCategory::Divide {
             let _ = self.next_token()?;
-            let right_side = self.parse_casted_term()?.ok_or_else(|| self.create_parser_error("Couldn't create casted term while parsing multiplicative term.".to_owned()))?;
+            let right_side = self
+                .parse_casted_term()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create casted term while parsing multiplicative term.".to_owned()))?;
 
             let mut expression_type = Expression::Multiplication(Box::new(left_side.clone()), Box::new(right_side.clone()));
             if current_token.category == TokenCategory::Divide {
@@ -641,7 +645,9 @@ impl<L: ILexer> Parser<L> {
         let position = unary_term.position.clone();
         match self.consume_if_matches(TokenCategory::As)? {
             Some(_) => {
-                let type_parsed = self.parse_type()?.ok_or_else(|| self.create_parser_error("Couldn't parse type.".to_owned()))?;
+                let type_parsed = self
+                    .parse_type()?
+                    .ok_or_else(|| self.create_parser_error("Couldn't parse type.".to_owned()))?;
 
                 Ok(Some(Node {
                     value: Expression::Casting {
@@ -655,9 +661,9 @@ impl<L: ILexer> Parser<L> {
         }
     }
 
-    fn parse_unary_term_factor(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
+    fn parse_unary_term_factor(&mut self) -> Result<Node<Expression>, Box<dyn Issue>> {
         match self.parse_factor()? {
-            Some(t) => Ok(Some(t)),
+            Some(t) => Ok(t),
             None => return Err(self.create_parser_error("Couldn't create factor while parsing unary term.".to_owned())),
         }
     }
@@ -665,7 +671,7 @@ impl<L: ILexer> Parser<L> {
     fn parse_unary_term(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // unary_term = [ ("-", "!") ], factor;
         if let Some(token) = self.consume_if_matches(TokenCategory::Negate)? {
-            let factor = self.parse_unary_term_factor()?.unwrap();
+            let factor = self.parse_unary_term_factor()?;
             return Ok(Some(Node {
                 value: Expression::BooleanNegation(Box::new(factor)),
                 position: token.position,
@@ -673,7 +679,7 @@ impl<L: ILexer> Parser<L> {
         }
 
         if let Some(token) = self.consume_if_matches(TokenCategory::Minus)? {
-            let factor = self.parse_unary_term_factor()?.unwrap();
+            let factor = self.parse_unary_term_factor()?;
             return Ok(Some(Node {
                 value: Expression::ArithmeticNegation(Box::new(factor)),
                 position: token.position,
@@ -695,10 +701,10 @@ impl<L: ILexer> Parser<L> {
         }
 
         if self.consume_if_matches(TokenCategory::ParenOpen)?.is_some() {
-            let expression = match self.parse_expression()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create expression while parsing nested expression.".to_owned())),
-            };
+            let expression = self
+                .parse_expression()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create expression while parsing nested expression.".to_owned()))?;
+
             self.consume_must_be(TokenCategory::ParenClose)?;
             return Ok(Some(expression));
         }
@@ -718,10 +724,7 @@ impl<L: ILexer> Parser<L> {
             Some(_) => {
                 let args = self.parse_arguments()?.into_iter().map(Box::new).collect();
                 let _ = self.consume_must_be(TokenCategory::ParenClose)?;
-                Expression::FunctionCall {
-                    identifier: identifier,
-                    arguments: args,
-                }
+                Expression::FunctionCall { identifier, arguments: args }
             }
             None => Expression::Variable(identifier.value),
         };
@@ -741,10 +744,10 @@ impl<L: ILexer> Parser<L> {
         let _ = self.consume_must_be(TokenCategory::BraceOpen)?;
         let mut switch_cases: Vec<Node<SwitchCase>> = vec![];
         while self.current_token().category != TokenCategory::BraceClose {
-            let switch_case = match self.parse_switch_case()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create switch case while parsing switch statement.".to_owned())),
-            };
+            let switch_case = self
+                .parse_switch_case()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create switch case while parsing switch statement.".to_owned()))?;
+
             switch_cases.push(switch_case);
         }
         let _ = self.consume_must_be(TokenCategory::BraceClose)?;
@@ -768,10 +771,10 @@ impl<L: ILexer> Parser<L> {
 
         switch_expressions.push(expression);
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
-            expression = match self.parse_switch_expression()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create swicth expression while parsing switch expressions.".to_owned())),
-            };
+            expression = self
+                .parse_switch_expression()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create swicth expression while parsing switch expressions.".to_owned()))?;
+
             switch_expressions.push(expression);
         }
         Ok(switch_expressions)
@@ -803,16 +806,16 @@ impl<L: ILexer> Parser<L> {
             Err(_) => return Ok(None),
         };
 
-        let condition = match self.parse_expression()? {
-            Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create expression while parsing switch case.".to_owned())),
-        };
+        let condition = self
+            .parse_expression()?
+            .ok_or_else(|| self.create_parser_error("Couldn't create expression while parsing switch case.".to_owned()))?;
+
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let _ = self.consume_must_be(TokenCategory::Arrow)?;
-        let block = match self.parse_statement_block()? {
-            Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create statement block while parsing switch case.".to_owned())),
-        };
+        let block = self
+            .parse_statement_block()?
+            .ok_or_else(|| self.create_parser_error("Couldn't create statement block while parsing switch case.".to_owned()))?;
+
         let node = Node {
             value: SwitchCase { condition, block },
             position: paren_open_token.position,
