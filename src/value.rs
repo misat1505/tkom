@@ -40,6 +40,15 @@ impl Value {
             Value::String(_) => Type::Str,
         }
     }
+
+    pub fn try_into_bool(&self) -> Result<bool, ComputationIssue> {
+        match self {
+            Value::Bool(bool) => Ok(*bool),
+            _ => Err(ComputationIssue {
+                message: format!("Given value is not a boolean."),
+            }),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -71,5 +80,11 @@ mod tests {
         for idx in 0..values.len() {
             assert!(values[idx].to_type() == exp[idx]);
         }
+    }
+
+    #[test]
+    fn try_into_bool() {
+        assert!(Value::Bool(true).try_into_bool().unwrap() == true);
+        assert!(Value::I64(5).try_into_bool().is_err());
     }
 }

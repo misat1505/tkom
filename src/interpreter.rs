@@ -170,20 +170,13 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                 let computed_value = match value {
                     Some(val) => {
                         self.visit_expression(&val)?;
-                        let result = match self.read_last_result() {
-                            Ok(val) => val,
-                            Err(_) => {
-                                return Err(Box::new(InterpreterIssue {
-                                    message: format!("Cannot declare variable '{}' with no value.\nAt {:?}.", identifier.value, self.position),
-                                }))
-                            }
-                        };
-                        result
+                        self.read_last_result().map_err(|_| {
+                            Box::new(InterpreterIssue {
+                                message: format!("Cannot declare variable '{}' with no value.\nAt {:?}.", identifier.value, self.position),
+                            }) as Box<dyn Issue>
+                        })?
                     }
-                    None => match Value::default_value(var_type.value) {
-                        Ok(val) => val,
-                        Err(err) => return Err(Box::new(err)),
-                    },
+                    None => Value::default_value(var_type.value).map_err(|err| Box::new(err) as Box<dyn Issue>)?,
                 };
 
                 match (var_type.value, &computed_value) {
@@ -211,14 +204,12 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
             }
             Statement::Assignment { identifier, value } => {
                 self.visit_expression(&value)?;
-                let value = match self.read_last_result() {
-                    Ok(val) => val,
-                    Err(_) => {
-                        return Err(Box::new(InterpreterIssue {
-                            message: format!("Cannot assign no value to variable '{}'.\nAt {:?}.", identifier.value, self.position),
-                        }))
-                    }
-                };
+                let value = self.read_last_result().map_err(|_| {
+                    Box::new(InterpreterIssue {
+                        message: format!("Cannot assign no value to variable '{}'.\nAt {:?}.", identifier.value, self.position),
+                    }) as Box<dyn Issue>
+                })?;
+
                 if let Err(mut err) = self.stack.assign_variable(identifier.value.as_str(), Rc::new(RefCell::new(value))) {
                     err.message = format!("{}\nAt {:?}.", err.message, self.position);
                     return Err(Box::new(err));
@@ -231,19 +222,10 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
             } => {
                 self.visit_expression(&condition)?;
                 let computed_condition = self.read_last_result()?;
-                let boolean_value = match computed_condition {
-                    Value::Bool(bool) => bool,
-                    a => {
-                        return Err(Box::new(InterpreterIssue {
-                            message: format!(
-                                "Condition in if statement has to evaulate to type '{:?}' - got '{:?}'.\nAt {:?}.",
-                                Type::Bool,
-                                a.to_type(),
-                                self.position
-                            ),
-                        }))
-                    }
-                };
+                let boolean_value = computed_condition
+                    .try_into_bool()
+                    .map_err(|_| self.condition_error(computed_condition, "if statement"))?;
+
                 if boolean_value {
                     self.visit_block(&if_block)?;
                 } else if let Some(else_blk) = else_block {
@@ -263,19 +245,9 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
 
                 self.visit_expression(&condition)?;
                 let mut computed_condition = self.read_last_result()?;
-                let mut boolean_value = match computed_condition {
-                    Value::Bool(bool) => bool,
-                    a => {
-                        return Err(Box::new(InterpreterIssue {
-                            message: format!(
-                                "Condition in for statement has to evaulate to type '{:?}' - got '{:?}'.\nAt {:?}.",
-                                Type::Bool,
-                                a.to_type(),
-                                self.position
-                            ),
-                        }))
-                    }
-                };
+                let mut boolean_value = computed_condition
+                    .try_into_bool()
+                    .map_err(|_| self.condition_error(computed_condition, "for statement"))?;
 
                 while boolean_value {
                     self.visit_block(&block)?;
@@ -295,19 +267,9 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
 
                     self.visit_expression(&condition)?;
                     computed_condition = self.read_last_result()?;
-                    boolean_value = match computed_condition {
-                        Value::Bool(bool) => bool,
-                        a => {
-                            return Err(Box::new(InterpreterIssue {
-                                message: format!(
-                                    "Condition in for statement has to evaulate to '{:?}' - got '{:?}'.\nAt {:?}.",
-                                    Type::Bool,
-                                    a.to_type(),
-                                    self.position
-                                ),
-                            }))
-                        }
-                    };
+                    boolean_value = computed_condition
+                        .try_into_bool()
+                        .map_err(|_| self.condition_error(computed_condition, "for statement"))?;
                 }
                 self.stack.pop_scope();
             }
@@ -374,19 +336,10 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
     fn visit_switch_case(&mut self, switch_case: &'a Node<SwitchCase>) -> Result<(), Box<dyn Issue>> {
         self.visit_expression(&switch_case.value.condition)?;
         let computed_value = self.read_last_result()?;
-        let boolean_value = match computed_value {
-            Value::Bool(bool) => bool,
-            a => {
-                return Err(Box::new(InterpreterIssue {
-                    message: format!(
-                        "Condition in switch case has to evaluate to type '{:?}' - got '{:?}'.\nAt {:?}.",
-                        Type::Bool,
-                        a.to_type(),
-                        self.position
-                    ),
-                }))
-            }
-        };
+        let boolean_value = computed_value
+            .try_into_bool()
+            .map_err(|_| self.condition_error(computed_value, "switch case"))?;
+
         if boolean_value {
             self.visit_block(&switch_case.value.block)?;
         }
@@ -435,6 +388,18 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
 }
 
 impl<'a> Interpreter<'a> {
+    fn condition_error(&self, value: Value, place: &'a str) -> Box<dyn Issue> {
+        Box::new(InterpreterIssue {
+            message: format!(
+                "Condition in '{}' has to evaluate to type '{:?}' - got '{:?}'.\nAt {:?}.",
+                place,
+                Type::Bool,
+                value.to_type(),
+                self.position
+            ),
+        })
+    }
+
     fn execute_std_function(std_function: &StdFunction, arguments: &Vec<Rc<RefCell<Value>>>) -> Result<Option<Value>, Box<dyn Issue>> {
         (std_function.execute)(arguments).map_err(|err| Box::new(err) as Box<dyn Issue>)
     }
