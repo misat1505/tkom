@@ -77,20 +77,20 @@ impl<T: BufRead> Lexer<T> {
     }
 
     fn try_generating_comment(&mut self) -> Result<Option<Token>, Box<dyn Issue>> {
-        let current_char = self.src.current().clone();
-        if current_char != '#' {
+        let current_char = self.src.current();
+        if *current_char != '#' {
             return Ok(None);
         }
 
         let mut comment = String::new();
-        while let Ok(current) = self.src.next().cloned() {
-            if current == '\n' || current == ETX {
+        while let Ok(current) = self.src.next() {
+            if *current == '\n' || *current == ETX {
                 break;
             }
             if (comment.len() as u32) == self.options.max_comment_length {
                 return Err(self.create_lexer_issue(format!("Comment too long. Max comment length: {}", self.options.max_comment_length)));
             }
-            comment.push(current);
+            comment.push(*current);
         }
 
         Ok(Some(Token {
@@ -102,8 +102,7 @@ impl<T: BufRead> Lexer<T> {
 
     fn try_generating_sign(&mut self) -> Result<Option<Token>, Box<dyn Issue>> {
         let current_char = self.src.current();
-        let token_category_result = SIGNS.get(current_char);
-        match token_category_result {
+        match SIGNS.get(current_char) {
             None => Ok(None),
             Some(token_category) => {
                 let token = Token {
@@ -162,8 +161,8 @@ impl<T: BufRead> Lexer<T> {
     }
 
     fn extend_to_next_or_warning(&mut self, char_to_search: char, found: TokenCategory) -> Token {
-        let next_char = self.src.next().unwrap().clone();
-        if next_char == char_to_search {
+        let next_char = self.src.next().unwrap();
+        if *next_char == char_to_search {
             let _ = self.src.next();
         } else {
             (self.on_warning)(Box::new(LexerIssue::new(

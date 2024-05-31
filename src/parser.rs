@@ -742,6 +742,7 @@ impl<L: ILexer> Parser<L> {
         let switch_expressions = self.parse_switch_expressions()?;
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let _ = self.consume_must_be(TokenCategory::BraceOpen)?;
+
         let mut switch_cases: Vec<Node<SwitchCase>> = vec![];
         while self.current_token().category != TokenCategory::BraceClose {
             let switch_case = self
@@ -751,6 +752,7 @@ impl<L: ILexer> Parser<L> {
             switch_cases.push(switch_case);
         }
         let _ = self.consume_must_be(TokenCategory::BraceClose)?;
+        
         let node = Node {
             value: Statement::Switch {
                 expressions: switch_expressions,
