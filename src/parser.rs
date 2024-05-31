@@ -114,12 +114,12 @@ impl<L: ILexer> Parser<L> {
         Ok(None)
     }
 
-    fn void_type_or_error(&mut self) -> Result<Option<Node<Type>>, Box<dyn Issue>> {
+    fn void_type_or_error(&mut self) -> Result<Node<Type>, Box<dyn Issue>> {
         match self.consume_if_matches(TokenCategory::Void)? {
-            Some(token) => Ok(Some(Node {
+            Some(token) => Ok(Node {
                 value: Type::Void,
                 position: token.position,
-            })),
+            }),
             None => {
                 return Err(self.create_parser_error(format!(
                     "Bad return type: {:?}. Expected one of: 'i64', 'f64', 'bool', 'str', 'void'.",
@@ -136,25 +136,22 @@ impl<L: ILexer> Parser<L> {
             Err(_) => return Ok(None),
         };
 
-        let identifier = match self.parse_identifier()? {
-            Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create identifier while parsing function declaration.".to_owned())),
-        };
+        let identifier = self
+            .parse_identifier()?
+            .ok_or_else(|| self.create_parser_error("Couldn't create identifier while parsing function declaration.".to_owned()))?;
+
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let parameters = self.parse_parameters()?;
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let _ = self.consume_must_be(TokenCategory::Colon)?;
         let return_type = match self.parse_type() {
-            Ok(t) => match t {
-                Some(t) => t,
-                None => self.void_type_or_error()?.unwrap(),
-            },
-            Err(_) => self.void_type_or_error()?.unwrap(),
+            Ok(Some(t)) => t,
+            _ => self.void_type_or_error()?,
         };
-        let block = match self.parse_statement_block()? {
-            Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create statement block while parsing function declaration.".to_owned())),
-        };
+        let block = self
+            .parse_statement_block()?
+            .ok_or_else(|| self.create_parser_error("Couldn't create statement block while parsing function declaration.".to_owned()))?;
+
         let node = Node {
             value: FunctionDeclaration {
                 identifier,
@@ -164,6 +161,7 @@ impl<L: ILexer> Parser<L> {
             },
             position: fn_token.position,
         };
+
         Ok(Some(node))
     }
 
@@ -176,12 +174,12 @@ impl<L: ILexer> Parser<L> {
 
         let mut parameters = vec![expression];
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
-            let parameter = match self.parse_parameter()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create parameter while parsing parameters.".to_owned())),
-            };
+            let parameter = self
+                .parse_parameter()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create parameter while parsing parameters.".to_owned()))?;
             parameters.push(parameter);
         }
+
         Ok(parameters)
     }
 
@@ -192,14 +190,15 @@ impl<L: ILexer> Parser<L> {
             Some(_) => PassedBy::Reference,
             None => PassedBy::Value,
         };
+
         let parameter_type = match self.parse_type()? {
             Some(t) => t,
             None => return Ok(None),
         };
-        let identifier = match self.parse_identifier()? {
-            Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create identifier while parsing parameter.".to_owned())),
-        };
+        let identifier = self
+            .parse_identifier()?
+            .ok_or_else(|| self.create_parser_error("Couldn't create identifier while parsing parameter.".to_owned()))?;
+
         let node = Node {
             value: Parameter {
                 passed_by,
@@ -219,46 +218,45 @@ impl<L: ILexer> Parser<L> {
         };
 
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
-        let declaration = match self.parse_declaration() {
-            Ok(decl) => match decl {
-                Some(t) => {
-                    let position = t.position;
-                    let node = Node { value: t.value, position };
-                    Some(Box::new(node))
-                }
-                None => None,
-            },
-            Err(_) => None,
-        };
+        let declaration = self
+            .parse_declaration()
+            .map_err(|_| self.create_parser_error("Couldn't create declaration while parsing for statement.".to_owned()))?
+            .map(|t| {
+                let position = t.position;
+                let node = Node { value: t.value, position };
+                Box::new(node)
+            });
+
         self.consume_must_be(TokenCategory::Semicolon)?;
-        let condition = match self.parse_expression()? {
-            Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create expression while parsing for statement.".to_owned())),
-        };
+        let condition = self
+            .parse_expression()?
+            .ok_or_else(|| self.create_parser_error("Couldn't create expression while parsing for statement.".to_owned()))?;
+
         self.consume_must_be(TokenCategory::Semicolon)?;
         let mut assignment: Option<Box<Node<Statement>>> = None;
         if self.current_token().category == TokenCategory::Identifier {
-            let identifier = match self.parse_identifier()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create identifier while parsing for statement.".to_owned())),
-            };
+            let identifier = self
+                .parse_identifier()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create identifier while parsing for statement.".to_owned()))?;
+
             let position = identifier.position;
             let _ = self.consume_must_be(TokenCategory::Assign)?;
-            let expr = match self.parse_expression()? {
-                Some(t) => t,
-                None => return Err(self.create_parser_error("Couldn't create expression while parsing for statement.".to_owned())),
-            };
+            let expr = self
+                .parse_expression()?
+                .ok_or_else(|| self.create_parser_error("Couldn't create expression while parsing for statement.".to_owned()))?;
+
             let assign = Box::new(Node {
                 value: Statement::Assignment { identifier, value: expr },
                 position,
             });
             assignment = Some(assign);
         };
+
         self.consume_must_be(TokenCategory::ParenClose)?;
-        let block = match self.parse_statement_block()? {
-            Some(t) => t,
-            None => return Err(self.create_parser_error("Couldn't create statement block while parsing for statement.".to_owned())),
-        };
+        let block = self
+            .parse_statement_block()?
+            .ok_or_else(|| self.create_parser_error("Couldn't create statement block while parsing for statement.".to_owned()))?;
+
         let node = Node {
             value: Statement::ForLoop {
                 declaration,

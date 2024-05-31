@@ -21,3 +21,5 @@ for (i64 x = 0; x < 1000; x = x + 1) {
 }
 
 print(iters as str + " total iterations.");
+
+for (i64 =; i < 5; i = i + 1) {}

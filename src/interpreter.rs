@@ -308,7 +308,6 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         Ok(())
     }
 
-    #[allow(dead_code)]
     fn visit_argument(&mut self, argument: &'a Node<Argument>) -> Result<(), Box<dyn Issue>> {
         self.visit_expression(&argument.value.value)?;
         Ok(())
