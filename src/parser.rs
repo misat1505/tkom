@@ -154,7 +154,7 @@ impl<L: ILexer> Parser<L> {
 
         let identifier = self
             .parse_identifier()?
-            .ok_or_else(|| self.create_parser_error("Couldn't create identifier while parsing function declaration.".to_owned()))?;
+            .ok_or_else(|| self.create_parser_error(String::from("Couldn't create identifier while parsing function declaration.")))?;
 
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let parameters = self.parse_parameters()?;
@@ -166,7 +166,7 @@ impl<L: ILexer> Parser<L> {
         };
         let block = self
             .parse_statement_block()?
-            .ok_or_else(|| self.create_parser_error("Couldn't create statement block while parsing function declaration.".to_owned()))?;
+            .ok_or_else(|| self.create_parser_error(String::from("Couldn't create statement block while parsing function declaration.")))?;
 
         let node = Node {
             value: FunctionDeclaration {
@@ -192,7 +192,7 @@ impl<L: ILexer> Parser<L> {
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             let parameter = self
                 .parse_parameter()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create parameter while parsing parameters.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create parameter while parsing parameters.")))?;
             parameters.push(parameter);
         }
 
@@ -210,7 +210,7 @@ impl<L: ILexer> Parser<L> {
         let parameter_type = try_consume!(self, parse_type);
         let identifier = self
             .parse_identifier()?
-            .ok_or_else(|| self.create_parser_error("Couldn't create identifier while parsing parameter.".to_owned()))?;
+            .ok_or_else(|| self.create_parser_error(String::from("Couldn't create identifier while parsing parameter.")))?;
 
         let node = Node {
             value: Parameter {
@@ -230,7 +230,7 @@ impl<L: ILexer> Parser<L> {
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let declaration = self
             .parse_declaration()
-            .map_err(|_| self.create_parser_error("Couldn't create declaration while parsing for statement.".to_owned()))?
+            .map_err(|_| self.create_parser_error(String::from("Couldn't create declaration while parsing for statement.")))?
             .map(|t| {
                 let position = t.position;
                 let node = Node { value: t.value, position };
@@ -240,20 +240,20 @@ impl<L: ILexer> Parser<L> {
         self.consume_must_be(TokenCategory::Semicolon)?;
         let condition = self
             .parse_expression()?
-            .ok_or_else(|| self.create_parser_error("Couldn't create expression while parsing for statement.".to_owned()))?;
+            .ok_or_else(|| self.create_parser_error(String::from("Couldn't create expression while parsing for statement.")))?;
 
         self.consume_must_be(TokenCategory::Semicolon)?;
         let mut assignment: Option<Box<Node<Statement>>> = None;
         if self.current_token().category == TokenCategory::Identifier {
             let identifier = self
                 .parse_identifier()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create identifier while parsing for statement.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create identifier while parsing for statement.")))?;
 
             let position = identifier.position;
             let _ = self.consume_must_be(TokenCategory::Assign)?;
             let expr = self
                 .parse_expression()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create expression while parsing for statement.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create expression while parsing for statement.")))?;
 
             let assign = Box::new(Node {
                 value: Statement::Assignment { identifier, value: expr },
@@ -265,7 +265,7 @@ impl<L: ILexer> Parser<L> {
         self.consume_must_be(TokenCategory::ParenClose)?;
         let block = self
             .parse_statement_block()?
-            .ok_or_else(|| self.create_parser_error("Couldn't create statement block while parsing for statement.".to_owned()))?;
+            .ok_or_else(|| self.create_parser_error(String::from("Couldn't create statement block while parsing for statement.")))?;
 
         let node = Node {
             value: Statement::ForLoop {
@@ -286,12 +286,12 @@ impl<L: ILexer> Parser<L> {
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let condition = self
             .parse_expression()?
-            .ok_or_else(|| self.create_parser_error("Couldn't create expression while parsing if statement.".to_owned()))?;
+            .ok_or_else(|| self.create_parser_error(String::from("Couldn't create expression while parsing if statement.")))?;
 
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let true_block = self
             .parse_statement_block()?
-            .ok_or_else(|| self.create_parser_error("Couldn't create statement block while parsing if statement.".to_owned()))?;
+            .ok_or_else(|| self.create_parser_error(String::from("Couldn't create statement block while parsing if statement.")))?;
 
         let false_block = match self.consume_if_matches(TokenCategory::Else)? {
             Some(_) => self.parse_statement_block()?,
@@ -317,7 +317,7 @@ impl<L: ILexer> Parser<L> {
         while self.consume_if_matches(TokenCategory::BraceClose)?.is_none() {
             let statement = self
                 .parse_statement()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create statement while parsing statement block.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create statement while parsing statement block.")))?;
 
             statements.push(statement);
         }
@@ -364,7 +364,7 @@ impl<L: ILexer> Parser<L> {
         if self.consume_if_matches(TokenCategory::Assign)?.is_some() {
             let expr = self
                 .parse_expression()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create expression while parsing assignment.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create expression while parsing assignment.")))?;
 
             let node = Node {
                 value: Statement::Assignment { identifier, value: expr },
@@ -385,7 +385,7 @@ impl<L: ILexer> Parser<L> {
             return Ok(Some(node));
         }
 
-        Err(self.create_parser_error(format!("Couldn't create assignment or call.")))
+        Err(self.create_parser_error(String::from("Couldn't create assignment or call.")))
     }
 
     fn parse_declaration(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
@@ -395,7 +395,7 @@ impl<L: ILexer> Parser<L> {
         let position = declaration_type.position;
         let identifier = self
             .parse_identifier()?
-            .ok_or_else(|| self.create_parser_error("Couldn't create identifier while parsing variable declaration.".to_owned()))?;
+            .ok_or_else(|| self.create_parser_error(String::from("Couldn't create identifier while parsing variable declaration.")))?;
 
         let value = match self.consume_if_matches(TokenCategory::Assign)? {
             Some(_) => self.parse_expression()?,
@@ -448,7 +448,7 @@ impl<L: ILexer> Parser<L> {
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             let argument = self
                 .parse_argument()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create argument while parsing arguments.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create argument while parsing arguments.")))?;
 
             arguments.push(argument);
         }
@@ -482,7 +482,7 @@ impl<L: ILexer> Parser<L> {
             let _ = self.next_token()?;
             let right_side = self
                 .parse_concatenation_term()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create concatenation term while parsing expression.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create concatenation term while parsing expression.")))?;
 
             let expression_type = Expression::Alternative(Box::new(left_side.clone()), Box::new(right_side.clone()));
             left_side = Node {
@@ -503,7 +503,7 @@ impl<L: ILexer> Parser<L> {
             let _ = self.next_token()?;
             let right_side = self
                 .parse_relation_term()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create relation term while parsing concatenation term.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create relation term while parsing concatenation term.")))?;
 
             let expression_type = Expression::Concatenation(Box::new(left_side.clone()), Box::new(right_side.clone()));
             left_side = Node {
@@ -536,7 +536,7 @@ impl<L: ILexer> Parser<L> {
         let _ = self.next_token()?;
         let right_side = self
             .parse_additive_term()?
-            .ok_or_else(|| self.create_parser_error("Couldn't create additive term while parsing relation term.".to_owned()))?;
+            .ok_or_else(|| self.create_parser_error(String::from("Couldn't create additive term while parsing relation term.")))?;
 
         let box_l = Box::new(left_side.clone());
         let box_r = Box::new(right_side);
@@ -548,7 +548,7 @@ impl<L: ILexer> Parser<L> {
             TokenCategory::GreaterOrEqual => Expression::GreaterEqual(box_l, box_r),
             TokenCategory::Less => Expression::Less(box_l, box_r),
             TokenCategory::LessOrEqual => Expression::LessEqual(box_l, box_r),
-            _ => return Err(self.create_parser_error("Couldn't create additive term while parsing relation term.".to_owned())),
+            _ => return Err(self.create_parser_error(String::from("Couldn't create additive term while parsing relation term."))),
         };
 
         let node = Node {
@@ -567,7 +567,7 @@ impl<L: ILexer> Parser<L> {
             let _ = self.next_token()?;
             let right_side = self
                 .parse_multiplicative_term()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create multiplicative term while parsing additive term.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create multiplicative term while parsing additive term.")))?;
 
             let mut expression_type = Expression::Addition(Box::new(left_side.clone()), Box::new(right_side.clone()));
             if current_token.category == TokenCategory::Minus {
@@ -591,7 +591,7 @@ impl<L: ILexer> Parser<L> {
             let _ = self.next_token()?;
             let right_side = self
                 .parse_casted_term()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create casted term while parsing multiplicative term.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create casted term while parsing multiplicative term.")))?;
 
             let mut expression_type = Expression::Multiplication(Box::new(left_side.clone()), Box::new(right_side.clone()));
             if current_token.category == TokenCategory::Divide {
@@ -615,7 +615,7 @@ impl<L: ILexer> Parser<L> {
             Some(_) => {
                 let type_parsed = self
                     .parse_type()?
-                    .ok_or_else(|| self.create_parser_error("Couldn't parse type.".to_owned()))?;
+                    .ok_or_else(|| self.create_parser_error(String::from("Couldn't parse type.")))?;
 
                 Ok(Some(Node {
                     value: Expression::Casting {
@@ -632,7 +632,7 @@ impl<L: ILexer> Parser<L> {
     fn parse_unary_term_factor(&mut self) -> Result<Node<Expression>, Box<dyn Issue>> {
         match self.parse_factor()? {
             Some(t) => Ok(t),
-            None => return Err(self.create_parser_error("Couldn't create factor while parsing unary term.".to_owned())),
+            None => return Err(self.create_parser_error(String::from("Couldn't create factor while parsing unary term."))),
         }
     }
 
@@ -671,7 +671,7 @@ impl<L: ILexer> Parser<L> {
         if self.consume_if_matches(TokenCategory::ParenOpen)?.is_some() {
             let expression = self
                 .parse_expression()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create expression while parsing nested expression.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create expression while parsing nested expression.")))?;
 
             self.consume_must_be(TokenCategory::ParenClose)?;
             return Ok(Some(expression));
@@ -709,7 +709,7 @@ impl<L: ILexer> Parser<L> {
         while self.current_token().category != TokenCategory::BraceClose {
             let switch_case = self
                 .parse_switch_case()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create switch case while parsing switch statement.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create switch case while parsing switch statement.")))?;
 
             switch_cases.push(switch_case);
         }
@@ -737,7 +737,7 @@ impl<L: ILexer> Parser<L> {
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             expression = self
                 .parse_switch_expression()?
-                .ok_or_else(|| self.create_parser_error("Couldn't create swicth expression while parsing switch expressions.".to_owned()))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create swicth expression while parsing switch expressions.")))?;
 
             switch_expressions.push(expression);
         }
@@ -749,9 +749,9 @@ impl<L: ILexer> Parser<L> {
         let expression = try_consume!(self, parse_expression);
 
         let position = expression.position;
-        let alias = match self.consume_if_matches(TokenCategory::Colon)? {
-            Some(_) => self.parse_identifier()?,
-            None => None,
+        let mut alias = None;
+        if let Some(_) = self.consume_if_matches(TokenCategory::Colon)? {
+            alias = self.parse_identifier()?;
         };
         let node = Node {
             value: SwitchExpression { expression, alias },
@@ -766,13 +766,13 @@ impl<L: ILexer> Parser<L> {
 
         let condition = self
             .parse_expression()?
-            .ok_or_else(|| self.create_parser_error("Couldn't create expression while parsing switch case.".to_owned()))?;
+            .ok_or_else(|| self.create_parser_error(String::from("Couldn't create expression while parsing switch case.")))?;
 
         let _ = self.consume_must_be(TokenCategory::ParenClose)?;
         let _ = self.consume_must_be(TokenCategory::Arrow)?;
         let block = self
             .parse_statement_block()?
-            .ok_or_else(|| self.create_parser_error("Couldn't create statement block while parsing switch case.".to_owned()))?;
+            .ok_or_else(|| self.create_parser_error(String::from("Couldn't create statement block while parsing switch case.")))?;
 
         let node = Node {
             value: SwitchCase { condition, block },
@@ -832,7 +832,7 @@ impl<L: ILexer> Parser<L> {
         Err(self.create_parser_error(format!(
             "Wrong token value type - given: {:?}, expected: {:?}.",
             token.value,
-            TokenValue::String("".to_owned())
+            TokenValue::String(String::new())
         )))
     }
 
@@ -926,7 +926,7 @@ mod tests {
             ],
             vec![
                 create_token(TokenCategory::BraceOpen, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -935,11 +935,11 @@ mod tests {
             ],
             vec![
                 create_token(TokenCategory::BraceOpen, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -953,7 +953,7 @@ mod tests {
             Block(vec![Node {
                 value: Statement::Assignment {
                     identifier: Node {
-                        value: "x".to_owned(),
+                        value: String::from("x"),
                         position: default_position(),
                     },
                     value: Node {
@@ -967,7 +967,7 @@ mod tests {
                 Node {
                     value: Statement::Assignment {
                         identifier: Node {
-                            value: "x".to_owned(),
+                            value: String::from("x"),
                             position: default_position(),
                         },
                         value: Node {
@@ -980,7 +980,7 @@ mod tests {
                 Node {
                     value: Statement::Assignment {
                         identifier: Node {
-                            value: "x".to_owned(),
+                            value: String::from("x"),
                             position: default_position(),
                         },
                         value: Node {
@@ -1007,7 +1007,7 @@ mod tests {
         let token_series = vec![vec![
             // i64 a = 5
             create_token(TokenCategory::I64, TokenValue::Null),
-            create_token(TokenCategory::Identifier, TokenValue::String("a".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("a"))),
             create_token(TokenCategory::Assign, TokenValue::Null),
             create_token(TokenCategory::I64Value, TokenValue::I64(5)),
             create_token(TokenCategory::ETX, TokenValue::Null),
@@ -1026,7 +1026,7 @@ mod tests {
         let token_series = vec![
             vec![
                 // x = 5;
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -1034,7 +1034,7 @@ mod tests {
             ],
             vec![
                 // print();
-                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -1068,7 +1068,7 @@ mod tests {
                 // }
                 create_token(TokenCategory::Switch, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::BraceOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
@@ -1095,7 +1095,7 @@ mod tests {
             vec![
                 // i64 a = 5;
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("a".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("a"))),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -1106,7 +1106,7 @@ mod tests {
         let expected = [
             Statement::Assignment {
                 identifier: Node {
-                    value: "x".to_owned(),
+                    value: String::from("x"),
                     position: default_position(),
                 },
                 value: Node {
@@ -1116,7 +1116,7 @@ mod tests {
             },
             Statement::FunctionCall {
                 identifier: Node {
-                    value: "print".to_owned(),
+                    value: String::from("print"),
                     position: default_position(),
                 },
                 arguments: vec![],
@@ -1148,7 +1148,7 @@ mod tests {
                 expressions: vec![Node {
                     value: SwitchExpression {
                         expression: Node {
-                            value: Expression::Variable("x".to_owned()),
+                            value: Expression::Variable(String::from("x")),
                             position: default_position(),
                         },
                         alias: None,
@@ -1177,7 +1177,7 @@ mod tests {
                     position: default_position(),
                 },
                 identifier: Node {
-                    value: "a".to_owned(),
+                    value: String::from("a"),
                     position: default_position(),
                 },
                 value: Some(Node {
@@ -1201,7 +1201,7 @@ mod tests {
         let token_series = vec![vec![
             // fn add(): , {}
             create_token(TokenCategory::Fn, TokenValue::Null),
-            create_token(TokenCategory::Identifier, TokenValue::String("add".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("add"))),
             create_token(TokenCategory::ParenOpen, TokenValue::Null),
             create_token(TokenCategory::ParenClose, TokenValue::Null),
             create_token(TokenCategory::Colon, TokenValue::Null),
@@ -1225,7 +1225,7 @@ mod tests {
             vec![
                 // fn add(): i64 {}
                 create_token(TokenCategory::Fn, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("add".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("add"))),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::Colon, TokenValue::Null),
@@ -1237,7 +1237,7 @@ mod tests {
             vec![
                 // fn add(): void {}
                 create_token(TokenCategory::Fn, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("add".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("add"))),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::Colon, TokenValue::Null),
@@ -1251,7 +1251,7 @@ mod tests {
         let expected = [
             FunctionDeclaration {
                 identifier: Node {
-                    value: "add".to_owned(),
+                    value: String::from("add"),
                     position: default_position(),
                 },
                 parameters: vec![],
@@ -1266,7 +1266,7 @@ mod tests {
             },
             FunctionDeclaration {
                 identifier: Node {
-                    value: "add".to_owned(),
+                    value: String::from("add"),
                     position: default_position(),
                 },
                 parameters: vec![],
@@ -1295,7 +1295,7 @@ mod tests {
         let tokens = vec![
             // i64 x,
             create_token(TokenCategory::I64, TokenValue::Null),
-            create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
             create_token(TokenCategory::Comma, TokenValue::Null),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
@@ -1316,16 +1316,16 @@ mod tests {
             vec![
                 // i64 x
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // i64 x, i64 y
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Comma, TokenValue::Null),
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("y".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("y"))),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
@@ -1340,7 +1340,7 @@ mod tests {
                         position: default_position(),
                     },
                     identifier: Node {
-                        value: "x".to_owned(),
+                        value: String::from("x"),
                         position: default_position(),
                     },
                 },
@@ -1355,7 +1355,7 @@ mod tests {
                             position: default_position(),
                         },
                         identifier: Node {
-                            value: "x".to_owned(),
+                            value: String::from("x"),
                             position: default_position(),
                         },
                     },
@@ -1369,7 +1369,7 @@ mod tests {
                             position: default_position(),
                         },
                         identifier: Node {
-                            value: "y".to_owned(),
+                            value: String::from("y"),
                             position: default_position(),
                         },
                     },
@@ -1394,7 +1394,7 @@ mod tests {
                 // &i64 x = 0
                 create_token(TokenCategory::Reference, TokenValue::Null),
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(0)),
                 create_token(TokenCategory::ETX, TokenValue::Null),
@@ -1402,7 +1402,7 @@ mod tests {
             vec![
                 // i64 x
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
@@ -1415,7 +1415,7 @@ mod tests {
                     position: default_position(),
                 },
                 identifier: Node {
-                    value: "x".to_owned(),
+                    value: String::from("x"),
                     position: default_position(),
                 },
             },
@@ -1426,7 +1426,7 @@ mod tests {
                     position: default_position(),
                 },
                 identifier: Node {
-                    value: "x".to_owned(),
+                    value: String::from("x"),
                     position: default_position(),
                 },
             },
@@ -1466,7 +1466,7 @@ mod tests {
                 create_token(TokenCategory::For, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
                 create_token(TokenCategory::BraceOpen, TokenValue::Null),
                 create_token(TokenCategory::BraceClose, TokenValue::Null),
@@ -1490,17 +1490,17 @@ mod tests {
                 create_token(TokenCategory::For, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(0)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Less, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Assign, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Plus, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(1)),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
@@ -1513,7 +1513,7 @@ mod tests {
                 create_token(TokenCategory::For, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Less, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -1533,7 +1533,7 @@ mod tests {
                             position: default_position(),
                         },
                         identifier: Node {
-                            value: "x".to_owned(),
+                            value: String::from("x"),
                             position: default_position(),
                         },
                         value: Some(Node {
@@ -1546,7 +1546,7 @@ mod tests {
                 condition: Node {
                     value: Expression::Less(
                         Box::new(Node {
-                            value: Expression::Variable("x".to_owned()),
+                            value: Expression::Variable(String::from("x")),
                             position: default_position(),
                         }),
                         Box::new(Node {
@@ -1559,13 +1559,13 @@ mod tests {
                 assignment: Some(Box::new(Node {
                     value: Statement::Assignment {
                         identifier: Node {
-                            value: "x".to_owned(),
+                            value: String::from("x"),
                             position: default_position(),
                         },
                         value: Node {
                             value: Expression::Addition(
                                 Box::new(Node {
-                                    value: Expression::Variable("x".to_owned()),
+                                    value: Expression::Variable(String::from("x")),
                                     position: default_position(),
                                 }),
                                 Box::new(Node {
@@ -1588,7 +1588,7 @@ mod tests {
                 condition: Node {
                     value: Expression::Less(
                         Box::new(Node {
-                            value: Expression::Variable("x".to_owned()),
+                            value: Expression::Variable(String::from("x")),
                             position: default_position(),
                         }),
                         Box::new(Node {
@@ -1716,27 +1716,27 @@ mod tests {
         let token_series = vec![
             vec![
                 // print(;
-                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // print()
-                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // x = 5
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Comma, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
@@ -1755,7 +1755,7 @@ mod tests {
         let token_series = vec![
             vec![
                 // print();
-                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -1763,7 +1763,7 @@ mod tests {
             ],
             vec![
                 // x = 5;
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Semicolon, TokenValue::Null),
@@ -1774,14 +1774,14 @@ mod tests {
         let expected = vec![
             Statement::FunctionCall {
                 identifier: Node {
-                    value: "print".to_owned(),
+                    value: String::from("print"),
                     position: default_position(),
                 },
                 arguments: vec![],
             },
             Statement::Assignment {
                 identifier: Node {
-                    value: "x".to_owned(),
+                    value: String::from("x"),
                     position: default_position(),
                 },
                 value: Node {
@@ -1806,13 +1806,13 @@ mod tests {
             vec![
                 // i64 a
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("a".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("a"))),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // i64 a = 5
                 create_token(TokenCategory::I64, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("a".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("a"))),
                 create_token(TokenCategory::Assign, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::ETX, TokenValue::Null),
@@ -1826,7 +1826,7 @@ mod tests {
                     position: default_position(),
                 },
                 identifier: Node {
-                    value: "a".to_owned(),
+                    value: String::from("a"),
                     position: default_position(),
                 },
                 value: None,
@@ -1837,7 +1837,7 @@ mod tests {
                     position: default_position(),
                 },
                 identifier: Node {
-                    value: "a".to_owned(),
+                    value: String::from("a"),
                     position: default_position(),
                 },
                 value: Some(Node {
@@ -2040,7 +2040,7 @@ mod tests {
             vec![
                 // &x
                 create_token(TokenCategory::Reference, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
@@ -2055,7 +2055,7 @@ mod tests {
             },
             Argument {
                 value: Node {
-                    value: Expression::Variable("x".to_owned()),
+                    value: Expression::Variable(String::from("x")),
                     position: default_position(),
                 },
                 passed_by: PassedBy::Reference,
@@ -2075,11 +2075,11 @@ mod tests {
     fn parse_expression() {
         let tokens = vec![
             // a || b || c
-            create_token(TokenCategory::Identifier, TokenValue::String("a".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("a"))),
             create_token(TokenCategory::Or, TokenValue::Null),
-            create_token(TokenCategory::Identifier, TokenValue::String("b".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("b"))),
             create_token(TokenCategory::Or, TokenValue::Null),
-            create_token(TokenCategory::Identifier, TokenValue::String("c".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("c"))),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 
@@ -2093,18 +2093,18 @@ mod tests {
                     Box::new(Node {
                         value: Expression::Alternative(
                             Box::new(Node {
-                                value: Expression::Variable("a".to_owned()),
+                                value: Expression::Variable(String::from("a")),
                                 position: default_position()
                             }),
                             Box::new(Node {
-                                value: Expression::Variable("b".to_owned()),
+                                value: Expression::Variable(String::from("b")),
                                 position: default_position()
                             })
                         ),
                         position: default_position()
                     }),
                     Box::new(Node {
-                        value: Expression::Variable("c".to_owned()),
+                        value: Expression::Variable(String::from("c")),
                         position: default_position()
                     })
                 )
@@ -2115,11 +2115,11 @@ mod tests {
     fn parse_concatenation_term() {
         let tokens = vec![
             // a && b && c
-            create_token(TokenCategory::Identifier, TokenValue::String("a".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("a"))),
             create_token(TokenCategory::And, TokenValue::Null),
-            create_token(TokenCategory::Identifier, TokenValue::String("b".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("b"))),
             create_token(TokenCategory::And, TokenValue::Null),
-            create_token(TokenCategory::Identifier, TokenValue::String("c".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("c"))),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 
@@ -2133,18 +2133,18 @@ mod tests {
                     Box::new(Node {
                         value: Expression::Concatenation(
                             Box::new(Node {
-                                value: Expression::Variable("a".to_owned()),
+                                value: Expression::Variable(String::from("a")),
                                 position: default_position()
                             }),
                             Box::new(Node {
-                                value: Expression::Variable("b".to_owned()),
+                                value: Expression::Variable(String::from("b")),
                                 position: default_position()
                             })
                         ),
                         position: default_position()
                     }),
                     Box::new(Node {
-                        value: Expression::Variable("c".to_owned()),
+                        value: Expression::Variable(String::from("c")),
                         position: default_position()
                     })
                 )
@@ -2284,7 +2284,7 @@ mod tests {
             create_token(TokenCategory::Plus, TokenValue::Null),
             create_token(TokenCategory::F64Value, TokenValue::F64(2.0)),
             create_token(TokenCategory::Minus, TokenValue::Null),
-            create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 
@@ -2309,7 +2309,7 @@ mod tests {
                         position: default_position()
                     }),
                     Box::new(Node {
-                        value: Expression::Variable("x".to_owned()),
+                        value: Expression::Variable(String::from("x")),
                         position: default_position()
                     })
                 )
@@ -2324,7 +2324,7 @@ mod tests {
             create_token(TokenCategory::Multiply, TokenValue::Null),
             create_token(TokenCategory::F64Value, TokenValue::F64(2.0)),
             create_token(TokenCategory::Divide, TokenValue::Null),
-            create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 
@@ -2349,7 +2349,7 @@ mod tests {
                         position: default_position()
                     }),
                     Box::new(Node {
-                        value: Expression::Variable("x".to_owned()),
+                        value: Expression::Variable(String::from("x")),
                         position: default_position()
                     })
                 )
@@ -2458,7 +2458,7 @@ mod tests {
             ],
             vec![
                 // print
-                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
@@ -2475,7 +2475,7 @@ mod tests {
                 }),
             ),
             Expression::Literal(Literal::I64(5)),
-            Expression::Variable("print".to_owned()),
+            Expression::Variable(String::from("print")),
         ];
 
         for (idx, series) in token_series.iter().enumerate() {
@@ -2509,7 +2509,7 @@ mod tests {
         let token_series = vec![
             vec![
                 // print(5,)
-                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Comma, TokenValue::Null),
@@ -2520,7 +2520,7 @@ mod tests {
                 create_token(
                     // print(
                     TokenCategory::Identifier,
-                    TokenValue::String("print".to_owned()),
+                    TokenValue::String(String::from("print")),
                 ),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
@@ -2540,19 +2540,19 @@ mod tests {
         let token_series = vec![
             vec![
                 // print
-                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // print()
-                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // print(5)
-                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
@@ -2560,29 +2560,29 @@ mod tests {
             ],
             vec![
                 // print(5, x)
-                create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::Reference, TokenValue::Null),
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
                 create_token(TokenCategory::Comma, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
 
         let expected = [
-            Expression::Variable("print".to_owned()),
+            Expression::Variable(String::from("print")),
             Expression::FunctionCall {
                 identifier: Node {
-                    value: "print".to_owned(),
+                    value: String::from("print"),
                     position: default_position(),
                 },
                 arguments: vec![],
             },
             Expression::FunctionCall {
                 identifier: Node {
-                    value: "print".to_owned(),
+                    value: String::from("print"),
                     position: default_position(),
                 },
                 arguments: vec![Box::new(Node {
@@ -2598,7 +2598,7 @@ mod tests {
             },
             Expression::FunctionCall {
                 identifier: Node {
-                    value: "print".to_owned(),
+                    value: String::from("print"),
                     position: default_position(),
                 },
                 arguments: vec![
@@ -2615,7 +2615,7 @@ mod tests {
                     Box::new(Node {
                         value: Argument {
                             value: Node {
-                                value: Expression::Variable("x".to_owned()),
+                                value: Expression::Variable(String::from("x")),
                                 position: default_position(),
                             },
                             passed_by: PassedBy::Value,
@@ -2643,7 +2643,7 @@ mod tests {
             // }
             create_token(TokenCategory::Switch, TokenValue::Null),
             create_token(TokenCategory::ParenOpen, TokenValue::Null),
-            create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
             create_token(TokenCategory::ParenClose, TokenValue::Null),
             create_token(TokenCategory::BraceOpen, TokenValue::Null),
             create_token(TokenCategory::ParenOpen, TokenValue::Null),
@@ -2660,7 +2660,7 @@ mod tests {
             expressions: vec![Node {
                 value: SwitchExpression {
                     expression: Node {
-                        value: Expression::Variable("x".to_owned()),
+                        value: Expression::Variable(String::from("x")),
                         position: default_position(),
                     },
                     alias: None,
@@ -2695,9 +2695,9 @@ mod tests {
     fn parse_switch_expressions_fail() {
         let token_series = vec![vec![
             // x: temp,
-            create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
             create_token(TokenCategory::Colon, TokenValue::Null),
-            create_token(TokenCategory::Identifier, TokenValue::String("temp".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("temp"))),
             create_token(TokenCategory::Comma, TokenValue::Null),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ]];
@@ -2715,16 +2715,16 @@ mod tests {
         let token_series = vec![
             vec![
                 // x: temp, y
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Colon, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("temp".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("temp"))),
                 create_token(TokenCategory::Comma, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("y".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("y"))),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // x
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
@@ -2734,11 +2734,11 @@ mod tests {
                 Node {
                     value: SwitchExpression {
                         expression: Node {
-                            value: Expression::Variable("x".to_owned()),
+                            value: Expression::Variable(String::from("x")),
                             position: default_position(),
                         },
                         alias: Some(Node {
-                            value: "temp".to_owned(),
+                            value: String::from("temp"),
                             position: default_position(),
                         }),
                     },
@@ -2747,7 +2747,7 @@ mod tests {
                 Node {
                     value: SwitchExpression {
                         expression: Node {
-                            value: Expression::Variable("y".to_owned()),
+                            value: Expression::Variable(String::from("y")),
                             position: default_position(),
                         },
                         alias: None,
@@ -2758,7 +2758,7 @@ mod tests {
             vec![Node {
                 value: SwitchExpression {
                     expression: Node {
-                        value: Expression::Variable("x".to_owned()),
+                        value: Expression::Variable(String::from("x")),
                         position: default_position(),
                     },
                     alias: None,
@@ -2781,14 +2781,14 @@ mod tests {
         let token_series = vec![
             vec![
                 // x: temp
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::Colon, TokenValue::Null),
-                create_token(TokenCategory::Identifier, TokenValue::String("temp".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("temp"))),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
                 // x
-                create_token(TokenCategory::Identifier, TokenValue::String("x".to_owned())),
+                create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
         ];
@@ -2796,17 +2796,17 @@ mod tests {
         let expected_types = [
             SwitchExpression {
                 expression: Node {
-                    value: Expression::Variable("x".to_owned()),
+                    value: Expression::Variable(String::from("x")),
                     position: default_position(),
                 },
                 alias: Some(Node {
-                    value: "temp".to_owned(),
+                    value: String::from("temp"),
                     position: default_position(),
                 }),
             },
             SwitchExpression {
                 expression: Node {
-                    value: Expression::Variable("x".to_owned()),
+                    value: Expression::Variable(String::from("x")),
                     position: default_position(),
                 },
                 alias: None,
@@ -2914,7 +2914,7 @@ mod tests {
         let tokens = vec![
             create_token(TokenCategory::True, TokenValue::Null),
             create_token(TokenCategory::False, TokenValue::Null),
-            create_token(TokenCategory::StringValue, TokenValue::String("a".to_owned())),
+            create_token(TokenCategory::StringValue, TokenValue::String(String::from("a"))),
             create_token(TokenCategory::I64Value, TokenValue::I64(5)),
             create_token(TokenCategory::F64Value, TokenValue::F64(5.0)),
             create_token(TokenCategory::ETX, TokenValue::Null),
@@ -2930,7 +2930,7 @@ mod tests {
         assert!(literal.value == Literal::False);
 
         literal = parser.parse_literal().unwrap().unwrap();
-        assert!(literal.value == Literal::String("a".to_owned()));
+        assert!(literal.value == Literal::String(String::from("a")));
 
         literal = parser.parse_literal().unwrap().unwrap();
         assert!(literal.value == Literal::I64(5));
@@ -2942,7 +2942,7 @@ mod tests {
     #[test]
     fn parse_identifier() {
         let tokens = vec![
-            create_token(TokenCategory::Identifier, TokenValue::String("print".to_owned())),
+            create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
             create_token(TokenCategory::ETX, TokenValue::Null),
         ];
 
@@ -2950,7 +2950,7 @@ mod tests {
         let mut parser = Parser::new(mock_lexer);
 
         let node = parser.parse_identifier().unwrap().unwrap();
-        assert!(node.value == "print".to_owned());
+        assert!(node.value == String::from("print"));
     }
 
     #[test]
