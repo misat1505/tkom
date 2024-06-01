@@ -10,6 +10,25 @@ use crate::{
     tokens::{Token, TokenCategory, TokenValue},
 };
 
+macro_rules! try_consume_token {
+    ($self:ident, $token_category:expr) => {
+        match $self.consume_must_be($token_category) {
+            Ok(t) => t,
+            Err(_) => return Ok(None),
+        }
+    };
+}
+
+macro_rules! try_consume {
+    ($self:ident, $method:ident) => {
+        match $self.$method()? {
+            Some(t) => t,
+            None => return Ok(None),
+        }
+    };
+}
+
+
 pub struct Parser<L: ILexer> {
     lexer: L,
 }
@@ -131,10 +150,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_function_declaration(&mut self) -> Result<Option<Node<FunctionDeclaration>>, Box<dyn Issue>> {
         // function_declaration = “fn”, identifier, "(", parameters, ")", “:”, type | “void”, statement_block;
-        let fn_token = match self.consume_must_be(TokenCategory::Fn) {
-            Ok(t) => t,
-            Err(_) => return Ok(None),
-        };
+        let fn_token = try_consume_token!(self, TokenCategory::Fn);
 
         let identifier = self
             .parse_identifier()?
@@ -191,10 +207,7 @@ impl<L: ILexer> Parser<L> {
             None => PassedBy::Value,
         };
 
-        let parameter_type = match self.parse_type()? {
-            Some(t) => t,
-            None => return Ok(None),
-        };
+        let parameter_type = try_consume!(self, parse_type);
         let identifier = self
             .parse_identifier()?
             .ok_or_else(|| self.create_parser_error("Couldn't create identifier while parsing parameter.".to_owned()))?;
@@ -212,10 +225,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_for_statement(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
         // for_statement = "for", "(", [ declaration ], “;”, expression, “;”, [ identifier, "=", expression ], ")", statement_block;
-        let for_token = match self.consume_must_be(TokenCategory::For) {
-            Ok(t) => t,
-            Err(_) => return Ok(None),
-        };
+        let for_token = try_consume_token!(self, TokenCategory::For);
 
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let declaration = self
@@ -271,10 +281,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_if_statement(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
         // if_statement = "if", "(", expression, ")", statement_block, [ "else", statement_block ];
-        let if_token = match self.consume_must_be(TokenCategory::If) {
-            Ok(t) => t,
-            Err(_) => return Ok(None),
-        };
+        let if_token = try_consume_token!(self, TokenCategory::If);
 
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let condition = self
@@ -304,10 +311,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_statement_block(&mut self) -> Result<Option<Node<Block>>, Box<dyn Issue>> {
         // statement_block = "{", {statement}, "}";
-        let position = match self.consume_must_be(TokenCategory::BraceOpen) {
-            Ok(t) => t.position,
-            Err(_) => return Ok(None),
-        };
+        let token = try_consume_token!(self, TokenCategory::BraceOpen);
 
         let mut statements: Vec<Node<Statement>> = vec![];
         while self.consume_if_matches(TokenCategory::BraceClose)?.is_none() {
@@ -319,15 +323,12 @@ impl<L: ILexer> Parser<L> {
         }
         Ok(Some(Node {
             value: Block(statements),
-            position,
+            position: token.position,
         }))
     }
 
     fn parse_variable_declaration(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
-        let decl = match self.parse_declaration()? {
-            Some(t) => t,
-            None => return Ok(None),
-        };
+        let decl = try_consume!(self, parse_declaration);
 
         self.consume_must_be(TokenCategory::Semicolon)?;
         Ok(Some(decl))
@@ -356,10 +357,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_assign_or_call(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
         // assign_or_call = identifier, ("=", expression | "(", arguments, ")"), ";";
-        let identifier = match self.parse_identifier()? {
-            Some(t) => t,
-            None => return Ok(None),
-        };
+        let identifier = try_consume!(self, parse_identifier);
 
         let position = identifier.position;
 
@@ -392,10 +390,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_declaration(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
         // declaration = type, identifier, [ "=", expression ];
-        let declaration_type = match self.parse_type()? {
-            Some(t) => t,
-            None => return Ok(None),
-        };
+        let declaration_type = try_consume!(self, parse_type);
 
         let position = declaration_type.position;
         let identifier = self
@@ -419,10 +414,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_return_statement(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
         // return_statement = "return", [ expression ], ";";
-        let token = match self.consume_must_be(TokenCategory::Return) {
-            Ok(t) => t,
-            Err(_) => return Ok(None),
-        };
+        let token = try_consume_token!(self, TokenCategory::Return);
 
         let returned_value = self.parse_expression()?;
         self.consume_must_be(TokenCategory::Semicolon)?;
@@ -435,10 +427,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_break_statement(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
         // break_statement = "break", ";";
-        let token = match self.consume_must_be(TokenCategory::Break) {
-            Ok(t) => t,
-            Err(_) => return Ok(None),
-        };
+        let token = try_consume_token!(self, TokenCategory::Break);
 
         let _ = self.consume_must_be(TokenCategory::Semicolon)?;
         let node = Node {
@@ -473,10 +462,7 @@ impl<L: ILexer> Parser<L> {
             None => PassedBy::Value,
         };
 
-        let expression = match self.parse_expression()? {
-            Some(t) => t,
-            None => return Ok(None),
-        };
+        let expression = try_consume!(self, parse_expression);
         let argument = Argument {
             value: expression.clone(),
             passed_by,
@@ -489,10 +475,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_expression(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // expression = concatenation_term { “||”, concatenation_term };
-        let mut left_side = match self.parse_concatenation_term()? {
-            Some(t) => t,
-            None => return Ok(None),
-        };
+        let mut left_side = try_consume!(self, parse_concatenation_term);
 
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Or {
@@ -513,10 +496,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_concatenation_term(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // concatenation_term = relation_term, { “&&”, relation_term };
-        let mut left_side = match self.parse_relation_term()? {
-            Some(t) => t,
-            None => return Ok(None),
-        };
+        let mut left_side = try_consume!(self, parse_relation_term);
 
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::And {
@@ -537,10 +517,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_relation_term(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // relation_term = additive_term, [ relation_operands, additive_term ];
-        let left_side = match self.parse_additive_term()? {
-            Some(t) => t,
-            None => return Ok(None),
-        };
+        let left_side = try_consume!(self, parse_additive_term);
 
         let operands = [
             TokenCategory::Equal,
@@ -583,10 +560,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_additive_term(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // additive_term = multiplicative_term , { ("+" | "-"), multiplicative_term };
-        let mut left_side = match self.parse_multiplicative_term()? {
-            Some(t) => t,
-            None => return Ok(None),
-        };
+        let mut left_side = try_consume!(self, parse_multiplicative_term);
 
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Plus || current_token.category == TokenCategory::Minus {
@@ -610,10 +584,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_multiplicative_term(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // multiplicative_term = casted_term, { ("*" | "/"), casted_term };
-        let mut left_side = match self.parse_casted_term()? {
-            Some(t) => t,
-            None => return Ok(None),
-        };
+        let mut left_side = try_consume!(self, parse_casted_term);
 
         let mut current_token = self.current_token();
         while current_token.category == TokenCategory::Multiply || current_token.category == TokenCategory::Divide {
@@ -637,10 +608,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_casted_term(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // casted_term = unary_term, [ “as”, type ];
-        let unary_term = match self.parse_unary_term()? {
-            Some(term) => term,
-            None => return Ok(None),
-        };
+        let unary_term = try_consume!(self, parse_unary_term);
 
         let position = unary_term.position.clone();
         match self.consume_if_matches(TokenCategory::As)? {
@@ -713,10 +681,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_identifier_or_call(&mut self) -> Result<Option<Node<Expression>>, Box<dyn Issue>> {
         // identifier_or_call = identifier, [ "(", arguments, ")" ];
-        let identifier = match self.parse_identifier()? {
-            Some(identifier) => identifier,
-            None => return Ok(None),
-        };
+        let identifier = try_consume!(self, parse_identifier);
 
         let position = identifier.position;
 
@@ -733,10 +698,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_switch_statement(&mut self) -> Result<Option<Node<Statement>>, Box<dyn Issue>> {
         // switch_statement = "switch", "(", switch_expressions, ")", "{", {switch_case}, "}";
-        let switch_token = match self.consume_must_be(TokenCategory::Switch) {
-            Ok(t) => t,
-            Err(_) => return Ok(None),
-        };
+        let switch_token = try_consume_token!(self, TokenCategory::Switch);
 
         let _ = self.consume_must_be(TokenCategory::ParenOpen)?;
         let switch_expressions = self.parse_switch_expressions()?;
@@ -784,10 +746,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_switch_expression(&mut self) -> Result<Option<Node<SwitchExpression>>, Box<dyn Issue>> {
         // switch_expression = expression, [ ":", identifier ];
-        let expression = match self.parse_expression()? {
-            Some(t) => t,
-            None => return Ok(None),
-        };
+        let expression = try_consume!(self, parse_expression);
 
         let position = expression.position;
         let alias = match self.consume_if_matches(TokenCategory::Colon)? {
@@ -803,10 +762,7 @@ impl<L: ILexer> Parser<L> {
 
     fn parse_switch_case(&mut self) -> Result<Option<Node<SwitchCase>>, Box<dyn Issue>> {
         // switch_case = "(", expression, ")", "->", statement_block;
-        let paren_open_token = match self.consume_must_be(TokenCategory::ParenOpen) {
-            Ok(t) => t,
-            Err(_) => return Ok(None),
-        };
+        let paren_open_token = try_consume_token!(self, TokenCategory::ParenOpen);
 
         let condition = self
             .parse_expression()?
@@ -864,10 +820,7 @@ impl<L: ILexer> Parser<L> {
     }
 
     fn parse_identifier(&mut self) -> Result<Option<Node<String>>, Box<dyn Issue>> {
-        let token = match self.consume_must_be(TokenCategory::Identifier) {
-            Ok(t) => t,
-            Err(_) => return Ok(None),
-        };
+        let token = try_consume_token!(self, TokenCategory::Identifier);
 
         if let TokenValue::String(name) = token.value {
             let node = Node {
