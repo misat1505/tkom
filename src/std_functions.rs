@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{ast::Type, errors::StdFunctionIssue, value::Value};
+use crate::{ast::Type, issues::StdFunctionIssue, value::Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StdFunction {

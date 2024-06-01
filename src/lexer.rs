@@ -2,7 +2,7 @@ use std::io::BufRead;
 
 use phf::phf_map;
 
-use crate::errors::{Issue, IssueLevel, LexerIssue};
+use crate::issues::{Issue, IssueLevel, LexerIssue};
 use crate::lazy_stream_reader::{ILazyStreamReader, LazyStreamReader, Position, ETX};
 use crate::tokens::{Token, TokenCategory, TokenValue};
 

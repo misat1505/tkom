@@ -4,7 +4,7 @@ use crate::{
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
     },
-    errors::{Issue, IssueLevel, ParserIssue},
+    issues::{Issue, IssueLevel, ParserIssue},
     lexer::ILexer,
     std_functions::get_std_functions,
     tokens::{Token, TokenCategory, TokenValue},
@@ -897,7 +897,7 @@ mod tests {
     use std::vec;
 
     use crate::{
-        errors::{IssueLevel, LexerIssue},
+        issues::{IssueLevel, LexerIssue},
         lazy_stream_reader::Position,
     };
 

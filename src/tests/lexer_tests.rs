@@ -3,7 +3,7 @@ mod tests {
     use std::io::BufReader;
 
     use crate::{
-        errors::Issue,
+        issues::Issue,
         lazy_stream_reader::LazyStreamReader,
         lexer::{ILexer, Lexer, LexerOptions},
         tokens::{TokenCategory, TokenValue},
@@ -207,7 +207,7 @@ mod edge_case_tests {
     use std::io::BufReader;
 
     use crate::{
-        errors::Issue,
+        issues::Issue,
         lazy_stream_reader::LazyStreamReader,
         lexer::{Lexer, LexerOptions},
         tokens::TokenCategory,

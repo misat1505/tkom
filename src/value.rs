@@ -1,4 +1,4 @@
-use crate::{ast::Type, errors::ComputationIssue};
+use crate::{ast::Type, issues::ComputationIssue};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {

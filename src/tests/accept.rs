@@ -4,8 +4,8 @@ mod tests {
 
     use crate::{
         ast::Program,
-        errors::Issue,
         interpreter::Interpreter,
+        issues::Issue,
         lazy_stream_reader::LazyStreamReader,
         lexer::{Lexer, LexerOptions},
         parser::{IParser, Parser},

@@ -1,6 +1,6 @@
 use std::{env::args, fs::File, io::BufReader, time::Instant};
 
-use errors::Issue;
+use issues::Issue;
 use lexer::Lexer;
 mod lazy_stream_reader;
 use lazy_stream_reader::LazyStreamReader;
@@ -15,8 +15,8 @@ use crate::{
 #[allow(non_snake_case)]
 mod ALU;
 mod ast;
-mod errors;
 mod interpreter;
+mod issues;
 mod lexer;
 mod parser;
 mod scope_manager;

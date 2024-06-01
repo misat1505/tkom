@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{errors::ScopeManagerIssue, value::Value};
+use crate::{issues::ScopeManagerIssue, value::Value};
 
 #[derive(Debug, Clone)]
 pub struct ScopeManager<'a> {

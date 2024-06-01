@@ -1,7 +1,7 @@
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 use crate::{
-    errors::{ScopeManagerIssue, StackOverflowIssue},
+    issues::{ScopeManagerIssue, StackOverflowIssue},
     scope_manager::ScopeManager,
     value::Value,
 };
@@ -84,7 +84,7 @@ impl<'a> Stack<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::Issue;
+    use crate::issues::Issue;
     use crate::value::Value;
 
     #[test]
