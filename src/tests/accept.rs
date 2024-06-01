@@ -53,7 +53,7 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable("text").unwrap().clone() == Rc::new(RefCell::new(Value::String(String::from("equal")))));
+        assert!(interpreter.stack().get_variable("text").unwrap().clone() == Rc::new(RefCell::new(Value::String(String::from("equal")))));
     }
 
     #[test]
@@ -73,7 +73,7 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable("i").unwrap().clone() == Rc::new(RefCell::new(Value::I64(2))));
+        assert!(interpreter.stack().get_variable("i").unwrap().clone() == Rc::new(RefCell::new(Value::I64(2))));
     }
 
     #[test]
@@ -92,7 +92,7 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable("a").unwrap().clone() == Rc::new(RefCell::new(Value::I64(3))));
+        assert!(interpreter.stack().get_variable("a").unwrap().clone() == Rc::new(RefCell::new(Value::I64(3))));
     }
 
     #[test]
@@ -112,7 +112,7 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(3))));
+        assert!(interpreter.stack().get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(3))));
     }
 
     #[test]
@@ -135,7 +135,7 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(8))));
+        assert!(interpreter.stack().get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(8))));
     }
 
     #[test]
@@ -165,8 +165,8 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable("is_5").unwrap().clone() == Rc::new(RefCell::new(Value::Bool(true))));
-        assert!(interpreter.stack.get_variable("is_6").unwrap().clone() == Rc::new(RefCell::new(Value::Bool(false))));
+        assert!(interpreter.stack().get_variable("is_5").unwrap().clone() == Rc::new(RefCell::new(Value::Bool(true))));
+        assert!(interpreter.stack().get_variable("is_6").unwrap().clone() == Rc::new(RefCell::new(Value::Bool(false))));
     }
 
     #[test]
@@ -194,6 +194,6 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack.get_variable("text").unwrap().clone() == Rc::new(RefCell::new(Value::String(String::from(">1")))));
+        assert!(interpreter.stack().get_variable("text").unwrap().clone() == Rc::new(RefCell::new(Value::String(String::from(">1")))));
     }
 }

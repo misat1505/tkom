@@ -15,7 +15,7 @@ use crate::{
 
 pub struct Interpreter<'a> {
     program: &'a Program,
-    pub stack: Stack<'a>,
+    stack: Stack<'a>,
     last_result: Option<Value>,
     is_breaking: bool,
     is_returning: bool,
@@ -375,6 +375,12 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
 }
 
 impl<'a> Interpreter<'a> {
+    #[allow(dead_code)]
+    pub fn stack(&mut self) -> Stack {
+        // only for accept tests
+        self.stack.clone()
+    }
+
     fn condition_error(&self, value: Value, place: &'a str) -> Box<dyn Issue> {
         Box::new(InterpreterIssue {
             message: format!(
