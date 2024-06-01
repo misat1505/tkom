@@ -67,7 +67,7 @@ impl<T: BufRead> Lexer<T> {
             }
         }
 
-        Err(self.create_lexer_issue("Unexpected token".to_owned()))
+        Err(self.create_lexer_issue(String::from("Unexpected token")))
     }
 
     fn skip_whitespaces(&mut self) {
@@ -208,12 +208,12 @@ impl<T: BufRead> Lexer<T> {
                 }
             }
             if current_char == '\n' {
-                return Err(self.create_lexer_issue("Unexpected newline in string".to_owned()));
+                return Err(self.create_lexer_issue(String::from("Unexpected newline in string")));
             }
             if current_char == ETX {
                 (self.on_warning)(Box::new(LexerIssue::new(
                     IssueLevel::WARNING,
-                    self.prepare_warning_message("String not closed".to_owned()),
+                    self.prepare_warning_message(String::from("String not closed")),
                 )));
                 return Ok(Some(Token {
                     category: TokenCategory::StringValue,
@@ -245,7 +245,7 @@ impl<T: BufRead> Lexer<T> {
         } else {
             let next_char = self.src.next().unwrap();
             if next_char.is_ascii_digit() {
-                return Err(self.create_lexer_issue("Cannot prefix number with 0's.".to_owned()));
+                return Err(self.create_lexer_issue(String::from("Cannot prefix number with 0's.")));
             }
         }
 
@@ -277,7 +277,7 @@ impl<T: BufRead> Lexer<T> {
             match total.checked_mul(10) {
                 Some(result) => total = result,
                 None => {
-                    return Err(self.create_lexer_issue("Overflow occurred while parsing integer".to_owned()));
+                    return Err(self.create_lexer_issue(String::from("Overflow occurred while parsing integer")));
                 }
             }
             match total.checked_add(digit) {
@@ -287,7 +287,7 @@ impl<T: BufRead> Lexer<T> {
                     current_char = self.src.next().unwrap();
                 }
                 None => {
-                    return Err(self.create_lexer_issue("Overflow occurred while parsing integer".to_owned()));
+                    return Err(self.create_lexer_issue(String::from("Overflow occurred while parsing integer")));
                 }
             }
         }

@@ -111,11 +111,11 @@ mod tests {
 
         let mut token = lexer.generate_token().unwrap();
         assert!(token.category == TokenCategory::Comment);
-        assert!(token.value == TokenValue::String(" this is a comment".to_string()));
+        assert!(token.value == TokenValue::String(String::from(" this is a comment")));
 
         token = lexer.generate_token().unwrap();
         assert!(token.category == TokenCategory::Comment);
-        assert!(token.value == TokenValue::String(" another".to_string()));
+        assert!(token.value == TokenValue::String(String::from(" another")));
     }
 
     #[test]
@@ -125,15 +125,15 @@ mod tests {
 
         let mut token = lexer.generate_token().unwrap();
         assert!(token.category == TokenCategory::StringValue);
-        assert!(token.value == TokenValue::String("string1".to_owned()));
+        assert!(token.value == TokenValue::String(String::from("string1")));
 
         token = lexer.generate_token().unwrap();
         assert!(token.category == TokenCategory::StringValue);
-        assert!(token.value == TokenValue::String(" string2  ".to_owned()));
+        assert!(token.value == TokenValue::String(String::from(" string2  ")));
 
         token = lexer.generate_token().unwrap();
         assert!(token.category == TokenCategory::StringValue);
-        assert!(token.value == TokenValue::String("string3".to_owned()));
+        assert!(token.value == TokenValue::String(String::from("string3")));
     }
 
     #[test]
@@ -145,7 +145,7 @@ mod tests {
 
         let token = lexer.generate_token().unwrap();
         assert!(token.category == TokenCategory::StringValue);
-        assert!(token.value == TokenValue::String(expected.to_owned()));
+        assert!(token.value == TokenValue::String(expected.to_string()));
     }
 
     #[test]
