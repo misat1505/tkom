@@ -61,16 +61,9 @@ impl<'a> Interpreter<'a> {
         self.visit_expression(rhs)?;
         let right_value = self.read_last_result()?;
 
-        match op(left_value, right_value) {
-            Ok(val) => {
-                self.last_result = Some(val);
-                Ok(())
-            }
-            Err(mut err) => {
-                err.message = format!("{}\nAt {:?}.", err.message, self.position);
-                Err(Box::new(err))
-            }
-        }
+        let value = op(left_value, right_value).map_err(|err| self.append_position(Box::new(err)))?;
+        self.last_result = Some(value);
+        Ok(())
     }
 
     fn evaluate_unary_op<F>(&mut self, value: &'a Box<Node<Expression>>, op: F) -> Result<(), Box<dyn Issue>>
@@ -79,16 +72,9 @@ impl<'a> Interpreter<'a> {
     {
         self.visit_expression(value)?;
         let computed_value = self.read_last_result()?;
-        match op(computed_value) {
-            Ok(val) => {
-                self.last_result = Some(val);
-                Ok(())
-            }
-            Err(mut err) => {
-                err.message = format!("{}\nAt {:?}.", err.message, self.position);
-                Err(Box::new(err))
-            }
-        }
+        let value = op(computed_value).map_err(|err| self.append_position(Box::new(err)))?;
+        self.last_result = Some(value);
+        Ok(())
     }
 }
 
@@ -117,16 +103,9 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
             Expression::Casting { value, to_type } => {
                 self.visit_expression(&value)?;
                 let computed_value = self.read_last_result()?;
-                match ALU::cast_to_type(computed_value, to_type.value) {
-                    Ok(val) => {
-                        self.last_result = Some(val);
-                        return Ok(());
-                    }
-                    Err(mut err) => {
-                        err.message = format!("{}\nAt: {:?}", err.message, self.position);
-                        return Err(Box::new(err));
-                    }
-                }
+                let value = ALU::cast_to_type(computed_value, to_type.value).map_err(|err| self.append_position(Box::new(err)))?;
+                self.last_result = Some(value);
+                return Ok(());
             }
             Expression::BooleanNegation(value) => self.evaluate_unary_op(value, ALU::boolean_negate)?,
             Expression::ArithmeticNegation(value) => self.evaluate_unary_op(value, ALU::arithmetic_negate)?,
@@ -183,13 +162,9 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                     }
                 }
 
-                if let Err(mut err) = self
-                    .stack
+                self.stack
                     .declare_variable(identifier.value.as_str(), Rc::new(RefCell::new(computed_value)))
-                {
-                    err.message = format!("{}\nAt {:?}.", err.message, self.position);
-                    return Err(Box::new(err));
-                }
+                    .map_err(|err| self.append_position(Box::new(err)))?;
             }
             Statement::Assignment { identifier, value } => {
                 self.visit_expression(&value)?;
@@ -199,10 +174,9 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                     }) as Box<dyn Issue>
                 })?;
 
-                if let Err(mut err) = self.stack.assign_variable(identifier.value.as_str(), Rc::new(RefCell::new(value))) {
-                    err.message = format!("{}\nAt {:?}.", err.message, self.position);
-                    return Err(Box::new(err));
-                }
+                self.stack
+                    .assign_variable(identifier.value.as_str(), Rc::new(RefCell::new(value)))
+                    .map_err(|err| self.append_position(Box::new(err)))?;
             }
             Statement::Conditional {
                 condition,
@@ -337,10 +311,9 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         if let Some(alias) = &switch_expression.value.alias {
             self.visit_expression(&switch_expression.value.expression)?;
             let computed_value = self.read_last_result()?;
-            if let Err(mut err) = self.stack.declare_variable(alias.value.as_str(), Rc::new(RefCell::new(computed_value))) {
-                err.message = format!("{}\nAt {:?}.", err.message, self.position);
-                return Err(Box::new(err));
-            }
+            self.stack
+                .declare_variable(alias.value.as_str(), Rc::new(RefCell::new(computed_value)))
+                .map_err(|err| self.append_position(Box::new(err)))?;
         }
         Ok(())
     }
@@ -375,6 +348,13 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
 }
 
 impl<'a> Interpreter<'a> {
+    fn append_position(&self, mut error: Box<dyn Issue>) -> Box<dyn Issue> {
+        let positon = self.position;
+        let prev_message = error.message();
+        error.set_message(format!("{}\nAt {:?}.", prev_message, positon));
+        error
+    }
+
     #[allow(dead_code)]
     pub fn stack(&mut self) -> Stack {
         // only for accept tests
@@ -421,7 +401,7 @@ impl<'a> Interpreter<'a> {
         self.last_arguments = args;
 
         if let Some(std_function) = self.program.std_functions.get(name) {
-            if let Some(return_value) = Self::execute_std_function(std_function, &self.last_arguments)? {
+            if let Some(return_value) = Self::execute_std_function(std_function, &self.last_arguments).map_err(|err| self.append_position(err))? {
                 self.last_result = Some(return_value);
             }
         }
@@ -463,10 +443,9 @@ impl<'a> Interpreter<'a> {
                     }))
                 }
             }
-            if let Err(mut err) = self.stack.declare_variable(param_name.as_str(), Rc::clone(value)) {
-                err.message = format!("{}\nAt {:?}.", err.message, self.position);
-                return Err(Box::new(err));
-            };
+            self.stack
+                .declare_variable(param_name.as_str(), Rc::clone(value))
+                .map_err(|err| self.append_position(Box::new(err)))?;
         }
 
         // execute
