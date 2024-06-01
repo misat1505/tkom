@@ -1,6 +1,4 @@
-use crate::{
-    ast::Type, errors::ComputationIssue, value::Value
-};
+use crate::{ast::Type, errors::ComputationIssue, value::Value};
 
 pub struct ALU();
 

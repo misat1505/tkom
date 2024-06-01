@@ -1,23 +1,12 @@
 use crate::{
     ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
-    errors::Issue,
+    errors::{Issue, SemanticCheckerIssue},
     visitor::Visitor,
 };
 
 enum FunctionCallType {
     Statement(Node<Statement>),
     Expression(Node<Expression>),
-}
-
-#[derive(Debug)]
-pub struct SemanticCheckerIssue {
-    pub message: String,
-}
-
-impl Issue for SemanticCheckerIssue {
-    fn message(&self) -> String {
-        self.message.clone()
-    }
 }
 
 pub struct SemanticChecker<'a> {

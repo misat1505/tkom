@@ -5,18 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{ast::Type, errors::Issue, value::Value};
-
-#[derive(Debug)]
-pub struct StdFunctionIssue {
-    message: String,
-}
-
-impl Issue for StdFunctionIssue {
-    fn message(&self) -> String {
-        self.message.clone()
-    }
-}
+use crate::{ast::Type, errors::StdFunctionIssue, value::Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StdFunction {

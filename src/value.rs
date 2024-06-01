@@ -1,6 +1,5 @@
 use crate::{ast::Type, errors::ComputationIssue};
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     I64(i64),

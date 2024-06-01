@@ -752,7 +752,7 @@ impl<L: ILexer> Parser<L> {
             switch_cases.push(switch_case);
         }
         let _ = self.consume_must_be(TokenCategory::BraceClose)?;
-        
+
         let node = Node {
             value: Statement::Switch {
                 expressions: switch_expressions,

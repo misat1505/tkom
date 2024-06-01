@@ -1,21 +1,10 @@
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 use crate::{
-    errors::{Issue, ScopeManagerIssue},
+    errors::{ScopeManagerIssue, StackOverflowIssue},
     scope_manager::ScopeManager,
     value::Value,
 };
-
-#[derive(Debug)]
-pub struct StackOverflowIssue {
-    message: String,
-}
-
-impl Issue for StackOverflowIssue {
-    fn message(&self) -> String {
-        self.message.clone()
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Stack<'a>(pub Vec<StackFrame<'a>>);
@@ -95,6 +84,7 @@ impl<'a> Stack<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::errors::Issue;
     use crate::value::Value;
 
     #[test]
