@@ -1,15 +1,5 @@
-use crate::{ast::Type, errors::Issue};
+use crate::{ast::Type, errors::ComputationIssue};
 
-#[derive(Debug)]
-pub struct ComputationIssue {
-    pub message: String,
-}
-
-impl Issue for ComputationIssue {
-    fn message(&self) -> String {
-        self.message.clone()
-    }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {

@@ -1,17 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{errors::Issue, value::Value};
-
-#[derive(Debug)]
-pub struct ScopeManagerIssue {
-    pub message: String,
-}
-
-impl Issue for ScopeManagerIssue {
-    fn message(&self) -> String {
-        self.message.clone()
-    }
-}
+use crate::{errors::ScopeManagerIssue, value::Value};
 
 #[derive(Debug, Clone)]
 pub struct ScopeManager<'a> {

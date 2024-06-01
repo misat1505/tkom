@@ -1,8 +1,8 @@
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 use crate::{
-    errors::Issue,
-    scope_manager::{ScopeManager, ScopeManagerIssue},
+    errors::{Issue, ScopeManagerIssue},
+    scope_manager::ScopeManager,
     value::Value,
 };
 

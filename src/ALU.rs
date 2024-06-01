@@ -1,6 +1,5 @@
 use crate::{
-    ast::Type,
-    value::{ComputationIssue, Value},
+    ast::Type, errors::ComputationIssue, value::Value
 };
 
 pub struct ALU();

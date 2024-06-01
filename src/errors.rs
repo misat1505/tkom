@@ -11,7 +11,6 @@ pub enum IssueLevel {
 }
 
 // lexer
-
 #[derive(Debug, Clone)]
 pub struct LexerIssue {
     pub level: IssueLevel,
@@ -31,7 +30,6 @@ impl Issue for LexerIssue {
 }
 
 // parser
-
 #[derive(Debug, Clone)]
 pub struct ParserIssue {
     pub level: IssueLevel,
@@ -39,6 +37,40 @@ pub struct ParserIssue {
 }
 
 impl Issue for ParserIssue {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+}
+
+// interpreter
+#[derive(Debug)]
+pub struct InterpreterIssue {
+    pub message: String,
+}
+
+impl Issue for InterpreterIssue {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+}
+
+#[derive(Debug)]
+pub struct ComputationIssue {
+    pub message: String,
+}
+
+impl Issue for ComputationIssue {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+}
+
+#[derive(Debug)]
+pub struct ScopeManagerIssue {
+    pub message: String,
+}
+
+impl Issue for ScopeManagerIssue {
     fn message(&self) -> String {
         self.message.clone()
     }

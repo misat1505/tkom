@@ -4,25 +4,14 @@ use crate::{
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
     },
-    errors::Issue,
+    errors::{ComputationIssue, InterpreterIssue, Issue},
     lazy_stream_reader::Position,
     stack::Stack,
     std_functions::StdFunction,
-    value::{ComputationIssue, Value},
+    value::Value,
     visitor::Visitor,
     ALU::ALU,
 };
-
-#[derive(Debug)]
-pub struct InterpreterIssue {
-    message: String,
-}
-
-impl Issue for InterpreterIssue {
-    fn message(&self) -> String {
-        self.message.clone()
-    }
-}
 
 pub struct Interpreter<'a> {
     program: &'a Program,
