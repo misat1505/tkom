@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 
+use crate::lazy_stream_reader::Position;
+
 pub trait Issue: Debug {
     fn message(&self) -> String;
     fn set_message(&mut self, text: String);
@@ -140,5 +142,15 @@ impl Issue for StdFunctionIssue {
 
     fn set_message(&mut self, text: String) {
         self.message = text;
+    }
+}
+
+// Manager
+pub struct IssuesManager;
+
+impl IssuesManager {
+    pub fn append_position(mut error: Box<dyn Issue>, position: Position) -> Box<dyn Issue> {
+        error.set_message(format!("{}\nAt {:?}.", error.message(), position));
+        error
     }
 }

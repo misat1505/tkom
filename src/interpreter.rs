@@ -4,7 +4,7 @@ use crate::{
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
     },
-    issues::{ComputationIssue, InterpreterIssue, Issue},
+    issues::{ComputationIssue, InterpreterIssue, Issue, IssuesManager},
     lazy_stream_reader::Position,
     stack::Stack,
     std_functions::StdFunction,
@@ -47,9 +47,9 @@ impl<'a> Interpreter<'a> {
     fn read_last_result(&mut self) -> Result<Value, Box<dyn Issue>> {
         self.last_result.take().ok_or_else(|| {
             let error = Box::new(InterpreterIssue {
-                message: format!("No value produced where it is needed."),
+                message: String::from("No value produced where it is needed."),
             });
-            self.append_position(error)
+            IssuesManager::append_position(error, self.position)
         })
     }
 
@@ -62,7 +62,7 @@ impl<'a> Interpreter<'a> {
         self.visit_expression(rhs)?;
         let right_value = self.read_last_result()?;
 
-        let value = op(left_value, right_value).map_err(|err| self.append_position(Box::new(err)))?;
+        let value = op(left_value, right_value).map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
         self.last_result = Some(value);
         Ok(())
     }
@@ -73,7 +73,7 @@ impl<'a> Interpreter<'a> {
     {
         self.visit_expression(value)?;
         let computed_value = self.read_last_result()?;
-        let value = op(computed_value).map_err(|err| self.append_position(Box::new(err)))?;
+        let value = op(computed_value).map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
         self.last_result = Some(value);
         Ok(())
     }
@@ -85,16 +85,16 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
             self.visit_statement(&statement)?;
             if self.is_breaking {
                 let error = Box::new(InterpreterIssue {
-                    message: format!("Break called outside 'for' or 'switch'."),
+                    message: String::from("Break called outside 'for' or 'switch'."),
                 });
-                return Err(self.append_position(error));
+                return Err(IssuesManager::append_position(error, self.position));
             }
 
             if self.is_returning {
                 let error = Box::new(InterpreterIssue {
-                    message: format!("Return called outside a function."),
+                    message: String::from("Return called outside a function."),
                 });
-                return Err(self.append_position(error));
+                return Err(IssuesManager::append_position(error, self.position));
             }
         }
         Ok(())
@@ -106,7 +106,8 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
             Expression::Casting { value, to_type } => {
                 self.visit_expression(&value)?;
                 let computed_value = self.read_last_result()?;
-                let value = ALU::cast_to_type(computed_value, to_type.value).map_err(|err| self.append_position(Box::new(err)))?;
+                let value =
+                    ALU::cast_to_type(computed_value, to_type.value).map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
                 self.last_result = Some(value);
             }
             Expression::BooleanNegation(value) => self.evaluate_unary_op(value, ALU::boolean_negate)?,
@@ -144,7 +145,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                             let error = Box::new(InterpreterIssue {
                                 message: format!("Cannot declare variable '{}' with no value.", identifier.value),
                             });
-                            self.append_position(error)
+                            IssuesManager::append_position(error, self.position)
                         })?
                     }
                     None => Value::default_value(var_type.value).map_err(|err| Box::new(err) as Box<dyn Issue>)?,
@@ -161,13 +162,13 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                                 declared_type
                             ),
                         });
-                        return Err(self.append_position(error));
+                        return Err(IssuesManager::append_position(error, self.position));
                     }
                 }
 
                 self.stack
                     .declare_variable(identifier.value.as_str(), Rc::new(RefCell::new(computed_value)))
-                    .map_err(|err| self.append_position(Box::new(err)))?;
+                    .map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
             }
             Statement::Assignment { identifier, value } => {
                 self.visit_expression(&value)?;
@@ -175,12 +176,12 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                     let error = Box::new(InterpreterIssue {
                         message: format!("Cannot assign no value to variable '{}'.", identifier.value),
                     });
-                    self.append_position(error)
+                    IssuesManager::append_position(error, self.position)
                 })?;
 
                 self.stack
                     .assign_variable(identifier.value.as_str(), Rc::new(RefCell::new(value)))
-                    .map_err(|err| self.append_position(Box::new(err)))?;
+                    .map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
             }
             Statement::Conditional {
                 condition,
@@ -317,7 +318,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
             let computed_value = self.read_last_result()?;
             self.stack
                 .declare_variable(alias.value.as_str(), Rc::new(RefCell::new(computed_value)))
-                .map_err(|err| self.append_position(Box::new(err)))?;
+                .map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
         }
         Ok(())
     }
@@ -352,11 +353,6 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
 }
 
 impl<'a> Interpreter<'a> {
-    fn append_position(&self, mut error: Box<dyn Issue>) -> Box<dyn Issue> {
-        error.set_message(format!("{}\nAt {:?}.", error.message(), self.position));
-        error
-    }
-
     #[allow(dead_code)]
     pub fn stack(&mut self) -> Stack {
         // only for accept tests
@@ -372,7 +368,7 @@ impl<'a> Interpreter<'a> {
                 value.to_type(),
             ),
         });
-        self.append_position(error)
+        IssuesManager::append_position(error, self.position)
     }
 
     fn execute_std_function(std_function: &StdFunction, arguments: &Vec<Rc<RefCell<Value>>>) -> Result<Option<Value>, Box<dyn Issue>> {
@@ -403,7 +399,9 @@ impl<'a> Interpreter<'a> {
         self.last_arguments = args;
 
         if let Some(std_function) = self.program.std_functions.get(name) {
-            if let Some(return_value) = Self::execute_std_function(std_function, &self.last_arguments).map_err(|err| self.append_position(err))? {
+            if let Some(return_value) =
+                Self::execute_std_function(std_function, &self.last_arguments).map_err(|err| IssuesManager::append_position(err, self.position))?
+            {
                 self.last_result = Some(return_value);
             }
         }
@@ -437,12 +435,12 @@ impl<'a> Interpreter<'a> {
                     let error = Box::new(InterpreterIssue {
                         message: format!("Function '{}' expected '{:?}', but got '{:?}'.", name, des, got.to_type()),
                     });
-                    return Err(self.append_position(error));
+                    return Err(IssuesManager::append_position(error, self.position));
                 }
             }
             self.stack
                 .declare_variable(param_name.as_str(), Rc::clone(value))
-                .map_err(|err| self.append_position(Box::new(err)))?;
+                .map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
         }
 
         // execute
@@ -456,9 +454,9 @@ impl<'a> Interpreter<'a> {
 
             if self.is_breaking {
                 let error = Box::new(InterpreterIssue {
-                    message: format!("Break called outside 'for' or 'switch'."),
+                    message: String::from("Break called outside 'for' or 'switch'."),
                 });
-                return Err(self.append_position(error));
+                return Err(IssuesManager::append_position(error, self.position));
             }
         }
 
@@ -473,7 +471,7 @@ impl<'a> Interpreter<'a> {
                 let error = Box::new(InterpreterIssue {
                     message: format!("Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.", name, exp, res),
                 });
-                return Err(self.append_position(error));
+                return Err(IssuesManager::append_position(error, self.position));
             }
         }
 
