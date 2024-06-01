@@ -5,7 +5,11 @@ use std::{
     rc::Rc,
 };
 
-use crate::{ast::Type, issues::StdFunctionIssue, value::Value};
+use crate::{
+    ast::Type,
+    issues::{IssueLevel, StdFunctionIssue},
+    value::Value,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StdFunction {
@@ -24,18 +28,20 @@ impl StdFunction {
                         println!("{}", text);
                         Ok(None)
                     }
-                    _ => Err(StdFunctionIssue {
-                        message: format!(
+                    _ => Err(StdFunctionIssue::new(
+                        IssueLevel::ERROR,
+                        format!(
                             "Std function 'print' expected '{:?}' as the only argument, but was given '{:?}'.",
                             Type::Str,
                             value.to_type()
                         ),
-                    }),
+                    )),
                 }
             } else {
-                Err(StdFunctionIssue {
-                    message: "Missing argument for 'print' function.".to_owned(),
-                })
+                Err(StdFunctionIssue::new(
+                    IssueLevel::ERROR,
+                    String::from("Missing argument for 'print' function."),
+                ))
             }
         };
         StdFunction { params, execute }
@@ -53,23 +59,23 @@ impl StdFunction {
                         let mut input = String::new();
                         match io::stdin().read_line(&mut input) {
                             Ok(_) => Ok(Some(Value::String(input.trim().to_string()))),
-                            Err(_) => Err(StdFunctionIssue {
-                                message: "Failed to read input.".to_owned(),
-                            }),
+                            Err(_) => Err(StdFunctionIssue::new(IssueLevel::ERROR, String::from("Failed to read input."))),
                         }
                     }
-                    _ => Err(StdFunctionIssue {
-                        message: format!(
+                    _ => Err(StdFunctionIssue::new(
+                        IssueLevel::ERROR,
+                        format!(
                             "Std function 'input' expected '{:?}' as the only argument, but was given '{:?}'.",
                             Type::Str,
                             value.to_type()
                         ),
-                    }),
+                    )),
                 }
             } else {
-                Err(StdFunctionIssue {
-                    message: "Missing argument for 'input' function.".to_owned(),
-                })
+                Err(StdFunctionIssue::new(
+                    IssueLevel::ERROR,
+                    String::from("Missing argument for 'input' function."),
+                ))
             }
         };
         StdFunction { params, execute }
@@ -83,18 +89,20 @@ impl StdFunction {
                 let val2 = val2.borrow();
                 match (&*val1, &*val2) {
                     (Value::I64(val1), Value::I64(val2)) => Ok(Some(Value::I64(*val1 % *val2))),
-                    _ => Err(StdFunctionIssue {
-                        message: format!(
+                    _ => Err(StdFunctionIssue::new(
+                        IssueLevel::ERROR,
+                        format!(
                             "Cannot perform modulo operation between values of types '{:?}' and '{:?}'.",
                             val1.to_type(),
                             val2.to_type()
                         ),
-                    }),
+                    )),
                 }
             } else {
-                Err(StdFunctionIssue {
-                    message: "Missing arguments for 'mod' function.".to_owned(),
-                })
+                Err(StdFunctionIssue::new(
+                    IssueLevel::ERROR,
+                    String::from("Missing arguments for 'mod' function."),
+                ))
             }
         };
         StdFunction { params, execute }

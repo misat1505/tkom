@@ -4,7 +4,7 @@ use crate::{
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
     },
-    issues::{ComputationIssue, InterpreterIssue, Issue, IssuesManager},
+    issues::{ComputationIssue, InterpreterIssue, Issue, IssueLevel, IssuesManager},
     lazy_stream_reader::Position,
     stack::Stack,
     std_functions::StdFunction,
@@ -46,9 +46,10 @@ impl<'a> Interpreter<'a> {
 
     fn read_last_result(&mut self) -> Result<Value, Box<dyn Issue>> {
         self.last_result.take().ok_or_else(|| {
-            let error = Box::new(InterpreterIssue {
-                message: String::from("No value produced where it is needed."),
-            });
+            let error = Box::new(InterpreterIssue::new(
+                IssueLevel::ERROR,
+                String::from("No value produced where it is needed."),
+            ));
             IssuesManager::append_position(error, self.position)
         })
     }
@@ -84,16 +85,18 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         for statement in &program.statements {
             self.visit_statement(&statement)?;
             if self.is_breaking {
-                let error = Box::new(InterpreterIssue {
-                    message: String::from("Break called outside 'for' or 'switch'."),
-                });
+                let error = Box::new(InterpreterIssue::new(
+                    IssueLevel::ERROR,
+                    String::from("Break called outside 'for' or 'switch'."),
+                ));
                 return Err(IssuesManager::append_position(error, self.position));
             }
 
             if self.is_returning {
-                let error = Box::new(InterpreterIssue {
-                    message: String::from("Return called outside a function."),
-                });
+                let error = Box::new(InterpreterIssue::new(
+                    IssueLevel::ERROR,
+                    String::from("Return called outside a function."),
+                ));
                 return Err(IssuesManager::append_position(error, self.position));
             }
         }
@@ -142,9 +145,10 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                     Some(val) => {
                         self.visit_expression(&val)?;
                         self.read_last_result().map_err(|_| {
-                            let error = Box::new(InterpreterIssue {
-                                message: format!("Cannot declare variable '{}' with no value.", identifier.value),
-                            });
+                            let error = Box::new(InterpreterIssue::new(
+                                IssueLevel::ERROR,
+                                format!("Cannot declare variable '{}' with no value.", identifier.value),
+                            ));
                             IssuesManager::append_position(error, self.position)
                         })?
                     }
@@ -154,14 +158,15 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                 match (var_type.value, &computed_value) {
                     (Type::I64, Value::I64(_)) | (Type::F64, Value::F64(_)) | (Type::Str, Value::String(_)) | (Type::Bool, Value::Bool(_)) => {}
                     (declared_type, computed_type) => {
-                        let error = Box::new(InterpreterIssue {
-                            message: format!(
+                        let error = Box::new(InterpreterIssue::new(
+                            IssueLevel::ERROR,
+                            format!(
                                 "Cannot assign value of type '{:?}' to variable '{}' of type '{:?}'.",
                                 computed_type.to_type(),
                                 identifier.value,
                                 declared_type
                             ),
-                        });
+                        ));
                         return Err(IssuesManager::append_position(error, self.position));
                     }
                 }
@@ -173,9 +178,10 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
             Statement::Assignment { identifier, value } => {
                 self.visit_expression(&value)?;
                 let value = self.read_last_result().map_err(|_| {
-                    let error = Box::new(InterpreterIssue {
-                        message: format!("Cannot assign no value to variable '{}'.", identifier.value),
-                    });
+                    let error = Box::new(InterpreterIssue::new(
+                        IssueLevel::ERROR,
+                        format!("Cannot assign no value to variable '{}'.", identifier.value),
+                    ));
                     IssuesManager::append_position(error, self.position)
                 })?;
 
@@ -360,14 +366,15 @@ impl<'a> Interpreter<'a> {
     }
 
     fn condition_error(&self, value: Value, place: &'a str) -> Box<dyn Issue> {
-        let error = Box::new(InterpreterIssue {
-            message: format!(
+        let error = Box::new(InterpreterIssue::new(
+            IssueLevel::ERROR,
+            format!(
                 "Condition in '{}' has to evaluate to type '{:?}' - got '{:?}'.",
                 place,
                 Type::Bool,
                 value.to_type(),
             ),
-        });
+        ));
         IssuesManager::append_position(error, self.position)
     }
 
@@ -432,9 +439,10 @@ impl<'a> Interpreter<'a> {
             match (desired_type, &*value.borrow()) {
                 (Type::Bool, Value::Bool(_)) | (Type::F64, Value::F64(_)) | (Type::I64, Value::I64(_)) | (Type::Str, Value::String(_)) => {}
                 (des, got) => {
-                    let error = Box::new(InterpreterIssue {
-                        message: format!("Function '{}' expected '{:?}', but got '{:?}'.", name, des, got.to_type()),
-                    });
+                    let error = Box::new(InterpreterIssue::new(
+                        IssueLevel::ERROR,
+                        format!("Function '{}' expected '{:?}', but got '{:?}'.", name, des, got.to_type()),
+                    ));
                     return Err(IssuesManager::append_position(error, self.position));
                 }
             }
@@ -453,9 +461,10 @@ impl<'a> Interpreter<'a> {
             self.visit_statement(&statement)?;
 
             if self.is_breaking {
-                let error = Box::new(InterpreterIssue {
-                    message: String::from("Break called outside 'for' or 'switch'."),
-                });
+                let error = Box::new(InterpreterIssue::new(
+                    IssueLevel::ERROR,
+                    String::from("Break called outside 'for' or 'switch'."),
+                ));
                 return Err(IssuesManager::append_position(error, self.position));
             }
         }
@@ -468,9 +477,10 @@ impl<'a> Interpreter<'a> {
             | (Some(Value::String(_)), Type::Str)
             | (Some(Value::Bool(_)), Type::Bool) => {}
             (res, exp) => {
-                let error = Box::new(InterpreterIssue {
-                    message: format!("Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.", name, exp, res),
-                });
+                let error = Box::new(InterpreterIssue::new(
+                    IssueLevel::ERROR,
+                    format!("Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.", name, exp, res),
+                ));
                 return Err(IssuesManager::append_position(error, self.position));
             }
         }

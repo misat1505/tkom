@@ -39,10 +39,10 @@ impl<L: ILexer> IParser<L> for Parser<L> {
             } else if let Some(function_declaration) = self.parse_function_declaration()? {
                 let function_name = function_declaration.value.identifier.value.clone();
                 if functions.contains_key(&function_name) || std_functions.contains_key(&function_name) {
-                    return Err(Box::new(ParserIssue {
-                        level: IssueLevel::ERROR,
-                        message: format!("Redeclaration of function '{}'.\nAt: {:?}.", function_name, function_declaration.position),
-                    }));
+                    return Err(Box::new(ParserIssue::new(
+                        IssueLevel::ERROR,
+                        format!("Redeclaration of function '{}'.\nAt: {:?}.", function_name, function_declaration.position),
+                    )));
                 }
                 functions.insert(function_name, Rc::new(function_declaration));
             } else {
@@ -885,10 +885,7 @@ impl<L: ILexer> Parser<L> {
 
     fn create_parser_error(&self, text: String) -> Box<dyn Issue> {
         let position = self.current_token().position;
-        Box::new(ParserIssue {
-            level: IssueLevel::ERROR,
-            message: format!("{}\nAt {:?}.", text, position),
-        })
+        Box::new(ParserIssue::new(IssueLevel::ERROR, format!("{}\nAt {:?}.", text, position)))
     }
 }
 
@@ -925,10 +922,7 @@ mod tests {
 
         fn next(&mut self) -> Result<Token, Box<dyn Issue>> {
             if self.tokens.len() == 0 {
-                return Err(Box::new(LexerIssue {
-                    level: IssueLevel::ERROR,
-                    message: "".to_owned(),
-                }));
+                return Err(Box::new(LexerIssue::new(IssueLevel::ERROR, String::new())));
             }
             let next_token = self.tokens.remove(0);
             self.current_token = Some(next_token.clone());

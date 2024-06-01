@@ -1,7 +1,7 @@
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 use crate::{
-    issues::{ScopeManagerIssue, StackOverflowIssue},
+    issues::{IssueLevel, ScopeManagerIssue, StackOverflowIssue},
     scope_manager::ScopeManager,
     value::Value,
 };
@@ -35,9 +35,7 @@ impl<'a> Stack<'a> {
 
     pub fn push_stack_frame(&mut self) -> Result<(), StackOverflowIssue> {
         if self.0.len() == 500 {
-            return Err(StackOverflowIssue {
-                message: "Stack overflow.".to_owned(),
-            });
+            return Err(StackOverflowIssue::new(IssueLevel::ERROR, String::from("Stack overflow.")));
         }
         self.0.push(StackFrame::new());
         Ok(())

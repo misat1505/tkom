@@ -1,6 +1,6 @@
 use crate::{
     ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
-    issues::{Issue, SemanticCheckerIssue},
+    issues::{Issue, IssueLevel, SemanticCheckerIssue},
     visitor::Visitor,
 };
 
@@ -40,28 +40,30 @@ impl<'a> SemanticChecker<'a> {
                 // std function
                 if let Some(std_function) = self.program.std_functions.get(&String::from(name)) {
                     if arguments.len() != std_function.params.len() {
-                        self.errors.push(SemanticCheckerIssue {
-                            message: format!(
+                        self.errors.push(SemanticCheckerIssue::new(
+                            IssueLevel::ERROR,
+                            format!(
                                 "Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n",
                                 name,
                                 std_function.params.len(),
                                 arguments.len(),
                                 position
                             ),
-                        });
+                        ));
                     }
 
                     for argument in arguments {
                         if argument.value.passed_by == PassedBy::Reference {
-                            self.errors.push(SemanticCheckerIssue {
-                                message: format!(
+                            self.errors.push(SemanticCheckerIssue::new(
+                                IssueLevel::ERROR,
+                                format!(
                                     "Parameter in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n",
                                     identifier.value,
                                     argument.value.passed_by,
                                     PassedBy::Value,
                                     argument.position
                                 ),
-                            })
+                            ))
                         }
                     }
 
@@ -72,23 +74,25 @@ impl<'a> SemanticChecker<'a> {
                 if let Some(function_declaration) = self.program.functions.get(&String::from(name)) {
                     let parameters = &function_declaration.value.parameters;
                     if arguments.len() != parameters.len() {
-                        self.errors.push(SemanticCheckerIssue {
-                            message: format!(
+                        self.errors.push(SemanticCheckerIssue::new(
+                            IssueLevel::ERROR,
+                            format!(
                                 "Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n",
                                 name,
                                 parameters.len(),
                                 arguments.len(),
                                 position
                             ),
-                        })
+                        ))
                     }
 
                     for idx in 0..parameters.len() {
                         let parameter = parameters.get(idx).unwrap();
                         if let Some(argument) = arguments.get(idx) {
                             if argument.value.passed_by != parameter.value.passed_by {
-                                self.errors.push(SemanticCheckerIssue {
-                                    message: format!(
+                                self.errors.push(SemanticCheckerIssue::new(
+                                    IssueLevel::ERROR,
+                                    format!(
                                         "Parameter '{}' in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n",
                                         parameter.value.identifier.value,
                                         identifier.value,
@@ -96,21 +100,20 @@ impl<'a> SemanticChecker<'a> {
                                         parameter.value.passed_by,
                                         argument.position
                                     ),
-                                });
+                                ));
                             }
 
                             if argument.value.passed_by == PassedBy::Reference {
                                 if let Expression::Variable(_) = argument.value.value.value {
                                 } else {
-                                    self.errors.push(SemanticCheckerIssue {
-                                        message: format!(
+                                    self.errors.push(SemanticCheckerIssue::new(IssueLevel::ERROR, format!(
                                             "Parameter '{}' in function '{}' is passed by {:?}. Thus it needs to an identifier, but a complex expression was found.\nAt {:?}.\n",
                                             parameter.value.identifier.value,
                                             identifier.value,
                                             PassedBy::Reference,
                                             argument.position
                                         ),
-                                    });
+                                    ));
                                 }
                             }
                         }
@@ -119,9 +122,10 @@ impl<'a> SemanticChecker<'a> {
                     return;
                 }
 
-                self.errors.push(SemanticCheckerIssue {
-                    message: format!("Use of undeclared function '{}'.\nAt {:?}.\n", name, position),
-                })
+                self.errors.push(SemanticCheckerIssue::new(
+                    IssueLevel::ERROR,
+                    format!("Use of undeclared function '{}'.\nAt {:?}.\n", name, position),
+                ))
             }
             _ => {}
         }
