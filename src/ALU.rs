@@ -83,9 +83,7 @@ impl ALU {
                     format!("Cannot cast String '{}' to f64.", string),
                 )),
             },
-            (Value::String(string), Type::Bool) => match string.as_str() {
-                string => Ok(Value::Bool(string != "")),
-            },
+            (Value::String(string), Type::Bool) => Ok(Value::Bool(string.as_str() != "")),
             (value, target_type) => Err(ComputationError::new(
                 ErrorSeverity::HIGH,
                 format!("Cannot cast '{:?}' to '{:?}'.", value, target_type),
