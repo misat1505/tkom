@@ -4,7 +4,7 @@ use crate::{
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
     },
-    errors::{IError, ErrorSeverity, ParserError},
+    errors::{ErrorSeverity, IError, ParserError},
     lexer::ILexer,
     std_functions::get_std_functions,
     tokens::{Token, TokenCategory, TokenValue},
@@ -27,7 +27,6 @@ macro_rules! try_consume {
         }
     };
 }
-
 
 pub struct Parser<L: ILexer> {
     lexer: L,

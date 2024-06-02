@@ -3,7 +3,10 @@ mod tests {
     use std::io::BufReader;
 
     use crate::{
-        errors::IError, lazy_stream_reader::LazyStreamReader, lexer::{ILexer, Lexer, LexerOptions}, tokens::{TokenCategory, TokenValue}
+        errors::IError,
+        lazy_stream_reader::LazyStreamReader,
+        lexer::{ILexer, Lexer, LexerOptions},
+        tokens::{TokenCategory, TokenValue},
     };
 
     fn on_warning(warning: Box<dyn IError>) {

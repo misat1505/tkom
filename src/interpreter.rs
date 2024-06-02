@@ -4,7 +4,7 @@ use crate::{
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
     },
-    errors::{ComputationError, InterpreterError, IError, ErrorSeverity, ErrorsManager},
+    errors::{ComputationError, ErrorSeverity, ErrorsManager, IError, InterpreterError},
     lazy_stream_reader::Position,
     stack::Stack,
     std_functions::StdFunction,

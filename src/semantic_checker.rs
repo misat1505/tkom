@@ -1,6 +1,6 @@
 use crate::{
     ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
-    errors::{IError, ErrorSeverity, SemanticCheckerError},
+    errors::{ErrorSeverity, IError, SemanticCheckerError},
     visitor::Visitor,
 };
 

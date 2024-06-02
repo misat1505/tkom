@@ -15,8 +15,8 @@ use crate::{
 #[allow(non_snake_case)]
 mod ALU;
 mod ast;
-mod interpreter;
 mod errors;
+mod interpreter;
 mod lexer;
 mod parser;
 mod scope_manager;

@@ -8,8 +8,8 @@ pub trait IError: Debug {
 
 #[derive(Debug, Clone)]
 pub enum ErrorSeverity {
-    HIGH,   // can't continue execution
-    LOW,    // can continue execution
+    HIGH, // can't continue execution
+    LOW,  // can continue execution
 }
 
 macro_rules! define_error {
