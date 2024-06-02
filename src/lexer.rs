@@ -274,22 +274,15 @@ impl<T: BufRead> Lexer<T> {
         let mut total: i64 = 0;
         while current_char.is_ascii_digit() {
             let digit = *current_char as i64 - '0' as i64;
-            match total.checked_mul(10) {
-                Some(result) => total = result,
-                None => {
-                    return Err(self.create_lexer_error(String::from("Overflow occurred while parsing integer")));
-                }
-            }
-            match total.checked_add(digit) {
-                Some(result) => {
-                    total = result;
-                    length += 1;
-                    current_char = self.src.next().unwrap();
-                }
-                None => {
-                    return Err(self.create_lexer_error(String::from("Overflow occurred while parsing integer")));
-                }
-            }
+            total = total
+                .checked_mul(10)
+                .ok_or_else(|| self.create_lexer_error(String::from("Overflow occurred while parsing integer")))?;
+
+            total = total
+                .checked_add(digit)
+                .ok_or_else(|| self.create_lexer_error(String::from("Overflow occurred while parsing integer")))?;
+            length += 1;
+            current_char = self.src.next().unwrap();
         }
         Ok((total, length))
     }
