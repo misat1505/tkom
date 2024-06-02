@@ -1,6 +1,6 @@
 use crate::{
     ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
-    issues::{Issue, IssueLevel, SemanticCheckerIssue},
+    errors::{IError, ErrorLevel, SemanticCheckerError},
     visitor::Visitor,
 };
 
@@ -11,13 +11,13 @@ enum FunctionCallType {
 
 pub struct SemanticChecker<'a> {
     program: &'a Program,
-    pub errors: Vec<SemanticCheckerIssue>,
+    pub errors: Vec<SemanticCheckerError>,
 }
 
 impl<'a> SemanticChecker<'a> {
     #![allow(unused_must_use)]
-    pub fn new(program: &'a Program) -> Result<Self, Box<dyn Issue>> {
-        let errors: Vec<SemanticCheckerIssue> = vec![];
+    pub fn new(program: &'a Program) -> Result<Self, Box<dyn IError>> {
+        let errors: Vec<SemanticCheckerError> = vec![];
         Ok(Self { program, errors })
     }
 
@@ -40,8 +40,8 @@ impl<'a> SemanticChecker<'a> {
                 // std function
                 if let Some(std_function) = self.program.std_functions.get(&String::from(name)) {
                     if arguments.len() != std_function.params.len() {
-                        self.errors.push(SemanticCheckerIssue::new(
-                            IssueLevel::ERROR,
+                        self.errors.push(SemanticCheckerError::new(
+                            ErrorLevel::ERROR,
                             format!(
                                 "Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n",
                                 name,
@@ -54,8 +54,8 @@ impl<'a> SemanticChecker<'a> {
 
                     for argument in arguments {
                         if argument.value.passed_by == PassedBy::Reference {
-                            self.errors.push(SemanticCheckerIssue::new(
-                                IssueLevel::ERROR,
+                            self.errors.push(SemanticCheckerError::new(
+                                ErrorLevel::ERROR,
                                 format!(
                                     "Parameter in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n",
                                     identifier.value,
@@ -74,8 +74,8 @@ impl<'a> SemanticChecker<'a> {
                 if let Some(function_declaration) = self.program.functions.get(&String::from(name)) {
                     let parameters = &function_declaration.value.parameters;
                     if arguments.len() != parameters.len() {
-                        self.errors.push(SemanticCheckerIssue::new(
-                            IssueLevel::ERROR,
+                        self.errors.push(SemanticCheckerError::new(
+                            ErrorLevel::ERROR,
                             format!(
                                 "Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n",
                                 name,
@@ -90,8 +90,8 @@ impl<'a> SemanticChecker<'a> {
                         let parameter = parameters.get(idx).unwrap();
                         if let Some(argument) = arguments.get(idx) {
                             if argument.value.passed_by != parameter.value.passed_by {
-                                self.errors.push(SemanticCheckerIssue::new(
-                                    IssueLevel::ERROR,
+                                self.errors.push(SemanticCheckerError::new(
+                                    ErrorLevel::ERROR,
                                     format!(
                                         "Parameter '{}' in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n",
                                         parameter.value.identifier.value,
@@ -106,7 +106,7 @@ impl<'a> SemanticChecker<'a> {
                             if argument.value.passed_by == PassedBy::Reference {
                                 if let Expression::Variable(_) = argument.value.value.value {
                                 } else {
-                                    self.errors.push(SemanticCheckerIssue::new(IssueLevel::ERROR, format!(
+                                    self.errors.push(SemanticCheckerError::new(ErrorLevel::ERROR, format!(
                                             "Parameter '{}' in function '{}' is passed by {:?}. Thus it needs to an identifier, but a complex expression was found.\nAt {:?}.\n",
                                             parameter.value.identifier.value,
                                             identifier.value,
@@ -122,8 +122,8 @@ impl<'a> SemanticChecker<'a> {
                     return;
                 }
 
-                self.errors.push(SemanticCheckerIssue::new(
-                    IssueLevel::ERROR,
+                self.errors.push(SemanticCheckerError::new(
+                    ErrorLevel::ERROR,
                     format!("Use of undeclared function '{}'.\nAt {:?}.\n", name, position),
                 ))
             }
@@ -134,7 +134,7 @@ impl<'a> SemanticChecker<'a> {
 
 impl<'a> Visitor<'a> for SemanticChecker<'a> {
     #![allow(unused_must_use)]
-    fn visit_program(&mut self, program: &'a Program) -> Result<(), Box<dyn Issue>> {
+    fn visit_program(&mut self, program: &'a Program) -> Result<(), Box<dyn IError>> {
         for statement in &program.statements {
             self.visit_statement(&statement);
         }
@@ -145,7 +145,7 @@ impl<'a> Visitor<'a> for SemanticChecker<'a> {
         Ok(())
     }
 
-    fn visit_expression(&mut self, expression: &'a Node<Expression>) -> Result<(), Box<dyn Issue>> {
+    fn visit_expression(&mut self, expression: &'a Node<Expression>) -> Result<(), Box<dyn IError>> {
         match &expression.value {
             Expression::FunctionCall { .. } => {
                 self.check_function_call(FunctionCallType::Expression(expression.clone()));
@@ -187,7 +187,7 @@ impl<'a> Visitor<'a> for SemanticChecker<'a> {
         Ok(())
     }
 
-    fn visit_statement(&mut self, statement: &'a Node<Statement>) -> Result<(), Box<dyn Issue>> {
+    fn visit_statement(&mut self, statement: &'a Node<Statement>) -> Result<(), Box<dyn IError>> {
         match &statement.value {
             &Statement::FunctionCall { .. } => {
                 self.check_function_call(FunctionCallType::Statement(statement.clone()));
@@ -254,45 +254,45 @@ impl<'a> Visitor<'a> for SemanticChecker<'a> {
         Ok(())
     }
 
-    fn visit_argument(&mut self, argument: &'a Node<Argument>) -> Result<(), Box<dyn Issue>> {
+    fn visit_argument(&mut self, argument: &'a Node<Argument>) -> Result<(), Box<dyn IError>> {
         self.visit_expression(&argument.value.value);
         Ok(())
     }
 
-    fn visit_block(&mut self, block: &'a Node<Block>) -> Result<(), Box<dyn Issue>> {
+    fn visit_block(&mut self, block: &'a Node<Block>) -> Result<(), Box<dyn IError>> {
         for statement in &block.value.0 {
             self.visit_statement(statement);
         }
         Ok(())
     }
 
-    fn visit_parameter(&mut self, parameter: &'a Node<Parameter>) -> Result<(), Box<dyn Issue>> {
+    fn visit_parameter(&mut self, parameter: &'a Node<Parameter>) -> Result<(), Box<dyn IError>> {
         self.visit_type(&parameter.value.parameter_type);
         Ok(())
     }
 
-    fn visit_switch_case(&mut self, switch_case: &'a Node<SwitchCase>) -> Result<(), Box<dyn Issue>> {
+    fn visit_switch_case(&mut self, switch_case: &'a Node<SwitchCase>) -> Result<(), Box<dyn IError>> {
         self.visit_expression(&switch_case.value.condition);
         self.visit_block(&switch_case.value.block);
         Ok(())
     }
 
-    fn visit_switch_expression(&mut self, switch_expression: &'a Node<SwitchExpression>) -> Result<(), Box<dyn Issue>> {
+    fn visit_switch_expression(&mut self, switch_expression: &'a Node<SwitchExpression>) -> Result<(), Box<dyn IError>> {
         self.visit_expression(&switch_expression.value.expression);
         Ok(())
     }
 
-    fn visit_type(&mut self, _node_type: &'a Node<Type>) -> Result<(), Box<dyn Issue>> {
+    fn visit_type(&mut self, _node_type: &'a Node<Type>) -> Result<(), Box<dyn IError>> {
         // println!("{:?}", _node_type);
         Ok(())
     }
 
-    fn visit_literal(&mut self, _literal: &'a Literal) -> Result<(), Box<dyn Issue>> {
+    fn visit_literal(&mut self, _literal: &'a Literal) -> Result<(), Box<dyn IError>> {
         // println!("{:?}", _literal);
         Ok(())
     }
 
-    fn visit_variable(&mut self, _variable: &'a String) -> Result<(), Box<dyn Issue>> {
+    fn visit_variable(&mut self, _variable: &'a String) -> Result<(), Box<dyn IError>> {
         // println!("{:?}", _variable);
         Ok(())
     }

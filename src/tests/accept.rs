@@ -3,17 +3,10 @@ mod tests {
     use std::{cell::RefCell, io::BufReader, rc::Rc};
 
     use crate::{
-        ast::Program,
-        interpreter::Interpreter,
-        issues::Issue,
-        lazy_stream_reader::LazyStreamReader,
-        lexer::{Lexer, LexerOptions},
-        parser::{IParser, Parser},
-        semantic_checker::SemanticChecker,
-        value::Value,
+        ast::Program, errors::IError, interpreter::Interpreter, lazy_stream_reader::LazyStreamReader, lexer::{Lexer, LexerOptions}, parser::{IParser, Parser}, semantic_checker::SemanticChecker, value::Value
     };
 
-    fn on_warning(_err: Box<dyn Issue>) {}
+    fn on_warning(_err: Box<dyn IError>) {}
 
     fn setup_program(text: BufReader<&[u8]>) -> Program {
         let options = LexerOptions {

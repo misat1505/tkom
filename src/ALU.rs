@@ -1,26 +1,26 @@
 use crate::{
     ast::Type,
-    issues::{ComputationIssue, IssueLevel},
+    errors::{ComputationError, ErrorLevel},
     value::Value,
 };
 
 pub struct ALU;
 
 impl ALU {
-    fn check_int_operation<F>(val1: &Value, val2: &Value, op: F, op_name: &str) -> Result<Value, ComputationIssue>
+    fn check_int_operation<F>(val1: &Value, val2: &Value, op: F, op_name: &str) -> Result<Value, ComputationError>
     where
         F: Fn(i64, i64) -> Option<i64>,
     {
         match (val1, val2) {
             (Value::I64(a), Value::I64(b)) => match op(*a, *b) {
                 Some(result) => Ok(Value::I64(result)),
-                None => Err(ComputationIssue::new(
-                    IssueLevel::ERROR,
+                None => Err(ComputationError::new(
+                    ErrorLevel::ERROR,
                     format!("Overflow occurred when performing {} on i64s.", op_name),
                 )),
             },
-            _ => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            _ => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!(
                     "Cannot perform {} between values of type '{:?}' and '{:?}'.",
                     op_name,
@@ -31,7 +31,7 @@ impl ALU {
         }
     }
 
-    fn check_float_operation<F>(val1: &Value, val2: &Value, op: F, op_name: &str) -> Result<Value, ComputationIssue>
+    fn check_float_operation<F>(val1: &Value, val2: &Value, op: F, op_name: &str) -> Result<Value, ComputationError>
     where
         F: Fn(f64, f64) -> f64,
     {
@@ -39,16 +39,16 @@ impl ALU {
             (Value::F64(a), Value::F64(b)) => {
                 let result = op(*a, *b);
                 if result.is_infinite() || result.is_nan() {
-                    Err(ComputationIssue::new(
-                        IssueLevel::ERROR,
+                    Err(ComputationError::new(
+                        ErrorLevel::ERROR,
                         format!("Invalid result when performing {} on f64s.", op_name),
                     ))
                 } else {
                     Ok(Value::F64(result))
                 }
             }
-            _ => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            _ => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!(
                     "Cannot perform {} between values of type '{:?}' and '{:?}'.",
                     op_name,
@@ -61,7 +61,7 @@ impl ALU {
 }
 
 impl ALU {
-    pub fn cast_to_type(val: Value, to_type: Type) -> Result<Value, ComputationIssue> {
+    pub fn cast_to_type(val: Value, to_type: Type) -> Result<Value, ComputationError> {
         match (val, to_type) {
             (Value::I64(i64), Type::Str) => Ok(Value::String(i64.to_string())),
             (Value::F64(f64), Type::Str) => Ok(Value::String(f64.to_string())),
@@ -71,56 +71,56 @@ impl ALU {
             (Value::F64(f64), Type::Bool) => Ok(Value::Bool(f64 > 0.0)),
             (Value::String(string), Type::I64) => match string.parse::<i64>() {
                 Ok(i64) => Ok(Value::I64(i64)),
-                Err(_) => Err(ComputationIssue::new(
-                    IssueLevel::ERROR,
+                Err(_) => Err(ComputationError::new(
+                    ErrorLevel::ERROR,
                     format!("Cannot cast String '{}' to i64.", string),
                 )),
             },
             (Value::String(string), Type::F64) => match string.parse::<f64>() {
                 Ok(f64) => Ok(Value::F64(f64)),
-                Err(_) => Err(ComputationIssue::new(
-                    IssueLevel::ERROR,
+                Err(_) => Err(ComputationError::new(
+                    ErrorLevel::ERROR,
                     format!("Cannot cast String '{}' to f64.", string),
                 )),
             },
             (Value::String(string), Type::Bool) => match string.as_str() {
                 string => Ok(Value::Bool(string != "")),
             },
-            (value, target_type) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (value, target_type) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!("Cannot cast '{:?}' to '{:?}'.", value, target_type),
             )),
         }
     }
 
-    pub fn boolean_negate(val: Value) -> Result<Value, ComputationIssue> {
+    pub fn boolean_negate(val: Value) -> Result<Value, ComputationError> {
         match val {
             Value::Bool(bool) => Ok(Value::Bool(!bool)),
-            val => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            val => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!("Cannot perform boolean negation on type '{:?}'.", val.to_type()),
             )),
         }
     }
 
-    pub fn arithmetic_negate(val: Value) -> Result<Value, ComputationIssue> {
+    pub fn arithmetic_negate(val: Value) -> Result<Value, ComputationError> {
         match val {
             Value::I64(i64) => Ok(Value::I64(-i64)),
             Value::F64(f64) => Ok(Value::F64(-f64)),
-            val => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            val => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!("Cannot perform arithmetic negation on type '{:?}'.", val.to_type()),
             )),
         }
     }
 
-    pub fn add(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
+    pub fn add(val1: Value, val2: Value) -> Result<Value, ComputationError> {
         match (&val1, &val2) {
             (Value::I64(_), Value::I64(_)) => Self::check_int_operation(&val1, &val2, i64::checked_add, "addition"),
             (Value::F64(_), Value::F64(_)) => Self::check_float_operation(&val1, &val2, |a, b| a + b, "addition"),
             (Value::String(a), Value::String(b)) => Ok(Value::String(a.clone() + b)),
-            (a, b) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (a, b) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!(
                     "Cannot perform addition between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -130,12 +130,12 @@ impl ALU {
         }
     }
 
-    pub fn subtract(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
+    pub fn subtract(val1: Value, val2: Value) -> Result<Value, ComputationError> {
         match (&val1, &val2) {
             (Value::I64(_), Value::I64(_)) => Self::check_int_operation(&val1, &val2, i64::checked_sub, "subtraction"),
             (Value::F64(_), Value::F64(_)) => Self::check_float_operation(&val1, &val2, |a, b| a - b, "subtraction"),
-            (a, b) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (a, b) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!(
                     "Cannot perform subtraction between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -145,12 +145,12 @@ impl ALU {
         }
     }
 
-    pub fn multiplication(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
+    pub fn multiplication(val1: Value, val2: Value) -> Result<Value, ComputationError> {
         match (&val1, &val2) {
             (Value::I64(_), Value::I64(_)) => Self::check_int_operation(&val1, &val2, i64::checked_mul, "multiplication"),
             (Value::F64(_), Value::F64(_)) => Self::check_float_operation(&val1, &val2, |a, b| a * b, "multiplication"),
-            (a, b) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (a, b) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!(
                     "Cannot perform multiplication between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -160,12 +160,12 @@ impl ALU {
         }
     }
 
-    pub fn division(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
+    pub fn division(val1: Value, val2: Value) -> Result<Value, ComputationError> {
         match (&val1, &val2) {
             (Value::I64(_), Value::I64(_)) => Self::check_int_operation(&val1, &val2, i64::checked_div, "division"),
             (Value::F64(_), Value::F64(_)) => Self::check_float_operation(&val1, &val2, |a, b| a / b, "division"),
-            (a, b) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (a, b) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!(
                     "Cannot perform division between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -175,11 +175,11 @@ impl ALU {
         }
     }
 
-    pub fn concatenation(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
+    pub fn concatenation(val1: Value, val2: Value) -> Result<Value, ComputationError> {
         match (val1, val2) {
             (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(bool1 && bool2)),
-            (a, b) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (a, b) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!(
                     "Cannot perform concatenation between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -189,11 +189,11 @@ impl ALU {
         }
     }
 
-    pub fn alternative(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
+    pub fn alternative(val1: Value, val2: Value) -> Result<Value, ComputationError> {
         match (val1, val2) {
             (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(bool1 || bool2)),
-            (a, b) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (a, b) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!(
                     "Cannot perform alternative between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -203,12 +203,12 @@ impl ALU {
         }
     }
 
-    pub fn greater(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
+    pub fn greater(val1: Value, val2: Value) -> Result<Value, ComputationError> {
         match (val1, val2) {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 > val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 > val2)),
-            (a, b) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (a, b) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!(
                     "Cannot perform greater between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -218,12 +218,12 @@ impl ALU {
         }
     }
 
-    pub fn greater_or_equal(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
+    pub fn greater_or_equal(val1: Value, val2: Value) -> Result<Value, ComputationError> {
         match (val1, val2) {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 >= val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 >= val2)),
-            (a, b) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (a, b) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!(
                     "Cannot perform greater or equal between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -233,23 +233,23 @@ impl ALU {
         }
     }
 
-    pub fn less(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
+    pub fn less(val1: Value, val2: Value) -> Result<Value, ComputationError> {
         match (val1, val2) {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 < val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 < val2)),
-            (a, b) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (a, b) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!("Cannot perform less between values of type '{:?}' and '{:?}'.", a.to_type(), b.to_type()),
             )),
         }
     }
 
-    pub fn less_or_equal(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
+    pub fn less_or_equal(val1: Value, val2: Value) -> Result<Value, ComputationError> {
         match (val1, val2) {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 <= val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 <= val2)),
-            (a, b) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (a, b) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!(
                     "Cannot perform less or equal between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -259,27 +259,27 @@ impl ALU {
         }
     }
 
-    pub fn equal(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
+    pub fn equal(val1: Value, val2: Value) -> Result<Value, ComputationError> {
         match (val1, val2) {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 == val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 == val2)),
             (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(val1 == val2)),
             (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(val1 == val2)),
-            (a, b) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (a, b) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!("Cannot perform equal between values of type '{:?}' and '{:?}'.", a.to_type(), b.to_type()),
             )),
         }
     }
 
-    pub fn not_equal(val1: Value, val2: Value) -> Result<Value, ComputationIssue> {
+    pub fn not_equal(val1: Value, val2: Value) -> Result<Value, ComputationError> {
         match (val1, val2) {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 != val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 != val2)),
             (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(val1 != val2)),
             (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(val1 != val2)),
-            (a, b) => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            (a, b) => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!(
                     "Cannot perform not equal between values of type '{:?}' and '{:?}'.",
                     a.to_type(),

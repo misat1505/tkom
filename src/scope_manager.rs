@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    issues::{IssueLevel, ScopeManagerIssue},
+    errors::{ErrorLevel, ScopeManagerError},
     value::Value,
 };
 
@@ -26,36 +26,36 @@ impl<'a> ScopeManager<'a> {
         self.scopes.pop();
     }
 
-    pub fn get_variable(&self, searched: &'a str) -> Result<&Rc<RefCell<Value>>, ScopeManagerIssue> {
+    pub fn get_variable(&self, searched: &'a str) -> Result<&Rc<RefCell<Value>>, ScopeManagerError> {
         for scope in &self.scopes {
             if let Some(var) = scope.get_variable(searched) {
                 return Ok(var);
             }
         }
 
-        Err(ScopeManagerIssue::new(
-            IssueLevel::ERROR,
+        Err(ScopeManagerError::new(
+            ErrorLevel::ERROR,
             format!("Variable '{}' not declared in this scope.", searched),
         ))
     }
 
-    pub fn assign_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerIssue> {
+    pub fn assign_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerError> {
         for scope in &mut self.scopes {
             if let Some(_) = scope.get_variable(name) {
                 return scope.assign_variable(name, value);
             }
         }
 
-        Err(ScopeManagerIssue::new(
-            IssueLevel::ERROR,
+        Err(ScopeManagerError::new(
+            ErrorLevel::ERROR,
             format!("Variable '{}' not declared in this scope.", name),
         ))
     }
 
-    pub fn declare_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerIssue> {
+    pub fn declare_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerError> {
         if self.get_variable(name).is_ok() {
-            return Err(ScopeManagerIssue::new(
-                IssueLevel::ERROR,
+            return Err(ScopeManagerError::new(
+                ErrorLevel::ERROR,
                 format!("Cannot redeclare variable '{}'.", name),
             ));
         }
@@ -64,8 +64,8 @@ impl<'a> ScopeManager<'a> {
             let _ = last_scope.declare_variable(name, value);
             Ok(())
         } else {
-            Err(ScopeManagerIssue::new(
-                IssueLevel::ERROR,
+            Err(ScopeManagerError::new(
+                ErrorLevel::ERROR,
                 String::from("No scope available to set the variable."),
             ))
         }
@@ -91,10 +91,10 @@ impl<'a> Scope<'a> {
         self.variables.get(searched)
     }
 
-    fn assign_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerIssue> {
+    fn assign_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerError> {
         let current_value_option = self.get_variable(name);
         match current_value_option {
-            None => Err(ScopeManagerIssue::new(IssueLevel::ERROR, format!("Variable '{}' not declared.", name))),
+            None => Err(ScopeManagerError::new(ErrorLevel::ERROR, format!("Variable '{}' not declared.", name))),
             Some(prev_val) => {
                 let mut prev_val_borrow = prev_val.borrow_mut();
                 let new_val_borrow = value.borrow();
@@ -108,8 +108,8 @@ impl<'a> Scope<'a> {
                         drop(new_val_borrow);
                         Ok(())
                     }
-                    (a, b) => Err(ScopeManagerIssue::new(
-                        IssueLevel::ERROR,
+                    (a, b) => Err(ScopeManagerError::new(
+                        ErrorLevel::ERROR,
                         format!(
                             "Cannot assign '{:?}' to variable '{}' which was previously declared as '{:?}'.",
                             b.to_type(),
@@ -122,10 +122,10 @@ impl<'a> Scope<'a> {
         }
     }
 
-    fn declare_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerIssue> {
+    fn declare_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerError> {
         match self.get_variable(name) {
-            Some(_) => Err(ScopeManagerIssue::new(
-                IssueLevel::ERROR,
+            Some(_) => Err(ScopeManagerError::new(
+                ErrorLevel::ERROR,
                 format!("Cannot redeclare variable '{}'.", name),
             )),
             None => {

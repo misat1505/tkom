@@ -7,20 +7,20 @@ use std::{
 
 use crate::{
     ast::Type,
-    issues::{IssueLevel, StdFunctionIssue},
+    errors::{ErrorLevel, StdFunctionError},
     value::Value,
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StdFunction {
     pub params: Vec<Type>,
-    pub execute: fn(&Vec<Rc<RefCell<Value>>>) -> Result<Option<Value>, StdFunctionIssue>,
+    pub execute: fn(&Vec<Rc<RefCell<Value>>>) -> Result<Option<Value>, StdFunctionError>,
 }
 
 impl StdFunction {
     fn print() -> Self {
         let params = vec![Type::Str];
-        let execute = |params: &Vec<Rc<RefCell<Value>>>| -> Result<Option<Value>, StdFunctionIssue> {
+        let execute = |params: &Vec<Rc<RefCell<Value>>>| -> Result<Option<Value>, StdFunctionError> {
             if let Some(value) = params.get(0) {
                 let value = value.borrow();
                 match &*value {
@@ -28,8 +28,8 @@ impl StdFunction {
                         println!("{}", text);
                         Ok(None)
                     }
-                    _ => Err(StdFunctionIssue::new(
-                        IssueLevel::ERROR,
+                    _ => Err(StdFunctionError::new(
+                        ErrorLevel::ERROR,
                         format!(
                             "Std function 'print' expected '{:?}' as the only argument, but was given '{:?}'.",
                             Type::Str,
@@ -38,8 +38,8 @@ impl StdFunction {
                     )),
                 }
             } else {
-                Err(StdFunctionIssue::new(
-                    IssueLevel::ERROR,
+                Err(StdFunctionError::new(
+                    ErrorLevel::ERROR,
                     String::from("Missing argument for 'print' function."),
                 ))
             }
@@ -49,7 +49,7 @@ impl StdFunction {
 
     fn input() -> Self {
         let params = vec![Type::Str];
-        let execute = |params: &Vec<Rc<RefCell<Value>>>| -> Result<Option<Value>, StdFunctionIssue> {
+        let execute = |params: &Vec<Rc<RefCell<Value>>>| -> Result<Option<Value>, StdFunctionError> {
             if let Some(value) = params.get(0) {
                 let value = value.borrow();
                 match &*value {
@@ -59,11 +59,11 @@ impl StdFunction {
                         let mut input = String::new();
                         match io::stdin().read_line(&mut input) {
                             Ok(_) => Ok(Some(Value::String(input.trim().to_string()))),
-                            Err(_) => Err(StdFunctionIssue::new(IssueLevel::ERROR, String::from("Failed to read input."))),
+                            Err(_) => Err(StdFunctionError::new(ErrorLevel::ERROR, String::from("Failed to read input."))),
                         }
                     }
-                    _ => Err(StdFunctionIssue::new(
-                        IssueLevel::ERROR,
+                    _ => Err(StdFunctionError::new(
+                        ErrorLevel::ERROR,
                         format!(
                             "Std function 'input' expected '{:?}' as the only argument, but was given '{:?}'.",
                             Type::Str,
@@ -72,8 +72,8 @@ impl StdFunction {
                     )),
                 }
             } else {
-                Err(StdFunctionIssue::new(
-                    IssueLevel::ERROR,
+                Err(StdFunctionError::new(
+                    ErrorLevel::ERROR,
                     String::from("Missing argument for 'input' function."),
                 ))
             }
@@ -83,14 +83,14 @@ impl StdFunction {
 
     fn modulo() -> Self {
         let params = vec![Type::I64, Type::I64];
-        let execute = |params: &Vec<Rc<RefCell<Value>>>| -> Result<Option<Value>, StdFunctionIssue> {
+        let execute = |params: &Vec<Rc<RefCell<Value>>>| -> Result<Option<Value>, StdFunctionError> {
             if let (Some(val1), Some(val2)) = (params.get(0), params.get(1)) {
                 let val1 = val1.borrow();
                 let val2 = val2.borrow();
                 match (&*val1, &*val2) {
                     (Value::I64(val1), Value::I64(val2)) => Ok(Some(Value::I64(*val1 % *val2))),
-                    _ => Err(StdFunctionIssue::new(
-                        IssueLevel::ERROR,
+                    _ => Err(StdFunctionError::new(
+                        ErrorLevel::ERROR,
                         format!(
                             "Cannot perform modulo operation between values of types '{:?}' and '{:?}'.",
                             val1.to_type(),
@@ -99,8 +99,8 @@ impl StdFunction {
                     )),
                 }
             } else {
-                Err(StdFunctionIssue::new(
-                    IssueLevel::ERROR,
+                Err(StdFunctionError::new(
+                    ErrorLevel::ERROR,
                     String::from("Missing arguments for 'mod' function."),
                 ))
             }

@@ -1,27 +1,27 @@
 use crate::lazy_stream_reader::Position;
 use std::fmt::Debug;
 
-pub trait Issue: Debug {
+pub trait IError: Debug {
     fn message(&self) -> String;
     fn set_message(&mut self, text: String);
 }
 
 #[derive(Debug, Clone)]
-pub enum IssueLevel {
+pub enum ErrorLevel {
     WARNING,
     ERROR,
 }
 
-macro_rules! define_issue {
+macro_rules! define_error {
     ($name:ident) => {
         #[derive(Debug, Clone)]
         pub struct $name {
             _message: String,
-            _level: IssueLevel,
+            _level: ErrorLevel,
         }
 
         impl $name {
-            pub fn new(level: IssueLevel, message: String) -> Self {
+            pub fn new(level: ErrorLevel, message: String) -> Self {
                 $name {
                     _message: message,
                     _level: level,
@@ -29,7 +29,7 @@ macro_rules! define_issue {
             }
         }
 
-        impl Issue for $name {
+        impl IError for $name {
             fn message(&self) -> String {
                 self._message.clone()
             }
@@ -41,20 +41,20 @@ macro_rules! define_issue {
     };
 }
 
-define_issue!(LexerIssue);
-define_issue!(ParserIssue);
-define_issue!(SemanticCheckerIssue);
-define_issue!(InterpreterIssue);
-define_issue!(ComputationIssue);
-define_issue!(ScopeManagerIssue);
-define_issue!(StackOverflowIssue);
-define_issue!(StdFunctionIssue);
+define_error!(LexerError);
+define_error!(ParserError);
+define_error!(SemanticCheckerError);
+define_error!(InterpreterError);
+define_error!(ComputationError);
+define_error!(ScopeManagerError);
+define_error!(StackOverflowError);
+define_error!(StdFunctionError);
 
-pub struct IssuesManager;
+pub struct ErrorsManager;
 
-impl IssuesManager {
-    pub fn append_position(mut issue: Box<dyn Issue>, position: Position) -> Box<dyn Issue> {
-        issue.set_message(format!("{}\nAt {:?}.", issue.message(), position));
-        issue
+impl ErrorsManager {
+    pub fn append_position(mut error: Box<dyn IError>, position: Position) -> Box<dyn IError> {
+        error.set_message(format!("{}\nAt {:?}.", error.message(), position));
+        error
     }
 }

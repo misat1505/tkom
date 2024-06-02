@@ -1,7 +1,7 @@
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 use crate::{
-    issues::{IssueLevel, ScopeManagerIssue, StackOverflowIssue},
+    errors::{ErrorLevel, ScopeManagerError, StackOverflowError},
     scope_manager::ScopeManager,
     value::Value,
 };
@@ -33,9 +33,9 @@ impl<'a> Stack<'a> {
         Stack(vec![StackFrame::new()])
     }
 
-    pub fn push_stack_frame(&mut self) -> Result<(), StackOverflowIssue> {
+    pub fn push_stack_frame(&mut self) -> Result<(), StackOverflowError> {
         if self.0.len() == 500 {
-            return Err(StackOverflowIssue::new(IssueLevel::ERROR, String::from("Stack overflow.")));
+            return Err(StackOverflowError::new(ErrorLevel::ERROR, String::from("Stack overflow.")));
         }
         self.0.push(StackFrame::new());
         Ok(())
@@ -57,21 +57,21 @@ impl<'a> Stack<'a> {
         }
     }
 
-    pub fn get_variable(&mut self, name: &'a str) -> Result<&Rc<RefCell<Value>>, ScopeManagerIssue> {
+    pub fn get_variable(&mut self, name: &'a str) -> Result<&Rc<RefCell<Value>>, ScopeManagerError> {
         if let Some(last_frame) = self.0.last_mut() {
             return last_frame.scope_manager.get_variable(name);
         }
         unreachable!();
     }
 
-    pub fn assign_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerIssue> {
+    pub fn assign_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerError> {
         if let Some(last_frame) = self.0.last_mut() {
             last_frame.scope_manager.assign_variable(name, value)?;
         }
         Ok(())
     }
 
-    pub fn declare_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerIssue> {
+    pub fn declare_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerError> {
         if let Some(last_frame) = self.0.last_mut() {
             last_frame.scope_manager.declare_variable(name, value)?;
         }
@@ -82,7 +82,7 @@ impl<'a> Stack<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::issues::Issue;
+    use crate::errors::IError;
     use crate::value::Value;
 
     #[test]

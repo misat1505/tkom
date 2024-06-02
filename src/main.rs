@@ -1,6 +1,6 @@
 use std::{env::args, fs::File, io::BufReader, time::Instant};
 
-use issues::Issue;
+use errors::IError;
 use lexer::Lexer;
 mod lazy_stream_reader;
 use lazy_stream_reader::LazyStreamReader;
@@ -16,7 +16,7 @@ use crate::{
 mod ALU;
 mod ast;
 mod interpreter;
-mod issues;
+mod errors;
 mod lexer;
 mod parser;
 mod scope_manager;
@@ -34,7 +34,7 @@ fn parse_filename() -> Option<String> {
     args.get(1).cloned()
 }
 
-fn on_warning(warning: Box<dyn Issue>) {
+fn on_warning(warning: Box<dyn IError>) {
     eprintln!("{}", warning.message());
 }
 

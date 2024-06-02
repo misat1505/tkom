@@ -1,6 +1,6 @@
 use crate::{
     ast::Type,
-    issues::{ComputationIssue, IssueLevel},
+    errors::{ComputationError, ErrorLevel},
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -12,14 +12,14 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn default_value(var_type: Type) -> Result<Value, ComputationIssue> {
+    pub fn default_value(var_type: Type) -> Result<Value, ComputationError> {
         match var_type {
             Type::Bool => Ok(Value::Bool(false)),
             Type::I64 => Ok(Value::I64(0)),
             Type::F64 => Ok(Value::F64(0.0)),
             Type::Str => Ok(Value::String("".to_owned())),
-            a => Err(ComputationIssue::new(
-                IssueLevel::ERROR,
+            a => Err(ComputationError::new(
+                ErrorLevel::ERROR,
                 format!("Cannot create default value for type '{:?}'.", a),
             )),
         }
@@ -34,10 +34,10 @@ impl Value {
         }
     }
 
-    pub fn try_into_bool(&self) -> Result<bool, ComputationIssue> {
+    pub fn try_into_bool(&self) -> Result<bool, ComputationError> {
         match self {
             Value::Bool(bool) => Ok(*bool),
-            _ => Err(ComputationIssue::new(IssueLevel::ERROR, String::from("Given value is not a boolean."))),
+            _ => Err(ComputationError::new(ErrorLevel::ERROR, String::from("Given value is not a boolean."))),
         }
     }
 }

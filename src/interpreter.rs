@@ -4,7 +4,7 @@ use crate::{
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
     },
-    issues::{ComputationIssue, InterpreterIssue, Issue, IssueLevel, IssuesManager},
+    errors::{ComputationError, InterpreterError, IError, ErrorLevel, ErrorsManager},
     lazy_stream_reader::Position,
     stack::Stack,
     std_functions::StdFunction,
@@ -40,77 +40,77 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    pub fn interpret(&mut self) -> Result<(), Box<dyn Issue>> {
+    pub fn interpret(&mut self) -> Result<(), Box<dyn IError>> {
         self.visit_program(self.program)
     }
 
-    fn read_last_result(&mut self) -> Result<Value, Box<dyn Issue>> {
+    fn read_last_result(&mut self) -> Result<Value, Box<dyn IError>> {
         self.last_result.take().ok_or_else(|| {
-            let error = Box::new(InterpreterIssue::new(
-                IssueLevel::ERROR,
+            let error = Box::new(InterpreterError::new(
+                ErrorLevel::ERROR,
                 String::from("No value produced where it is needed."),
             ));
-            IssuesManager::append_position(error, self.position)
+            ErrorsManager::append_position(error, self.position)
         })
     }
 
-    fn evaluate_binary_op<F>(&mut self, lhs: &'a Box<Node<Expression>>, rhs: &'a Box<Node<Expression>>, op: F) -> Result<(), Box<dyn Issue>>
+    fn evaluate_binary_op<F>(&mut self, lhs: &'a Box<Node<Expression>>, rhs: &'a Box<Node<Expression>>, op: F) -> Result<(), Box<dyn IError>>
     where
-        F: Fn(Value, Value) -> Result<Value, ComputationIssue>,
+        F: Fn(Value, Value) -> Result<Value, ComputationError>,
     {
         self.visit_expression(lhs)?;
         let left_value = self.read_last_result()?;
         self.visit_expression(rhs)?;
         let right_value = self.read_last_result()?;
 
-        let value = op(left_value, right_value).map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
+        let value = op(left_value, right_value).map_err(|err| ErrorsManager::append_position(Box::new(err), self.position))?;
         self.last_result = Some(value);
         Ok(())
     }
 
-    fn evaluate_unary_op<F>(&mut self, value: &'a Box<Node<Expression>>, op: F) -> Result<(), Box<dyn Issue>>
+    fn evaluate_unary_op<F>(&mut self, value: &'a Box<Node<Expression>>, op: F) -> Result<(), Box<dyn IError>>
     where
-        F: Fn(Value) -> Result<Value, ComputationIssue>,
+        F: Fn(Value) -> Result<Value, ComputationError>,
     {
         self.visit_expression(value)?;
         let computed_value = self.read_last_result()?;
-        let value = op(computed_value).map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
+        let value = op(computed_value).map_err(|err| ErrorsManager::append_position(Box::new(err), self.position))?;
         self.last_result = Some(value);
         Ok(())
     }
 }
 
 impl<'a> Visitor<'a> for Interpreter<'a> {
-    fn visit_program(&mut self, program: &'a Program) -> Result<(), Box<dyn Issue>> {
+    fn visit_program(&mut self, program: &'a Program) -> Result<(), Box<dyn IError>> {
         for statement in &program.statements {
             self.visit_statement(&statement)?;
             if self.is_breaking {
-                let error = Box::new(InterpreterIssue::new(
-                    IssueLevel::ERROR,
+                let error = Box::new(InterpreterError::new(
+                    ErrorLevel::ERROR,
                     String::from("Break called outside 'for' or 'switch'."),
                 ));
-                return Err(IssuesManager::append_position(error, self.position));
+                return Err(ErrorsManager::append_position(error, self.position));
             }
 
             if self.is_returning {
-                let error = Box::new(InterpreterIssue::new(
-                    IssueLevel::ERROR,
+                let error = Box::new(InterpreterError::new(
+                    ErrorLevel::ERROR,
                     String::from("Return called outside a function."),
                 ));
-                return Err(IssuesManager::append_position(error, self.position));
+                return Err(ErrorsManager::append_position(error, self.position));
             }
         }
         Ok(())
     }
 
-    fn visit_expression(&mut self, expression: &'a Node<Expression>) -> Result<(), Box<dyn Issue>> {
+    fn visit_expression(&mut self, expression: &'a Node<Expression>) -> Result<(), Box<dyn IError>> {
         self.position = expression.position;
         match &expression.value {
             Expression::Casting { value, to_type } => {
                 self.visit_expression(&value)?;
                 let computed_value = self.read_last_result()?;
                 let value =
-                    ALU::cast_to_type(computed_value, to_type.value).map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
+                    ALU::cast_to_type(computed_value, to_type.value).map_err(|err| ErrorsManager::append_position(Box::new(err), self.position))?;
                 self.last_result = Some(value);
             }
             Expression::BooleanNegation(value) => self.evaluate_unary_op(value, ALU::boolean_negate)?,
@@ -134,7 +134,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         Ok(())
     }
 
-    fn visit_statement(&mut self, statement: &'a Node<Statement>) -> Result<(), Box<dyn Issue>> {
+    fn visit_statement(&mut self, statement: &'a Node<Statement>) -> Result<(), Box<dyn IError>> {
         self.position = statement.position;
         match &statement.value {
             Statement::FunctionCall { identifier, arguments } => self.call_function(identifier, arguments)?,
@@ -145,21 +145,21 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                     Some(val) => {
                         self.visit_expression(&val)?;
                         self.read_last_result().map_err(|_| {
-                            let error = Box::new(InterpreterIssue::new(
-                                IssueLevel::ERROR,
+                            let error = Box::new(InterpreterError::new(
+                                ErrorLevel::ERROR,
                                 format!("Cannot declare variable '{}' with no value.", identifier.value),
                             ));
-                            IssuesManager::append_position(error, self.position)
+                            ErrorsManager::append_position(error, self.position)
                         })?
                     }
-                    None => Value::default_value(var_type.value).map_err(|err| Box::new(err) as Box<dyn Issue>)?,
+                    None => Value::default_value(var_type.value).map_err(|err| Box::new(err) as Box<dyn IError>)?,
                 };
 
                 match (var_type.value, &computed_value) {
                     (Type::I64, Value::I64(_)) | (Type::F64, Value::F64(_)) | (Type::Str, Value::String(_)) | (Type::Bool, Value::Bool(_)) => {}
                     (declared_type, computed_type) => {
-                        let error = Box::new(InterpreterIssue::new(
-                            IssueLevel::ERROR,
+                        let error = Box::new(InterpreterError::new(
+                            ErrorLevel::ERROR,
                             format!(
                                 "Cannot assign value of type '{:?}' to variable '{}' of type '{:?}'.",
                                 computed_type.to_type(),
@@ -167,27 +167,27 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                                 declared_type
                             ),
                         ));
-                        return Err(IssuesManager::append_position(error, self.position));
+                        return Err(ErrorsManager::append_position(error, self.position));
                     }
                 }
 
                 self.stack
                     .declare_variable(identifier.value.as_str(), Rc::new(RefCell::new(computed_value)))
-                    .map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
+                    .map_err(|err| ErrorsManager::append_position(Box::new(err), self.position))?;
             }
             Statement::Assignment { identifier, value } => {
                 self.visit_expression(&value)?;
                 let value = self.read_last_result().map_err(|_| {
-                    let error = Box::new(InterpreterIssue::new(
-                        IssueLevel::ERROR,
+                    let error = Box::new(InterpreterError::new(
+                        ErrorLevel::ERROR,
                         format!("Cannot assign no value to variable '{}'.", identifier.value),
                     ));
-                    IssuesManager::append_position(error, self.position)
+                    ErrorsManager::append_position(error, self.position)
                 })?;
 
                 self.stack
                     .assign_variable(identifier.value.as_str(), Rc::new(RefCell::new(value)))
-                    .map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
+                    .map_err(|err| ErrorsManager::append_position(Box::new(err), self.position))?;
             }
             Statement::Conditional {
                 condition,
@@ -282,12 +282,12 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         Ok(())
     }
 
-    fn visit_argument(&mut self, argument: &'a Node<Argument>) -> Result<(), Box<dyn Issue>> {
+    fn visit_argument(&mut self, argument: &'a Node<Argument>) -> Result<(), Box<dyn IError>> {
         self.visit_expression(&argument.value.value)?;
         Ok(())
     }
 
-    fn visit_block(&mut self, block: &'a Node<Block>) -> Result<(), Box<dyn Issue>> {
+    fn visit_block(&mut self, block: &'a Node<Block>) -> Result<(), Box<dyn IError>> {
         self.stack.push_scope();
         for statement in &block.value.0 {
             if self.is_breaking || self.is_returning {
@@ -300,12 +300,12 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         Ok(())
     }
 
-    fn visit_parameter(&mut self, parameter: &'a Node<Parameter>) -> Result<(), Box<dyn Issue>> {
+    fn visit_parameter(&mut self, parameter: &'a Node<Parameter>) -> Result<(), Box<dyn IError>> {
         self.visit_type(&parameter.value.parameter_type)?;
         Ok(())
     }
 
-    fn visit_switch_case(&mut self, switch_case: &'a Node<SwitchCase>) -> Result<(), Box<dyn Issue>> {
+    fn visit_switch_case(&mut self, switch_case: &'a Node<SwitchCase>) -> Result<(), Box<dyn IError>> {
         self.visit_expression(&switch_case.value.condition)?;
         let computed_value = self.read_last_result()?;
         let boolean_value = computed_value
@@ -318,22 +318,22 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         Ok(())
     }
 
-    fn visit_switch_expression(&mut self, switch_expression: &'a Node<SwitchExpression>) -> Result<(), Box<dyn Issue>> {
+    fn visit_switch_expression(&mut self, switch_expression: &'a Node<SwitchExpression>) -> Result<(), Box<dyn IError>> {
         if let Some(alias) = &switch_expression.value.alias {
             self.visit_expression(&switch_expression.value.expression)?;
             let computed_value = self.read_last_result()?;
             self.stack
                 .declare_variable(alias.value.as_str(), Rc::new(RefCell::new(computed_value)))
-                .map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
+                .map_err(|err| ErrorsManager::append_position(Box::new(err), self.position))?;
         }
         Ok(())
     }
 
-    fn visit_type(&mut self, _node_type: &Node<Type>) -> Result<(), Box<dyn Issue>> {
+    fn visit_type(&mut self, _node_type: &Node<Type>) -> Result<(), Box<dyn IError>> {
         Ok(())
     }
 
-    fn visit_literal(&mut self, literal: &Literal) -> Result<(), Box<dyn Issue>> {
+    fn visit_literal(&mut self, literal: &Literal) -> Result<(), Box<dyn IError>> {
         // change literal to value
         let value = match literal {
             Literal::F64(f64) => Value::F64(*f64),
@@ -347,12 +347,12 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         Ok(())
     }
 
-    fn visit_variable(&mut self, variable: &'a String) -> Result<(), Box<dyn Issue>> {
+    fn visit_variable(&mut self, variable: &'a String) -> Result<(), Box<dyn IError>> {
         // read value of variable
         let value = self
             .stack
             .get_variable(variable.as_str())
-            .map_err(|err| Box::new(err) as Box<dyn Issue>)?;
+            .map_err(|err| Box::new(err) as Box<dyn IError>)?;
         self.last_result = Some(value.borrow().to_owned());
         Ok(())
     }
@@ -365,9 +365,9 @@ impl<'a> Interpreter<'a> {
         self.stack.clone()
     }
 
-    fn condition_error(&self, value: Value, place: &'a str) -> Box<dyn Issue> {
-        let error = Box::new(InterpreterIssue::new(
-            IssueLevel::ERROR,
+    fn condition_error(&self, value: Value, place: &'a str) -> Box<dyn IError> {
+        let error = Box::new(InterpreterError::new(
+            ErrorLevel::ERROR,
             format!(
                 "Condition in '{}' has to evaluate to type '{:?}' - got '{:?}'.",
                 place,
@@ -375,14 +375,14 @@ impl<'a> Interpreter<'a> {
                 value.to_type(),
             ),
         ));
-        IssuesManager::append_position(error, self.position)
+        ErrorsManager::append_position(error, self.position)
     }
 
-    fn execute_std_function(std_function: &StdFunction, arguments: &Vec<Rc<RefCell<Value>>>) -> Result<Option<Value>, Box<dyn Issue>> {
-        (std_function.execute)(arguments).map_err(|err| Box::new(err) as Box<dyn Issue>)
+    fn execute_std_function(std_function: &StdFunction, arguments: &Vec<Rc<RefCell<Value>>>) -> Result<Option<Value>, Box<dyn IError>> {
+        (std_function.execute)(arguments).map_err(|err| Box::new(err) as Box<dyn IError>)
     }
 
-    fn call_function(&mut self, identifier: &Node<String>, arguments: &'a Vec<Box<Node<Argument>>>) -> Result<(), Box<dyn Issue>> {
+    fn call_function(&mut self, identifier: &Node<String>, arguments: &'a Vec<Box<Node<Argument>>>) -> Result<(), Box<dyn IError>> {
         let name = identifier.value.as_str();
 
         let mut args: Vec<Rc<RefCell<Value>>> = vec![];
@@ -396,7 +396,7 @@ impl<'a> Interpreter<'a> {
                         let var_ref = self
                             .stack
                             .get_variable(var_name.as_str())
-                            .map_err(|err| Box::new(err) as Box<dyn Issue>)?;
+                            .map_err(|err| Box::new(err) as Box<dyn IError>)?;
                         args.push(Rc::clone(var_ref));
                     }
                 }
@@ -407,7 +407,7 @@ impl<'a> Interpreter<'a> {
 
         if let Some(std_function) = self.program.std_functions.get(name) {
             if let Some(return_value) =
-                Self::execute_std_function(std_function, &self.last_arguments).map_err(|err| IssuesManager::append_position(err, self.position))?
+                Self::execute_std_function(std_function, &self.last_arguments).map_err(|err| ErrorsManager::append_position(err, self.position))?
             {
                 self.last_result = Some(return_value);
             }
@@ -426,10 +426,10 @@ impl<'a> Interpreter<'a> {
         Ok(())
     }
 
-    fn execute_function(&mut self, function_declaration: &'a FunctionDeclaration) -> Result<(), Box<dyn Issue>> {
+    fn execute_function(&mut self, function_declaration: &'a FunctionDeclaration) -> Result<(), Box<dyn IError>> {
         let name = function_declaration.identifier.value.as_str();
         let statements = &function_declaration.block.value.0;
-        self.stack.push_stack_frame().map_err(|err| Box::new(err) as Box<dyn Issue>)?;
+        self.stack.push_stack_frame().map_err(|err| Box::new(err) as Box<dyn IError>)?;
 
         // args
         for idx in 0..self.last_arguments.len() {
@@ -439,16 +439,16 @@ impl<'a> Interpreter<'a> {
             match (desired_type, &*value.borrow()) {
                 (Type::Bool, Value::Bool(_)) | (Type::F64, Value::F64(_)) | (Type::I64, Value::I64(_)) | (Type::Str, Value::String(_)) => {}
                 (des, got) => {
-                    let error = Box::new(InterpreterIssue::new(
-                        IssueLevel::ERROR,
+                    let error = Box::new(InterpreterError::new(
+                        ErrorLevel::ERROR,
                         format!("Function '{}' expected '{:?}', but got '{:?}'.", name, des, got.to_type()),
                     ));
-                    return Err(IssuesManager::append_position(error, self.position));
+                    return Err(ErrorsManager::append_position(error, self.position));
                 }
             }
             self.stack
                 .declare_variable(param_name.as_str(), Rc::clone(value))
-                .map_err(|err| IssuesManager::append_position(Box::new(err), self.position))?;
+                .map_err(|err| ErrorsManager::append_position(Box::new(err), self.position))?;
         }
 
         // execute
@@ -461,11 +461,11 @@ impl<'a> Interpreter<'a> {
             self.visit_statement(&statement)?;
 
             if self.is_breaking {
-                let error = Box::new(InterpreterIssue::new(
-                    IssueLevel::ERROR,
+                let error = Box::new(InterpreterError::new(
+                    ErrorLevel::ERROR,
                     String::from("Break called outside 'for' or 'switch'."),
                 ));
-                return Err(IssuesManager::append_position(error, self.position));
+                return Err(ErrorsManager::append_position(error, self.position));
             }
         }
 
@@ -477,11 +477,11 @@ impl<'a> Interpreter<'a> {
             | (Some(Value::String(_)), Type::Str)
             | (Some(Value::Bool(_)), Type::Bool) => {}
             (res, exp) => {
-                let error = Box::new(InterpreterIssue::new(
-                    IssueLevel::ERROR,
+                let error = Box::new(InterpreterError::new(
+                    ErrorLevel::ERROR,
                     format!("Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.", name, exp, res),
                 ));
-                return Err(IssuesManager::append_position(error, self.position));
+                return Err(ErrorsManager::append_position(error, self.position));
             }
         }
 

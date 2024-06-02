@@ -3,13 +3,10 @@ mod tests {
     use std::io::BufReader;
 
     use crate::{
-        issues::Issue,
-        lazy_stream_reader::LazyStreamReader,
-        lexer::{ILexer, Lexer, LexerOptions},
-        tokens::{TokenCategory, TokenValue},
+        errors::IError, lazy_stream_reader::LazyStreamReader, lexer::{ILexer, Lexer, LexerOptions}, tokens::{TokenCategory, TokenValue}
     };
 
-    fn on_warning(warning: Box<dyn Issue>) {
+    fn on_warning(warning: Box<dyn IError>) {
         println!("{}", warning.message());
     }
 
@@ -207,13 +204,13 @@ mod edge_case_tests {
     use std::io::BufReader;
 
     use crate::{
-        issues::Issue,
+        errors::IError,
         lazy_stream_reader::LazyStreamReader,
         lexer::{Lexer, LexerOptions},
         tokens::TokenCategory,
     };
 
-    fn on_warning(warning: Box<dyn Issue>) {
+    fn on_warning(warning: Box<dyn IError>) {
         println!("{}", warning.message());
     }
 
