@@ -1,6 +1,6 @@
 use crate::{
     ast::{Argument, Block, Expression, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type},
-    errors::{IError, ErrorLevel, SemanticCheckerError},
+    errors::{IError, ErrorSeverity, SemanticCheckerError},
     visitor::Visitor,
 };
 
@@ -41,7 +41,7 @@ impl<'a> SemanticChecker<'a> {
                 if let Some(std_function) = self.program.std_functions.get(&String::from(name)) {
                     if arguments.len() != std_function.params.len() {
                         self.errors.push(SemanticCheckerError::new(
-                            ErrorLevel::ERROR,
+                            ErrorSeverity::HIGH,
                             format!(
                                 "Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n",
                                 name,
@@ -55,7 +55,7 @@ impl<'a> SemanticChecker<'a> {
                     for argument in arguments {
                         if argument.value.passed_by == PassedBy::Reference {
                             self.errors.push(SemanticCheckerError::new(
-                                ErrorLevel::ERROR,
+                                ErrorSeverity::HIGH,
                                 format!(
                                     "Parameter in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n",
                                     identifier.value,
@@ -75,7 +75,7 @@ impl<'a> SemanticChecker<'a> {
                     let parameters = &function_declaration.value.parameters;
                     if arguments.len() != parameters.len() {
                         self.errors.push(SemanticCheckerError::new(
-                            ErrorLevel::ERROR,
+                            ErrorSeverity::HIGH,
                             format!(
                                 "Invalid number of arguments for function '{}'. Expected {}, given {}.\nAt {:?}.\n",
                                 name,
@@ -91,7 +91,7 @@ impl<'a> SemanticChecker<'a> {
                         if let Some(argument) = arguments.get(idx) {
                             if argument.value.passed_by != parameter.value.passed_by {
                                 self.errors.push(SemanticCheckerError::new(
-                                    ErrorLevel::ERROR,
+                                    ErrorSeverity::HIGH,
                                     format!(
                                         "Parameter '{}' in function '{}' passed by {:?} - should be passed by {:?}.\nAt {:?}.\n",
                                         parameter.value.identifier.value,
@@ -106,7 +106,7 @@ impl<'a> SemanticChecker<'a> {
                             if argument.value.passed_by == PassedBy::Reference {
                                 if let Expression::Variable(_) = argument.value.value.value {
                                 } else {
-                                    self.errors.push(SemanticCheckerError::new(ErrorLevel::ERROR, format!(
+                                    self.errors.push(SemanticCheckerError::new(ErrorSeverity::HIGH, format!(
                                             "Parameter '{}' in function '{}' is passed by {:?}. Thus it needs to an identifier, but a complex expression was found.\nAt {:?}.\n",
                                             parameter.value.identifier.value,
                                             identifier.value,
@@ -123,7 +123,7 @@ impl<'a> SemanticChecker<'a> {
                 }
 
                 self.errors.push(SemanticCheckerError::new(
-                    ErrorLevel::ERROR,
+                    ErrorSeverity::HIGH,
                     format!("Use of undeclared function '{}'.\nAt {:?}.\n", name, position),
                 ))
             }

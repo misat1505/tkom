@@ -7,7 +7,7 @@ use std::{
 
 use crate::{
     ast::Type,
-    errors::{ErrorLevel, StdFunctionError},
+    errors::{ErrorSeverity, StdFunctionError},
     value::Value,
 };
 
@@ -29,7 +29,7 @@ impl StdFunction {
                         Ok(None)
                     }
                     _ => Err(StdFunctionError::new(
-                        ErrorLevel::ERROR,
+                        ErrorSeverity::HIGH,
                         format!(
                             "Std function 'print' expected '{:?}' as the only argument, but was given '{:?}'.",
                             Type::Str,
@@ -39,7 +39,7 @@ impl StdFunction {
                 }
             } else {
                 Err(StdFunctionError::new(
-                    ErrorLevel::ERROR,
+                    ErrorSeverity::HIGH,
                     String::from("Missing argument for 'print' function."),
                 ))
             }
@@ -59,11 +59,11 @@ impl StdFunction {
                         let mut input = String::new();
                         match io::stdin().read_line(&mut input) {
                             Ok(_) => Ok(Some(Value::String(input.trim().to_string()))),
-                            Err(_) => Err(StdFunctionError::new(ErrorLevel::ERROR, String::from("Failed to read input."))),
+                            Err(_) => Err(StdFunctionError::new(ErrorSeverity::HIGH, String::from("Failed to read input."))),
                         }
                     }
                     _ => Err(StdFunctionError::new(
-                        ErrorLevel::ERROR,
+                        ErrorSeverity::HIGH,
                         format!(
                             "Std function 'input' expected '{:?}' as the only argument, but was given '{:?}'.",
                             Type::Str,
@@ -73,7 +73,7 @@ impl StdFunction {
                 }
             } else {
                 Err(StdFunctionError::new(
-                    ErrorLevel::ERROR,
+                    ErrorSeverity::HIGH,
                     String::from("Missing argument for 'input' function."),
                 ))
             }
@@ -90,7 +90,7 @@ impl StdFunction {
                 match (&*val1, &*val2) {
                     (Value::I64(val1), Value::I64(val2)) => Ok(Some(Value::I64(*val1 % *val2))),
                     _ => Err(StdFunctionError::new(
-                        ErrorLevel::ERROR,
+                        ErrorSeverity::HIGH,
                         format!(
                             "Cannot perform modulo operation between values of types '{:?}' and '{:?}'.",
                             val1.to_type(),
@@ -100,7 +100,7 @@ impl StdFunction {
                 }
             } else {
                 Err(StdFunctionError::new(
-                    ErrorLevel::ERROR,
+                    ErrorSeverity::HIGH,
                     String::from("Missing arguments for 'mod' function."),
                 ))
             }

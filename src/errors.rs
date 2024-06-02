@@ -7,9 +7,9 @@ pub trait IError: Debug {
 }
 
 #[derive(Debug, Clone)]
-pub enum ErrorLevel {
-    WARNING,
-    ERROR,
+pub enum ErrorSeverity {
+    HIGH,   // can't continue execution
+    LOW,    // can continue execution
 }
 
 macro_rules! define_error {
@@ -17,11 +17,11 @@ macro_rules! define_error {
         #[derive(Debug, Clone)]
         pub struct $name {
             _message: String,
-            _level: ErrorLevel,
+            _level: ErrorSeverity,
         }
 
         impl $name {
-            pub fn new(level: ErrorLevel, message: String) -> Self {
+            pub fn new(level: ErrorSeverity, message: String) -> Self {
                 $name {
                     _message: message,
                     _level: level,

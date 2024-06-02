@@ -4,7 +4,7 @@ use crate::{
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
     },
-    errors::{IError, ErrorLevel, ParserError},
+    errors::{IError, ErrorSeverity, ParserError},
     lexer::ILexer,
     std_functions::get_std_functions,
     tokens::{Token, TokenCategory, TokenValue},
@@ -59,7 +59,7 @@ impl<L: ILexer> IParser<L> for Parser<L> {
                 let function_name = function_declaration.value.identifier.value.clone();
                 if functions.contains_key(&function_name) || std_functions.contains_key(&function_name) {
                     return Err(Box::new(ParserError::new(
-                        ErrorLevel::ERROR,
+                        ErrorSeverity::HIGH,
                         format!("Redeclaration of function '{}'.\nAt: {:?}.", function_name, function_declaration.position),
                     )));
                 }
@@ -838,7 +838,7 @@ impl<L: ILexer> Parser<L> {
 
     fn create_parser_error(&self, text: String) -> Box<dyn IError> {
         let position = self.current_token().position;
-        Box::new(ParserError::new(ErrorLevel::ERROR, format!("{}\nAt {:?}.", text, position)))
+        Box::new(ParserError::new(ErrorSeverity::HIGH, format!("{}\nAt {:?}.", text, position)))
     }
 }
 
@@ -847,7 +847,7 @@ mod tests {
     use std::vec;
 
     use crate::{
-        errors::{ErrorLevel, LexerError},
+        errors::{ErrorSeverity, LexerError},
         lazy_stream_reader::Position,
     };
 
@@ -875,7 +875,7 @@ mod tests {
 
         fn next(&mut self) -> Result<Token, Box<dyn IError>> {
             if self.tokens.len() == 0 {
-                return Err(Box::new(LexerError::new(ErrorLevel::ERROR, String::new())));
+                return Err(Box::new(LexerError::new(ErrorSeverity::HIGH, String::new())));
             }
             let next_token = self.tokens.remove(0);
             self.current_token = Some(next_token.clone());

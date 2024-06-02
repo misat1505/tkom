@@ -2,7 +2,7 @@ use std::io::BufRead;
 
 use phf::phf_map;
 
-use crate::errors::{IError, ErrorLevel, LexerError};
+use crate::errors::{IError, ErrorSeverity, LexerError};
 use crate::lazy_stream_reader::{ILazyStreamReader, LazyStreamReader, Position, ETX};
 use crate::tokens::{Token, TokenCategory, TokenValue};
 
@@ -166,7 +166,7 @@ impl<T: BufRead> Lexer<T> {
             let _ = self.src.next();
         } else {
             (self.on_warning)(Box::new(LexerError::new(
-                ErrorLevel::WARNING,
+                ErrorSeverity::LOW,
                 self.prepare_warning_message(format!("Expected '{}'", char_to_search)),
             )));
         }
@@ -197,7 +197,7 @@ impl<T: BufRead> Lexer<T> {
                     }
                     None => {
                         (self.on_warning)(Box::new(LexerError::new(
-                            ErrorLevel::WARNING,
+                            ErrorSeverity::LOW,
                             self.prepare_warning_message(format!("Invalid escape symbol detected '\\{}'", next_char)),
                         )));
                         let default_escape = '\\';
@@ -212,7 +212,7 @@ impl<T: BufRead> Lexer<T> {
             }
             if current_char == ETX {
                 (self.on_warning)(Box::new(LexerError::new(
-                    ErrorLevel::WARNING,
+                    ErrorSeverity::LOW,
                     self.prepare_warning_message(String::from("String not closed")),
                 )));
                 return Ok(Some(Token {
@@ -334,7 +334,7 @@ impl<T: BufRead> Lexer<T> {
         let position = self.src.position();
         let code_snippet = self.src.error_code_snippet();
         let message = format!("\n{}\nAt {:?}\n{}\n", text, position, code_snippet);
-        Box::new(LexerError::new(ErrorLevel::ERROR, message))
+        Box::new(LexerError::new(ErrorSeverity::HIGH, message))
     }
 
     fn prepare_warning_message(&self, text: String) -> String {

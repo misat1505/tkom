@@ -1,7 +1,7 @@
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 use crate::{
-    errors::{ErrorLevel, ScopeManagerError, StackOverflowError},
+    errors::{ErrorSeverity, ScopeManagerError, StackOverflowError},
     scope_manager::ScopeManager,
     value::Value,
 };
@@ -35,7 +35,7 @@ impl<'a> Stack<'a> {
 
     pub fn push_stack_frame(&mut self) -> Result<(), StackOverflowError> {
         if self.0.len() == 500 {
-            return Err(StackOverflowError::new(ErrorLevel::ERROR, String::from("Stack overflow.")));
+            return Err(StackOverflowError::new(ErrorSeverity::HIGH, String::from("Stack overflow.")));
         }
         self.0.push(StackFrame::new());
         Ok(())

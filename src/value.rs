@@ -1,6 +1,6 @@
 use crate::{
     ast::Type,
-    errors::{ComputationError, ErrorLevel},
+    errors::{ComputationError, ErrorSeverity},
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -19,7 +19,7 @@ impl Value {
             Type::F64 => Ok(Value::F64(0.0)),
             Type::Str => Ok(Value::String("".to_owned())),
             a => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!("Cannot create default value for type '{:?}'.", a),
             )),
         }
@@ -37,7 +37,7 @@ impl Value {
     pub fn try_into_bool(&self) -> Result<bool, ComputationError> {
         match self {
             Value::Bool(bool) => Ok(*bool),
-            _ => Err(ComputationError::new(ErrorLevel::ERROR, String::from("Given value is not a boolean."))),
+            _ => Err(ComputationError::new(ErrorSeverity::HIGH, String::from("Given value is not a boolean."))),
         }
     }
 }

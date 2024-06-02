@@ -1,6 +1,6 @@
 use crate::{
     ast::Type,
-    errors::{ComputationError, ErrorLevel},
+    errors::{ComputationError, ErrorSeverity},
     value::Value,
 };
 
@@ -15,12 +15,12 @@ impl ALU {
             (Value::I64(a), Value::I64(b)) => match op(*a, *b) {
                 Some(result) => Ok(Value::I64(result)),
                 None => Err(ComputationError::new(
-                    ErrorLevel::ERROR,
+                    ErrorSeverity::HIGH,
                     format!("Overflow occurred when performing {} on i64s.", op_name),
                 )),
             },
             _ => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!(
                     "Cannot perform {} between values of type '{:?}' and '{:?}'.",
                     op_name,
@@ -40,7 +40,7 @@ impl ALU {
                 let result = op(*a, *b);
                 if result.is_infinite() || result.is_nan() {
                     Err(ComputationError::new(
-                        ErrorLevel::ERROR,
+                        ErrorSeverity::HIGH,
                         format!("Invalid result when performing {} on f64s.", op_name),
                     ))
                 } else {
@@ -48,7 +48,7 @@ impl ALU {
                 }
             }
             _ => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!(
                     "Cannot perform {} between values of type '{:?}' and '{:?}'.",
                     op_name,
@@ -72,14 +72,14 @@ impl ALU {
             (Value::String(string), Type::I64) => match string.parse::<i64>() {
                 Ok(i64) => Ok(Value::I64(i64)),
                 Err(_) => Err(ComputationError::new(
-                    ErrorLevel::ERROR,
+                    ErrorSeverity::HIGH,
                     format!("Cannot cast String '{}' to i64.", string),
                 )),
             },
             (Value::String(string), Type::F64) => match string.parse::<f64>() {
                 Ok(f64) => Ok(Value::F64(f64)),
                 Err(_) => Err(ComputationError::new(
-                    ErrorLevel::ERROR,
+                    ErrorSeverity::HIGH,
                     format!("Cannot cast String '{}' to f64.", string),
                 )),
             },
@@ -87,7 +87,7 @@ impl ALU {
                 string => Ok(Value::Bool(string != "")),
             },
             (value, target_type) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!("Cannot cast '{:?}' to '{:?}'.", value, target_type),
             )),
         }
@@ -97,7 +97,7 @@ impl ALU {
         match val {
             Value::Bool(bool) => Ok(Value::Bool(!bool)),
             val => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!("Cannot perform boolean negation on type '{:?}'.", val.to_type()),
             )),
         }
@@ -108,7 +108,7 @@ impl ALU {
             Value::I64(i64) => Ok(Value::I64(-i64)),
             Value::F64(f64) => Ok(Value::F64(-f64)),
             val => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!("Cannot perform arithmetic negation on type '{:?}'.", val.to_type()),
             )),
         }
@@ -120,7 +120,7 @@ impl ALU {
             (Value::F64(_), Value::F64(_)) => Self::check_float_operation(&val1, &val2, |a, b| a + b, "addition"),
             (Value::String(a), Value::String(b)) => Ok(Value::String(a.clone() + b)),
             (a, b) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!(
                     "Cannot perform addition between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -135,7 +135,7 @@ impl ALU {
             (Value::I64(_), Value::I64(_)) => Self::check_int_operation(&val1, &val2, i64::checked_sub, "subtraction"),
             (Value::F64(_), Value::F64(_)) => Self::check_float_operation(&val1, &val2, |a, b| a - b, "subtraction"),
             (a, b) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!(
                     "Cannot perform subtraction between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -150,7 +150,7 @@ impl ALU {
             (Value::I64(_), Value::I64(_)) => Self::check_int_operation(&val1, &val2, i64::checked_mul, "multiplication"),
             (Value::F64(_), Value::F64(_)) => Self::check_float_operation(&val1, &val2, |a, b| a * b, "multiplication"),
             (a, b) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!(
                     "Cannot perform multiplication between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -165,7 +165,7 @@ impl ALU {
             (Value::I64(_), Value::I64(_)) => Self::check_int_operation(&val1, &val2, i64::checked_div, "division"),
             (Value::F64(_), Value::F64(_)) => Self::check_float_operation(&val1, &val2, |a, b| a / b, "division"),
             (a, b) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!(
                     "Cannot perform division between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -179,7 +179,7 @@ impl ALU {
         match (val1, val2) {
             (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(bool1 && bool2)),
             (a, b) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!(
                     "Cannot perform concatenation between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -193,7 +193,7 @@ impl ALU {
         match (val1, val2) {
             (Value::Bool(bool1), Value::Bool(bool2)) => Ok(Value::Bool(bool1 || bool2)),
             (a, b) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!(
                     "Cannot perform alternative between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -208,7 +208,7 @@ impl ALU {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 > val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 > val2)),
             (a, b) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!(
                     "Cannot perform greater between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -223,7 +223,7 @@ impl ALU {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 >= val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 >= val2)),
             (a, b) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!(
                     "Cannot perform greater or equal between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -238,7 +238,7 @@ impl ALU {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 < val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 < val2)),
             (a, b) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!("Cannot perform less between values of type '{:?}' and '{:?}'.", a.to_type(), b.to_type()),
             )),
         }
@@ -249,7 +249,7 @@ impl ALU {
             (Value::I64(val1), Value::I64(val2)) => Ok(Value::Bool(val1 <= val2)),
             (Value::F64(val1), Value::F64(val2)) => Ok(Value::Bool(val1 <= val2)),
             (a, b) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!(
                     "Cannot perform less or equal between values of type '{:?}' and '{:?}'.",
                     a.to_type(),
@@ -266,7 +266,7 @@ impl ALU {
             (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(val1 == val2)),
             (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(val1 == val2)),
             (a, b) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!("Cannot perform equal between values of type '{:?}' and '{:?}'.", a.to_type(), b.to_type()),
             )),
         }
@@ -279,7 +279,7 @@ impl ALU {
             (Value::String(val1), Value::String(val2)) => Ok(Value::Bool(val1 != val2)),
             (Value::Bool(val1), Value::Bool(val2)) => Ok(Value::Bool(val1 != val2)),
             (a, b) => Err(ComputationError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!(
                     "Cannot perform not equal between values of type '{:?}' and '{:?}'.",
                     a.to_type(),

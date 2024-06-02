@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    errors::{ErrorLevel, ScopeManagerError},
+    errors::{ErrorSeverity, ScopeManagerError},
     value::Value,
 };
 
@@ -34,7 +34,7 @@ impl<'a> ScopeManager<'a> {
         }
 
         Err(ScopeManagerError::new(
-            ErrorLevel::ERROR,
+            ErrorSeverity::HIGH,
             format!("Variable '{}' not declared in this scope.", searched),
         ))
     }
@@ -47,7 +47,7 @@ impl<'a> ScopeManager<'a> {
         }
 
         Err(ScopeManagerError::new(
-            ErrorLevel::ERROR,
+            ErrorSeverity::HIGH,
             format!("Variable '{}' not declared in this scope.", name),
         ))
     }
@@ -55,7 +55,7 @@ impl<'a> ScopeManager<'a> {
     pub fn declare_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerError> {
         if self.get_variable(name).is_ok() {
             return Err(ScopeManagerError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!("Cannot redeclare variable '{}'.", name),
             ));
         }
@@ -65,7 +65,7 @@ impl<'a> ScopeManager<'a> {
             Ok(())
         } else {
             Err(ScopeManagerError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 String::from("No scope available to set the variable."),
             ))
         }
@@ -94,7 +94,7 @@ impl<'a> Scope<'a> {
     fn assign_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerError> {
         let current_value_option = self.get_variable(name);
         match current_value_option {
-            None => Err(ScopeManagerError::new(ErrorLevel::ERROR, format!("Variable '{}' not declared.", name))),
+            None => Err(ScopeManagerError::new(ErrorSeverity::HIGH, format!("Variable '{}' not declared.", name))),
             Some(prev_val) => {
                 let mut prev_val_borrow = prev_val.borrow_mut();
                 let new_val_borrow = value.borrow();
@@ -109,7 +109,7 @@ impl<'a> Scope<'a> {
                         Ok(())
                     }
                     (a, b) => Err(ScopeManagerError::new(
-                        ErrorLevel::ERROR,
+                        ErrorSeverity::HIGH,
                         format!(
                             "Cannot assign '{:?}' to variable '{}' which was previously declared as '{:?}'.",
                             b.to_type(),
@@ -125,7 +125,7 @@ impl<'a> Scope<'a> {
     fn declare_variable(&mut self, name: &'a str, value: Rc<RefCell<Value>>) -> Result<(), ScopeManagerError> {
         match self.get_variable(name) {
             Some(_) => Err(ScopeManagerError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 format!("Cannot redeclare variable '{}'.", name),
             )),
             None => {

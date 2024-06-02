@@ -4,7 +4,7 @@ use crate::{
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
     },
-    errors::{ComputationError, InterpreterError, IError, ErrorLevel, ErrorsManager},
+    errors::{ComputationError, InterpreterError, IError, ErrorSeverity, ErrorsManager},
     lazy_stream_reader::Position,
     stack::Stack,
     std_functions::StdFunction,
@@ -47,7 +47,7 @@ impl<'a> Interpreter<'a> {
     fn read_last_result(&mut self) -> Result<Value, Box<dyn IError>> {
         self.last_result.take().ok_or_else(|| {
             let error = Box::new(InterpreterError::new(
-                ErrorLevel::ERROR,
+                ErrorSeverity::HIGH,
                 String::from("No value produced where it is needed."),
             ));
             ErrorsManager::append_position(error, self.position)
@@ -86,7 +86,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
             self.visit_statement(&statement)?;
             if self.is_breaking {
                 let error = Box::new(InterpreterError::new(
-                    ErrorLevel::ERROR,
+                    ErrorSeverity::HIGH,
                     String::from("Break called outside 'for' or 'switch'."),
                 ));
                 return Err(ErrorsManager::append_position(error, self.position));
@@ -94,7 +94,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
 
             if self.is_returning {
                 let error = Box::new(InterpreterError::new(
-                    ErrorLevel::ERROR,
+                    ErrorSeverity::HIGH,
                     String::from("Return called outside a function."),
                 ));
                 return Err(ErrorsManager::append_position(error, self.position));
@@ -146,7 +146,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                         self.visit_expression(&val)?;
                         self.read_last_result().map_err(|_| {
                             let error = Box::new(InterpreterError::new(
-                                ErrorLevel::ERROR,
+                                ErrorSeverity::HIGH,
                                 format!("Cannot declare variable '{}' with no value.", identifier.value),
                             ));
                             ErrorsManager::append_position(error, self.position)
@@ -159,7 +159,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                     (Type::I64, Value::I64(_)) | (Type::F64, Value::F64(_)) | (Type::Str, Value::String(_)) | (Type::Bool, Value::Bool(_)) => {}
                     (declared_type, computed_type) => {
                         let error = Box::new(InterpreterError::new(
-                            ErrorLevel::ERROR,
+                            ErrorSeverity::HIGH,
                             format!(
                                 "Cannot assign value of type '{:?}' to variable '{}' of type '{:?}'.",
                                 computed_type.to_type(),
@@ -179,7 +179,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
                 self.visit_expression(&value)?;
                 let value = self.read_last_result().map_err(|_| {
                     let error = Box::new(InterpreterError::new(
-                        ErrorLevel::ERROR,
+                        ErrorSeverity::HIGH,
                         format!("Cannot assign no value to variable '{}'.", identifier.value),
                     ));
                     ErrorsManager::append_position(error, self.position)
@@ -367,7 +367,7 @@ impl<'a> Interpreter<'a> {
 
     fn condition_error(&self, value: Value, place: &'a str) -> Box<dyn IError> {
         let error = Box::new(InterpreterError::new(
-            ErrorLevel::ERROR,
+            ErrorSeverity::HIGH,
             format!(
                 "Condition in '{}' has to evaluate to type '{:?}' - got '{:?}'.",
                 place,
@@ -440,7 +440,7 @@ impl<'a> Interpreter<'a> {
                 (Type::Bool, Value::Bool(_)) | (Type::F64, Value::F64(_)) | (Type::I64, Value::I64(_)) | (Type::Str, Value::String(_)) => {}
                 (des, got) => {
                     let error = Box::new(InterpreterError::new(
-                        ErrorLevel::ERROR,
+                        ErrorSeverity::HIGH,
                         format!("Function '{}' expected '{:?}', but got '{:?}'.", name, des, got.to_type()),
                     ));
                     return Err(ErrorsManager::append_position(error, self.position));
@@ -462,7 +462,7 @@ impl<'a> Interpreter<'a> {
 
             if self.is_breaking {
                 let error = Box::new(InterpreterError::new(
-                    ErrorLevel::ERROR,
+                    ErrorSeverity::HIGH,
                     String::from("Break called outside 'for' or 'switch'."),
                 ));
                 return Err(ErrorsManager::append_position(error, self.position));
@@ -478,7 +478,7 @@ impl<'a> Interpreter<'a> {
             | (Some(Value::Bool(_)), Type::Bool) => {}
             (res, exp) => {
                 let error = Box::new(InterpreterError::new(
-                    ErrorLevel::ERROR,
+                    ErrorSeverity::HIGH,
                     format!("Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.", name, exp, res),
                 ));
                 return Err(ErrorsManager::append_position(error, self.position));
