@@ -1,6 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
+    alu::ALU,
     ast::{
         Argument, Block, Expression, FunctionDeclaration, Literal, Node, Parameter, PassedBy, Program, Statement, SwitchCase, SwitchExpression, Type,
     },
@@ -10,7 +11,6 @@ use crate::{
     std_functions::StdFunction,
     value::Value,
     visitor::Visitor,
-    ALU::ALU,
 };
 
 pub struct Interpreter<'a> {
@@ -507,6 +507,10 @@ mod tests {
         }
     }
 
+    fn create_error_message(text: String) -> String {
+        format!("{}\nAt {:?}.", text, default_position())
+    }
+
     fn setup_program() -> Program {
         Program {
             statements: vec![],
@@ -542,7 +546,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -561,7 +565,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -580,7 +584,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -605,7 +609,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -630,7 +634,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -655,7 +659,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -680,7 +684,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -705,7 +709,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -730,7 +734,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -755,7 +759,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -780,7 +784,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -805,7 +809,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
     #[test]
     fn interpret_less_equal() {
@@ -829,7 +833,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -854,7 +858,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -879,7 +883,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -895,7 +899,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -912,7 +916,7 @@ mod tests {
         let _ = interpreter.stack.declare_variable("x", Rc::new(RefCell::new(Value::I64(5))));
 
         let _ = interpreter.visit_expression(&ast);
-        assert!(interpreter.last_result == exp);
+        assert_eq!(interpreter.last_result, exp);
     }
 
     #[test]
@@ -940,7 +944,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_statement(&ast);
-        assert!(interpreter.stack.get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(5))));
+        assert_eq!(interpreter.stack.get_variable("x").unwrap().clone(), Rc::new(RefCell::new(Value::I64(5))));
     }
 
     #[test]
@@ -965,7 +969,7 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_statement(&ast);
-        assert!(interpreter.stack.get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(0))));
+        assert_eq!(interpreter.stack.get_variable("x").unwrap().clone(), Rc::new(RefCell::new(Value::I64(0))));
     }
 
     #[test]
@@ -1016,9 +1020,12 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let _ = interpreter.visit_statement(&ast);
-        assert!(interpreter.stack.get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(0))));
+        assert_eq!(interpreter.stack.get_variable("x").unwrap().clone(), Rc::new(RefCell::new(Value::I64(0))));
 
-        assert!(interpreter.visit_statement(&ast).is_err());
+        assert_eq!(
+            interpreter.visit_statement(&ast).err().unwrap().message(),
+            create_error_message(String::from("Cannot redeclare variable 'x'."))
+        );
     }
 
     #[test]
@@ -1059,7 +1066,10 @@ mod tests {
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
-        assert!(interpreter.visit_statement(&ast).is_err());
+        assert_eq!(
+            interpreter.visit_statement(&ast).err().unwrap().message(),
+            create_error_message(String::from("Cannot declare variable 'x' with no value."))
+        );
     }
 
     #[test]
@@ -1085,7 +1095,7 @@ mod tests {
         let _ = interpreter.stack.declare_variable("x", Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(interpreter.stack.get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(1))));
+        assert_eq!(interpreter.stack.get_variable("x").unwrap().clone(), Rc::new(RefCell::new(Value::I64(1))));
     }
 
     #[test]
@@ -1110,7 +1120,12 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
         let _ = interpreter.stack.declare_variable("x", Rc::new(RefCell::new(Value::I64(0))));
 
-        assert!(interpreter.visit_statement(&ast).is_err());
+        assert_eq!(
+            interpreter.visit_statement(&ast).err().unwrap().message(),
+            create_error_message(String::from(
+                "Cannot assign 'bool' to variable 'x' which was previously declared as 'i64'."
+            ))
+        );
     }
 
     #[test]
@@ -1149,7 +1164,10 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
         let _ = interpreter.stack.declare_variable("x", Rc::new(RefCell::new(Value::I64(0))));
 
-        assert!(interpreter.visit_statement(&ast).is_err());
+        assert_eq!(
+            interpreter.visit_statement(&ast).err().unwrap().message(),
+            create_error_message(String::from("Cannot assign no value to variable 'x'."))
+        );
     }
 
     #[test]
@@ -1203,7 +1221,7 @@ mod tests {
         let _ = interpreter.stack.declare_variable("x", Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(interpreter.stack.get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(1))));
+        assert_eq!(interpreter.stack.get_variable("x").unwrap().clone(), Rc::new(RefCell::new(Value::I64(1))));
     }
 
     #[test]
@@ -1257,7 +1275,7 @@ mod tests {
         let _ = interpreter.stack.declare_variable("x", Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(interpreter.stack.get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(2))));
+        assert_eq!(interpreter.stack.get_variable("x").unwrap().clone(), Rc::new(RefCell::new(Value::I64(2))));
     }
 
     #[test]
@@ -1283,7 +1301,10 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
         let _ = interpreter.stack.declare_variable("x", Rc::new(RefCell::new(Value::I64(0))));
 
-        assert!(interpreter.visit_statement(&ast).is_err());
+        assert_eq!(
+            interpreter.visit_statement(&ast).err().unwrap().message(),
+            create_error_message(String::from("Condition in 'if statement' has to evaluate to type 'bool' - got 'i64'."))
+        );
     }
 
     #[test]
@@ -1378,7 +1399,10 @@ mod tests {
         let _ = interpreter.stack.declare_variable("total", Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(interpreter.stack.get_variable("total").unwrap().clone() == Rc::new(RefCell::new(Value::I64(15))));
+        assert_eq!(
+            interpreter.stack.get_variable("total").unwrap().clone(),
+            Rc::new(RefCell::new(Value::I64(15)))
+        );
     }
 
     #[test]
@@ -1462,7 +1486,10 @@ mod tests {
         let _ = interpreter.stack.declare_variable("i", Rc::new(RefCell::new(Value::I64(1))));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(interpreter.stack.get_variable("total").unwrap().clone() == Rc::new(RefCell::new(Value::I64(15))));
+        assert_eq!(
+            interpreter.stack.get_variable("total").unwrap().clone(),
+            Rc::new(RefCell::new(Value::I64(15)))
+        );
     }
 
     #[test]
@@ -1487,7 +1514,10 @@ mod tests {
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
 
-        assert!(interpreter.visit_statement(&ast).is_err());
+        assert_eq!(
+            interpreter.visit_statement(&ast).err().unwrap().message(),
+            create_error_message(String::from("Condition in 'for statement' has to evaluate to type 'bool' - got 'i64'."))
+        );
     }
 
     #[test]
@@ -1561,8 +1591,8 @@ mod tests {
         let _ = interpreter.stack.declare_variable("i", Rc::new(RefCell::new(Value::I64(0))));
 
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(interpreter.is_breaking == false);
-        assert!(interpreter.stack.get_variable("i").unwrap().clone() == Rc::new(RefCell::new(Value::I64(5))));
+        assert_eq!(interpreter.is_breaking, false);
+        assert_eq!(interpreter.stack.get_variable("i").unwrap().clone(), Rc::new(RefCell::new(Value::I64(5))));
     }
 
     #[test]
@@ -1674,8 +1704,8 @@ mod tests {
         };
         let mut interpreter = Interpreter::new(&program);
         assert!(interpreter.visit_statement(&ast).is_ok());
-        assert!(interpreter.last_result == Some(Value::I64(7)));
-        assert!(interpreter.is_returning == false);
+        assert_eq!(interpreter.last_result, Some(Value::I64(7)));
+        assert_eq!(interpreter.is_returning, false);
     }
 
     fn create_test_switch_case() -> Node<Statement> {
@@ -1789,8 +1819,11 @@ mod tests {
         let switch_case = &create_test_switch_case();
         let _ = interpreter.visit_statement(switch_case);
 
-        assert!(interpreter.stack.get_variable("result").unwrap().clone() == Rc::new(RefCell::new(Value::I64(15))));
-        assert!(interpreter.is_breaking == false);
+        assert_eq!(
+            interpreter.stack.get_variable("result").unwrap().clone(),
+            Rc::new(RefCell::new(Value::I64(15)))
+        );
+        assert_eq!(interpreter.is_breaking, false);
     }
 
     #[test]
@@ -1805,8 +1838,11 @@ mod tests {
         let switch_case = &create_test_switch_case();
         let _ = interpreter.visit_statement(switch_case);
 
-        assert!(interpreter.stack.get_variable("result").unwrap().clone() == Rc::new(RefCell::new(Value::I64(10))));
-        assert!(interpreter.is_breaking == false);
+        assert_eq!(
+            interpreter.stack.get_variable("result").unwrap().clone(),
+            Rc::new(RefCell::new(Value::I64(10)))
+        );
+        assert_eq!(interpreter.is_breaking, false);
     }
 
     #[test]
@@ -1821,7 +1857,41 @@ mod tests {
         let switch_case = &create_test_switch_case();
         let _ = interpreter.visit_statement(switch_case);
 
-        assert!(interpreter.stack.get_variable("result").unwrap().clone() == Rc::new(RefCell::new(Value::I64(0))));
-        assert!(interpreter.is_breaking == false);
+        assert_eq!(
+            interpreter.stack.get_variable("result").unwrap().clone(),
+            Rc::new(RefCell::new(Value::I64(0)))
+        );
+        assert_eq!(interpreter.is_breaking, false);
+    }
+
+    #[test]
+    fn break_called_outside_for() {
+        let program = Program {
+            functions: HashMap::new(),
+            std_functions: HashMap::new(),
+            statements: vec![Node {
+                value: Statement::Conditional {
+                    condition: Node {
+                        value: Expression::Literal(Literal::True),
+                        position: default_position(),
+                    },
+                    if_block: Node {
+                        value: Block(vec![Node {
+                            value: Statement::Break,
+                            position: default_position(),
+                        }]),
+                        position: default_position(),
+                    },
+                    else_block: None,
+                },
+                position: default_position(),
+            }],
+        };
+
+        let mut interpreter = Interpreter::new(&program);
+        assert_eq!(
+            interpreter.interpret().err().unwrap().message(),
+            create_error_message(String::from("Break called outside 'for' or 'switch'."))
+        )
     }
 }
