@@ -479,11 +479,14 @@ impl<'a> Interpreter<'a> {
             (res, exp) => {
                 let res_type = match res {
                     None => Type::Void,
-                    Some(t) => t.to_type()
+                    Some(t) => t.to_type(),
                 };
                 let error = Box::new(InterpreterError::new(
                     ErrorSeverity::HIGH,
-                    format!("Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.", name, exp, res_type),
+                    format!(
+                        "Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.",
+                        name, exp, res_type
+                    ),
                 ));
                 return Err(ErrorsManager::append_position(error, self.position));
             }
@@ -1073,6 +1076,35 @@ mod tests {
         assert_eq!(
             interpreter.visit_statement(&ast).err().unwrap().message(),
             create_error_message(String::from("Cannot declare variable 'x' with no value."))
+        );
+    }
+
+    #[test]
+    fn declare_with_bad_type_fails() {
+        // i64 x = true;
+        let ast = Node {
+            value: Statement::Declaration {
+                var_type: Node {
+                    value: Type::I64,
+                    position: default_position(),
+                },
+                identifier: Node {
+                    value: String::from("x"),
+                    position: default_position(),
+                },
+                value: Some(Node {
+                    value: Expression::Literal(Literal::True),
+                    position: default_position(),
+                }),
+            },
+            position: default_position(),
+        };
+
+        let program = setup_program();
+        let mut interpreter = create_interpreter(&program);
+        assert_eq!(
+            interpreter.visit_statement(&ast).err().unwrap().message(),
+            create_error_message(String::from("Cannot assign value of type 'bool' to variable 'x' of type 'i64'."))
         );
     }
 
@@ -1866,6 +1898,40 @@ mod tests {
             Rc::new(RefCell::new(Value::I64(0)))
         );
         assert_eq!(interpreter.is_breaking, false);
+    }
+
+    #[test]
+    fn switch_bad_condition_type() {
+        // switch () {
+        //      (1) -> {}
+        // }
+        let program = setup_program();
+        let mut interpreter = create_interpreter(&program);
+
+        let ast = Node {
+            value: Statement::Switch {
+                expressions: vec![],
+                cases: vec![Node {
+                    value: SwitchCase {
+                        condition: Node {
+                            value: Expression::Literal(Literal::I64(1)),
+                            position: default_position(),
+                        },
+                        block: Node {
+                            value: Block(vec![]),
+                            position: default_position(),
+                        },
+                    },
+                    position: default_position(),
+                }],
+            },
+            position: default_position(),
+        };
+
+        assert_eq!(
+            interpreter.visit_statement(&ast).err().unwrap().message(),
+            create_error_message(String::from("Condition in 'switch case' has to evaluate to type 'bool' - got 'i64'."))
+        )
     }
 
     #[test]
