@@ -1865,7 +1865,7 @@ mod tests {
     }
 
     #[test]
-    fn break_called_outside_for() {
+    fn break_called_outside_for_or_switch() {
         let program = Program {
             functions: HashMap::new(),
             std_functions: HashMap::new(),
@@ -1892,6 +1892,67 @@ mod tests {
         assert_eq!(
             interpreter.interpret().err().unwrap().message(),
             create_error_message(String::from("Break called outside 'for' or 'switch'."))
+        )
+    }
+
+    #[test]
+    fn break_called_outside_for_or_switch_in_function() {
+        let program = setup_program();
+        let mut interpreter = create_interpreter(&program);
+
+        let ast = FunctionDeclaration {
+            identifier: Node {
+                value: String::from("fun"),
+                position: default_position(),
+            },
+            parameters: vec![],
+            return_type: Node {
+                value: Type::Void,
+                position: default_position(),
+            },
+            block: Node {
+                value: Block(vec![Node {
+                    value: Statement::Break,
+                    position: default_position(),
+                }]),
+                position: default_position(),
+            },
+        };
+
+        assert_eq!(
+            interpreter.execute_function(&ast).err().unwrap().message(),
+            create_error_message(String::from("Break called outside 'for' or 'switch'."))
+        )
+    }
+
+    #[test]
+    fn return_called_outside_for_or_switch() {
+        let program = Program {
+            functions: HashMap::new(),
+            std_functions: HashMap::new(),
+            statements: vec![Node {
+                value: Statement::Conditional {
+                    condition: Node {
+                        value: Expression::Literal(Literal::True),
+                        position: default_position(),
+                    },
+                    if_block: Node {
+                        value: Block(vec![Node {
+                            value: Statement::Return(None),
+                            position: default_position(),
+                        }]),
+                        position: default_position(),
+                    },
+                    else_block: None,
+                },
+                position: default_position(),
+            }],
+        };
+
+        let mut interpreter = Interpreter::new(&program);
+        assert_eq!(
+            interpreter.interpret().err().unwrap().message(),
+            create_error_message(String::from("Return called outside a function."))
         )
     }
 }
