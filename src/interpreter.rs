@@ -477,9 +477,13 @@ impl<'a> Interpreter<'a> {
             | (Some(Value::String(_)), Type::Str)
             | (Some(Value::Bool(_)), Type::Bool) => {}
             (res, exp) => {
+                let res_type = match res {
+                    None => Type::Void,
+                    Some(t) => t.to_type()
+                };
                 let error = Box::new(InterpreterError::new(
                     ErrorSeverity::HIGH,
-                    format!("Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.", name, exp, res),
+                    format!("Bad return type from function '{}'. Expected '{:?}', but got '{:?}'.", name, exp, res_type),
                 ));
                 return Err(ErrorsManager::append_position(error, self.position));
             }
@@ -1953,6 +1957,81 @@ mod tests {
         assert_eq!(
             interpreter.interpret().err().unwrap().message(),
             create_error_message(String::from("Return called outside a function."))
+        )
+    }
+
+    #[test]
+    fn bad_arg_type() {
+        let program = setup_program();
+        let mut interpreter = create_interpreter(&program);
+
+        let ast = FunctionDeclaration {
+            identifier: Node {
+                value: String::from("fun"),
+                position: default_position(),
+            },
+            parameters: vec![Node {
+                value: Parameter {
+                    passed_by: PassedBy::Value,
+                    parameter_type: Node {
+                        value: Type::I64,
+                        position: default_position(),
+                    },
+                    identifier: Node {
+                        value: String::from("x"),
+                        position: default_position(),
+                    },
+                },
+                position: default_position(),
+            }],
+            return_type: Node {
+                value: Type::Void,
+                position: default_position(),
+            },
+            block: Node {
+                value: Block(vec![]),
+                position: default_position(),
+            },
+        };
+
+        interpreter.last_arguments = vec![Rc::new(RefCell::new(Value::F64(3.2)))];
+
+        assert_eq!(
+            interpreter.execute_function(&ast).err().unwrap().message(),
+            create_error_message(String::from("Function 'fun' expected 'i64', but got 'f64'."))
+        )
+    }
+
+    #[test]
+    fn bad_return_type() {
+        let program = setup_program();
+        let mut interpreter = create_interpreter(&program);
+
+        let ast = FunctionDeclaration {
+            identifier: Node {
+                value: String::from("fun"),
+                position: default_position(),
+            },
+            parameters: vec![],
+            return_type: Node {
+                value: Type::Void,
+                position: default_position(),
+            },
+            block: Node {
+                value: Block(vec![Node {
+                    value: Statement::Return(Some(Node {
+                        value: Expression::Literal(Literal::I64(1)),
+                        position: default_position(),
+                    })),
+                    position: default_position(),
+                }]),
+                position: default_position(),
+            },
+        };
+
+        assert_eq!(
+            interpreter.execute_function(&ast).err().unwrap().message(),
+            create_error_message(String::from("Bad return type from function 'fun'. Expected 'void', but got 'i64'."))
         )
     }
 }
