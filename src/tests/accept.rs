@@ -26,7 +26,7 @@ mod tests {
         let program = parser.parse().unwrap();
         let mut checker = SemanticChecker::new(&program).unwrap();
         checker.check();
-        assert!(checker.errors.len() == 0);
+        assert_eq!(checker.errors.len(), 0);
         program
     }
 
@@ -53,7 +53,10 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack().get_variable("text").unwrap().clone() == Rc::new(RefCell::new(Value::String(String::from("equal")))));
+        assert_eq!(
+            interpreter.stack().get_variable("text").unwrap().clone(),
+            Rc::new(RefCell::new(Value::String(String::from("equal"))))
+        );
     }
 
     #[test]
@@ -73,7 +76,10 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack().get_variable("i").unwrap().clone() == Rc::new(RefCell::new(Value::I64(2))));
+        assert_eq!(
+            interpreter.stack().get_variable("i").unwrap().clone(),
+            Rc::new(RefCell::new(Value::I64(2)))
+        );
     }
 
     #[test]
@@ -92,7 +98,10 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack().get_variable("a").unwrap().clone() == Rc::new(RefCell::new(Value::I64(3))));
+        assert_eq!(
+            interpreter.stack().get_variable("a").unwrap().clone(),
+            Rc::new(RefCell::new(Value::I64(3)))
+        );
     }
 
     #[test]
@@ -112,7 +121,10 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack().get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(3))));
+        assert_eq!(
+            interpreter.stack().get_variable("x").unwrap().clone(),
+            Rc::new(RefCell::new(Value::I64(3)))
+        );
     }
 
     #[test]
@@ -135,7 +147,10 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack().get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(8))));
+        assert_eq!(
+            interpreter.stack().get_variable("x").unwrap().clone(),
+            Rc::new(RefCell::new(Value::I64(8)))
+        );
     }
 
     #[test]
@@ -165,8 +180,14 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack().get_variable("is_5").unwrap().clone() == Rc::new(RefCell::new(Value::Bool(true))));
-        assert!(interpreter.stack().get_variable("is_6").unwrap().clone() == Rc::new(RefCell::new(Value::Bool(false))));
+        assert_eq!(
+            interpreter.stack().get_variable("is_5").unwrap().clone(),
+            Rc::new(RefCell::new(Value::Bool(true)))
+        );
+        assert_eq!(
+            interpreter.stack().get_variable("is_6").unwrap().clone(),
+            Rc::new(RefCell::new(Value::Bool(false)))
+        );
     }
 
     #[test]
@@ -194,6 +215,9 @@ mod tests {
         let program = setup_program(text);
         let mut interpreter = create_interpreter(&program);
         interpreter.interpret().unwrap();
-        assert!(interpreter.stack().get_variable("text").unwrap().clone() == Rc::new(RefCell::new(Value::String(String::from(">1")))));
+        assert_eq!(
+            interpreter.stack().get_variable("text").unwrap().clone(),
+            Rc::new(RefCell::new(Value::String(String::from(">1"))))
+        );
     }
 }

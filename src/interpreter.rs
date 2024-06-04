@@ -843,7 +843,10 @@ mod tests {
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
 
-        assert!(interpreter.visit_statement(&ast).is_err());
+        assert_eq!(
+            interpreter.visit_statement(&ast).err().unwrap().message(),
+            create_error_message(String::from("Cannot assign value of type 'bool' to variable 'x' of type 'i64'."))
+        );
     }
 
     #[test]

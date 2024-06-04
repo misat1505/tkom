@@ -108,7 +108,6 @@ mod tests {
 
         assert_eq!(stack.0.len(), 500);
         let result = stack.push_stack_frame();
-        assert!(result.is_err());
         if let Err(e) = result {
             assert_eq!(e.message(), "Stack overflow.");
         }

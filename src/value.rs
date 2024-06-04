@@ -44,6 +44,8 @@ impl Value {
 
 #[cfg(test)]
 mod tests {
+    use crate::errors::IError;
+
     use super::*;
 
     #[test]
@@ -53,13 +55,16 @@ mod tests {
         let expected = [Value::Bool(false), Value::I64(0), Value::F64(0.0), Value::String(String::from(""))];
 
         for idx in 0..data.len() {
-            assert!(Value::default_value(data[idx]).unwrap() == expected[idx]);
+            assert_eq!(Value::default_value(data[idx]).unwrap(), expected[idx]);
         }
     }
 
     #[test]
     fn default_values_fail() {
-        assert!(Value::default_value(Type::Void).is_err());
+        assert_eq!(
+            Value::default_value(Type::Void).err().unwrap().message(),
+            String::from("Cannot create default value for type 'void'.")
+        );
     }
 
     #[test]
@@ -69,13 +74,16 @@ mod tests {
         let exp = [Type::Bool, Type::I64, Type::F64, Type::Str];
 
         for idx in 0..values.len() {
-            assert!(values[idx].to_type() == exp[idx]);
+            assert_eq!(values[idx].to_type(), exp[idx]);
         }
     }
 
     #[test]
     fn try_into_bool() {
-        assert!(Value::Bool(true).try_into_bool().unwrap() == true);
-        assert!(Value::I64(5).try_into_bool().is_err());
+        assert_eq!(Value::Bool(true).try_into_bool().unwrap(), true);
+        assert_eq!(
+            Value::I64(5).try_into_bool().err().unwrap().message(),
+            String::from("Given value is not a boolean.")
+        );
     }
 }

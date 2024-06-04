@@ -138,6 +138,8 @@ impl<'a> Scope<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::errors::IError;
+
     use super::*;
 
     #[test]
@@ -153,14 +155,21 @@ mod tests {
         let value = Rc::new(RefCell::new(Value::I64(5)));
 
         let _ = scope.declare_variable(name, value.clone());
-        assert!(scope.get_variable(name).unwrap().clone() == value);
+        assert_eq!(scope.get_variable(name).unwrap().clone(), value);
         assert!(scope.get_variable("non-existent").is_none());
 
         let new_value = Rc::new(RefCell::new(Value::I64(0)));
         let _ = scope.assign_variable(name, new_value.clone());
-        assert!(scope.get_variable(name).unwrap().clone() == new_value);
+        assert_eq!(scope.get_variable(name).unwrap().clone(), new_value);
 
-        assert!(scope.assign_variable("y", Rc::new(RefCell::new(Value::Bool(true)))).is_err());
+        assert_eq!(
+            scope
+                .assign_variable("y", Rc::new(RefCell::new(Value::Bool(true))))
+                .err()
+                .unwrap()
+                .message(),
+            String::from("Variable 'y' not declared.")
+        );
     }
 
     #[test]
@@ -172,13 +181,13 @@ mod tests {
     #[test]
     fn manages_scopes() {
         let mut manager = ScopeManager::new();
-        assert!(manager.scopes.len() == 1);
+        assert_eq!(manager.scopes.len(), 1);
 
         manager.push_scope();
-        assert!(manager.scopes.len() == 2);
+        assert_eq!(manager.scopes.len(), 2);
 
         manager.pop_scope();
-        assert!(manager.scopes.len() == 1);
+        assert_eq!(manager.scopes.len(), 1);
     }
 
     #[test]
@@ -190,26 +199,32 @@ mod tests {
         let mut manager = ScopeManager::new();
 
         let _ = manager.declare_variable("x", Rc::new(RefCell::new(Value::I64(1))));
-        assert!(manager.get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(1))));
+        assert_eq!(manager.get_variable("x").unwrap().clone(), Rc::new(RefCell::new(Value::I64(1))));
 
         manager.push_scope();
-        assert!(manager.get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(1))));
+        assert_eq!(manager.get_variable("x").unwrap().clone(), Rc::new(RefCell::new(Value::I64(1))));
 
         let _ = manager.assign_variable("x", Rc::new(RefCell::new(Value::I64(5))));
-        assert!(manager.get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(5))));
+        assert_eq!(manager.get_variable("x").unwrap().clone(), Rc::new(RefCell::new(Value::I64(5))));
 
         let _ = manager.declare_variable("y", Rc::new(RefCell::new(Value::I64(2))));
-        assert!(manager.get_variable("y").unwrap().clone() == Rc::new(RefCell::new(Value::I64(2))));
+        assert_eq!(manager.get_variable("y").unwrap().clone(), Rc::new(RefCell::new(Value::I64(2))));
 
         manager.pop_scope();
-        assert!(manager.get_variable("x").unwrap().clone() == Rc::new(RefCell::new(Value::I64(5))));
-        assert!(manager.get_variable("y").is_err());
+        assert_eq!(manager.get_variable("x").unwrap().clone(), Rc::new(RefCell::new(Value::I64(5))));
+        assert_eq!(
+            manager.get_variable("y").err().unwrap().message(),
+            String::from("Variable 'y' not declared in this scope.")
+        );
 
         manager.push_scope();
-        assert!(manager.get_variable("y").is_err());
+        assert_eq!(
+            manager.get_variable("y").err().unwrap().message(),
+            String::from("Variable 'y' not declared in this scope.")
+        );
 
         let _ = manager.declare_variable("y", Rc::new(RefCell::new(Value::I64(3))));
-        assert!(manager.get_variable("y").unwrap().clone() == Rc::new(RefCell::new(Value::I64(3))));
+        assert_eq!(manager.get_variable("y").unwrap().clone(), Rc::new(RefCell::new(Value::I64(3))));
 
         manager.pop_scope();
     }
@@ -219,7 +234,14 @@ mod tests {
         let mut manager = ScopeManager::new();
 
         let _ = manager.declare_variable("x", Rc::new(RefCell::new(Value::I64(1))));
-        assert!(manager.assign_variable("x", Rc::new(RefCell::new(Value::Bool(true)))).is_err());
+        assert_eq!(
+            manager
+                .assign_variable("x", Rc::new(RefCell::new(Value::Bool(true))))
+                .err()
+                .unwrap()
+                .message(),
+            String::from("Cannot assign 'bool' to variable 'x' which was previously declared as 'i64'.")
+        );
     }
 
     #[test]
@@ -227,6 +249,13 @@ mod tests {
         let mut manager = ScopeManager::new();
 
         let _ = manager.declare_variable("x", Rc::new(RefCell::new(Value::I64(1))));
-        assert!(manager.declare_variable("x", Rc::new(RefCell::new(Value::I64(6)))).is_err());
+        assert_eq!(
+            manager
+                .declare_variable("x", Rc::new(RefCell::new(Value::I64(6))))
+                .err()
+                .unwrap()
+                .message(),
+            String::from("Cannot redeclare variable 'x'.")
+        );
     }
 }

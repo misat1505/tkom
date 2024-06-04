@@ -40,16 +40,16 @@ mod tests {
         let mut lexer = create_lexer(text);
         assert!(lexer.current().is_none());
         let token = lexer.generate_token().unwrap();
-        assert!(token.category == TokenCategory::STX);
+        assert_eq!(token.category, TokenCategory::STX);
     }
 
     #[test]
     fn last_token() {
         let mut lexer = create_lexer_with_skip("");
         let mut token = lexer.generate_token().unwrap();
-        assert!(token.category == TokenCategory::ETX);
+        assert_eq!(token.category, TokenCategory::ETX);
         token = lexer.generate_token().unwrap();
-        assert!(token.category == TokenCategory::ETX);
+        assert_eq!(token.category, TokenCategory::ETX);
     }
 
     #[test]
@@ -70,7 +70,7 @@ mod tests {
 
         for expected_token in &expected_tokens {
             let token = lexer.generate_token().unwrap();
-            assert!(token.category == *expected_token);
+            assert_eq!(token.category, *expected_token);
         }
     }
 
@@ -99,7 +99,7 @@ mod tests {
 
         for expected_token in &expected_tokens {
             let token = lexer.generate_token().unwrap();
-            assert!(token.category == *expected_token);
+            assert_eq!(token.category, *expected_token);
         }
     }
 
@@ -110,12 +110,12 @@ mod tests {
         let mut lexer = create_lexer_with_skip(text);
 
         let mut token = lexer.generate_token().unwrap();
-        assert!(token.category == TokenCategory::Comment);
-        assert!(token.value == TokenValue::String(String::from(" this is a comment")));
+        assert_eq!(token.category, TokenCategory::Comment);
+        assert_eq!(token.value, TokenValue::String(String::from(" this is a comment")));
 
         token = lexer.generate_token().unwrap();
-        assert!(token.category == TokenCategory::Comment);
-        assert!(token.value == TokenValue::String(String::from(" another")));
+        assert_eq!(token.category, TokenCategory::Comment);
+        assert_eq!(token.value, TokenValue::String(String::from(" another")));
     }
 
     #[test]
@@ -124,16 +124,16 @@ mod tests {
         let mut lexer = create_lexer_with_skip(text);
 
         let mut token = lexer.generate_token().unwrap();
-        assert!(token.category == TokenCategory::StringValue);
-        assert!(token.value == TokenValue::String(String::from("string1")));
+        assert_eq!(token.category, TokenCategory::StringValue);
+        assert_eq!(token.value, TokenValue::String(String::from("string1")));
 
         token = lexer.generate_token().unwrap();
-        assert!(token.category == TokenCategory::StringValue);
-        assert!(token.value == TokenValue::String(String::from(" string2  ")));
+        assert_eq!(token.category, TokenCategory::StringValue);
+        assert_eq!(token.value, TokenValue::String(String::from(" string2  ")));
 
         token = lexer.generate_token().unwrap();
-        assert!(token.category == TokenCategory::StringValue);
-        assert!(token.value == TokenValue::String(String::from("string3")));
+        assert_eq!(token.category, TokenCategory::StringValue);
+        assert_eq!(token.value, TokenValue::String(String::from("string3")));
     }
 
     #[test]
@@ -144,8 +144,8 @@ mod tests {
         let expected = "ala\"ma\nkota\tjana\\i\\szympansa";
 
         let token = lexer.generate_token().unwrap();
-        assert!(token.category == TokenCategory::StringValue);
-        assert!(token.value == TokenValue::String(expected.to_string()));
+        assert_eq!(token.category, TokenCategory::StringValue);
+        assert_eq!(token.value, TokenValue::String(expected.to_string()));
     }
 
     #[test]
@@ -164,8 +164,8 @@ mod tests {
 
         for (category, value) in &expected {
             let token = lexer.generate_token().unwrap();
-            assert!(token.category == *category);
-            assert!(token.value == *value);
+            assert_eq!(token.category, *category);
+            assert_eq!(token.value, *value);
         }
     }
 
@@ -196,8 +196,8 @@ mod tests {
 
         for (category, value) in &expected {
             let token = lexer.generate_token().unwrap();
-            assert!(token.category == *category);
-            assert!(token.value == *value);
+            assert_eq!(token.category, *category);
+            assert_eq!(token.value, *value);
         }
     }
 }
@@ -263,7 +263,7 @@ mod edge_case_tests {
         let mut lexer = create_lexer_with_skip(text);
 
         let result = lexer.generate_token();
-        assert!(result.unwrap().category == TokenCategory::Or);
+        assert_eq!(result.unwrap().category, TokenCategory::Or);
     }
 
     #[test]
@@ -282,7 +282,7 @@ mod edge_case_tests {
         let mut lexer = create_lexer_with_skip(text);
 
         let result = lexer.generate_token();
-        assert!(result.unwrap().category == TokenCategory::StringValue);
+        assert_eq!(result.unwrap().category, TokenCategory::StringValue);
     }
 
     #[test]
