@@ -73,14 +73,14 @@ impl ALU {
                 Ok(i64) => Ok(Value::I64(i64)),
                 Err(_) => Err(ComputationError::new(
                     ErrorSeverity::HIGH,
-                    format!("Cannot cast String '{}' to i64.", string),
+                    format!("Cannot cast String '{}' to 'i64'.", string),
                 )),
             },
             (Value::String(string), Type::F64) => match string.parse::<f64>() {
                 Ok(f64) => Ok(Value::F64(f64)),
                 Err(_) => Err(ComputationError::new(
                     ErrorSeverity::HIGH,
-                    format!("Cannot cast String '{}' to f64.", string),
+                    format!("Cannot cast String '{}' to 'f64'.", string),
                 )),
             },
             (Value::String(string), Type::Bool) => Ok(Value::Bool(string.as_str() != "")),
@@ -290,6 +290,8 @@ impl ALU {
 
 #[cfg(test)]
 mod tests {
+    use crate::errors::IError;
+
     use super::*;
 
     #[test]
@@ -327,7 +329,7 @@ mod tests {
         for idx in 0..data.len() {
             let (init, to_type) = &data[idx];
             let exp = &expected[idx];
-            assert!(ALU::cast_to_type(init.clone(), *to_type).unwrap() == *exp);
+            assert_eq!(ALU::cast_to_type(init.clone(), *to_type).unwrap(), *exp);
         }
     }
 
@@ -339,22 +341,31 @@ mod tests {
         ];
 
         for (val, to_type) in data {
-            assert!(ALU::cast_to_type(val, to_type).is_err());
+            assert_eq!(
+                ALU::cast_to_type(val, to_type).err().unwrap().message(),
+                format!("Cannot cast String 'abc' to '{:?}'.", to_type)
+            );
         }
     }
 
     #[test]
     fn boolean_negation() {
-        assert!(ALU::boolean_negate(Value::Bool(false)).unwrap() == Value::Bool(true));
-        assert!(ALU::boolean_negate(Value::Bool(true)).unwrap() == Value::Bool(false));
-        assert!(ALU::boolean_negate(Value::I64(1)).is_err());
+        assert_eq!(ALU::boolean_negate(Value::Bool(false)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::boolean_negate(Value::Bool(true)).unwrap(), Value::Bool(false));
+        assert_eq!(
+            ALU::boolean_negate(Value::I64(1)).err().unwrap().message(),
+            String::from("Cannot perform boolean negation on type 'i64'.")
+        );
     }
 
     #[test]
     fn arithmetic_negation() {
-        assert!(ALU::arithmetic_negate(Value::I64(1)).unwrap() == Value::I64(-1));
-        assert!(ALU::arithmetic_negate(Value::F64(-21.37)).unwrap() == Value::F64(21.37));
-        assert!(ALU::arithmetic_negate(Value::String(String::from("abc"))).is_err());
+        assert_eq!(ALU::arithmetic_negate(Value::I64(1)).unwrap(), Value::I64(-1));
+        assert_eq!(ALU::arithmetic_negate(Value::F64(-21.37)).unwrap(), Value::F64(21.37));
+        assert_eq!(
+            ALU::arithmetic_negate(Value::String(String::from("abc"))).err().unwrap().message(),
+            String::from("Cannot perform arithmetic negation on type 'str'.")
+        );
     }
 
     #[test]
@@ -369,14 +380,23 @@ mod tests {
 
         for idx in 0..data.len() {
             let (val1, val2) = &data[idx];
-            assert!(ALU::add(val1.clone(), val2.clone()).unwrap() == expected[idx]);
+            assert_eq!(ALU::add(val1.clone(), val2.clone()).unwrap(), expected[idx]);
         }
     }
 
     #[test]
     fn add_fail() {
-        assert!(ALU::add(Value::I64(6532475327647647762), Value::I64(6532475327647647762)).is_err());
-        assert!(ALU::add(Value::I64(1), Value::F64(2.0)).is_err());
+        assert_eq!(
+            ALU::add(Value::I64(6532475327647647762), Value::I64(6532475327647647762))
+                .err()
+                .unwrap()
+                .message(),
+            String::from("Overflow occurred when performing addition on i64s.")
+        );
+        assert_eq!(
+            ALU::add(Value::I64(1), Value::F64(2.0)).err().unwrap().message(),
+            String::from("Cannot perform addition between values of type 'i64' and 'f64'.")
+        );
     }
 
     #[test]
@@ -387,15 +407,30 @@ mod tests {
 
         for idx in 0..data.len() {
             let (val1, val2) = &data[idx];
-            assert!(ALU::subtract(val1.clone(), val2.clone()).unwrap() == expected[idx]);
+            assert_eq!(ALU::subtract(val1.clone(), val2.clone()).unwrap(), expected[idx]);
         }
     }
 
     #[test]
     fn subtract_fail() {
-        assert!(ALU::subtract(Value::I64(-6532475327647647762), Value::I64(6532475327647647762)).is_err());
-        assert!(ALU::subtract(Value::I64(1), Value::F64(2.0)).is_err());
-        assert!(ALU::subtract(Value::String(String::from("a")), Value::String(String::from("a"))).is_err());
+        assert_eq!(
+            ALU::subtract(Value::I64(-6532475327647647762), Value::I64(6532475327647647762))
+                .err()
+                .unwrap()
+                .message(),
+            String::from("Overflow occurred when performing subtraction on i64s.")
+        );
+        assert_eq!(
+            ALU::subtract(Value::I64(1), Value::F64(2.0)).err().unwrap().message(),
+            String::from("Cannot perform subtraction between values of type 'i64' and 'f64'.")
+        );
+        assert_eq!(
+            ALU::subtract(Value::String(String::from("a")), Value::String(String::from("a")))
+                .err()
+                .unwrap()
+                .message(),
+            String::from("Cannot perform subtraction between values of type 'str' and 'str'.")
+        );
     }
 
     #[test]
@@ -406,15 +441,30 @@ mod tests {
 
         for idx in 0..data.len() {
             let (val1, val2) = &data[idx];
-            assert!(ALU::multiplication(val1.clone(), val2.clone()).unwrap() == expected[idx]);
+            assert_eq!(ALU::multiplication(val1.clone(), val2.clone()).unwrap(), expected[idx]);
         }
     }
 
     #[test]
     fn multiplication_fail() {
-        assert!(ALU::multiplication(Value::I64(6532475327647647762), Value::I64(6532475327647647762)).is_err());
-        assert!(ALU::multiplication(Value::I64(1), Value::F64(2.0)).is_err());
-        assert!(ALU::multiplication(Value::String(String::from("a")), Value::String(String::from("a"))).is_err());
+        assert_eq!(
+            ALU::multiplication(Value::I64(6532475327647647762), Value::I64(6532475327647647762))
+                .err()
+                .unwrap()
+                .message(),
+            String::from("Overflow occurred when performing multiplication on i64s.")
+        );
+        assert_eq!(
+            ALU::multiplication(Value::I64(1), Value::F64(2.0)).err().unwrap().message(),
+            String::from("Cannot perform multiplication between values of type 'i64' and 'f64'.")
+        );
+        assert_eq!(
+            ALU::multiplication(Value::String(String::from("a")), Value::String(String::from("a")))
+                .err()
+                .unwrap()
+                .message(),
+            String::from("Cannot perform multiplication between values of type 'str' and 'str'.")
+        );
     }
 
     #[test]
@@ -425,102 +475,150 @@ mod tests {
 
         for idx in 0..data.len() {
             let (val1, val2) = &data[idx];
-            assert!(ALU::division(val1.clone(), val2.clone()).unwrap() == expected[idx]);
+            assert_eq!(ALU::division(val1.clone(), val2.clone()).unwrap(), expected[idx]);
         }
     }
 
     #[test]
     fn division_fail() {
-        assert!(ALU::division(Value::I64(6532475327647647762), Value::I64(0)).is_err());
-        assert!(ALU::division(Value::I64(1), Value::F64(2.0)).is_err());
-        assert!(ALU::division(Value::String(String::from("a")), Value::String(String::from("a"))).is_err());
+        assert_eq!(
+            ALU::division(Value::I64(6532475327647647762), Value::I64(0)).err().unwrap().message(),
+            String::from("Overflow occurred when performing division on i64s.")
+        );
+        assert_eq!(
+            ALU::division(Value::I64(1), Value::F64(2.0)).err().unwrap().message(),
+            String::from("Cannot perform division between values of type 'i64' and 'f64'.")
+        );
+        assert_eq!(
+            ALU::division(Value::String(String::from("a")), Value::String(String::from("a")))
+                .err()
+                .unwrap()
+                .message(),
+            String::from("Cannot perform division between values of type 'str' and 'str'.")
+        );
     }
 
     #[test]
     fn concatenation() {
-        assert!(ALU::concatenation(Value::Bool(true), Value::Bool(true)).unwrap() == Value::Bool(true));
-        assert!(ALU::concatenation(Value::Bool(false), Value::Bool(true)).unwrap() == Value::Bool(false));
-        assert!(ALU::concatenation(Value::Bool(true), Value::Bool(false)).unwrap() == Value::Bool(false));
-        assert!(ALU::concatenation(Value::Bool(false), Value::Bool(false)).unwrap() == Value::Bool(false));
-        assert!(ALU::concatenation(Value::Bool(true), Value::I64(1)).is_err());
+        assert_eq!(ALU::concatenation(Value::Bool(true), Value::Bool(true)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::concatenation(Value::Bool(false), Value::Bool(true)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::concatenation(Value::Bool(true), Value::Bool(false)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::concatenation(Value::Bool(false), Value::Bool(false)).unwrap(), Value::Bool(false));
+        assert_eq!(
+            ALU::concatenation(Value::Bool(true), Value::I64(1)).err().unwrap().message(),
+            String::from("Cannot perform concatenation between values of type 'bool' and 'i64'.")
+        );
     }
 
     #[test]
     fn alternative() {
-        assert!(ALU::alternative(Value::Bool(true), Value::Bool(true)).unwrap() == Value::Bool(true));
-        assert!(ALU::alternative(Value::Bool(false), Value::Bool(true)).unwrap() == Value::Bool(true));
-        assert!(ALU::alternative(Value::Bool(true), Value::Bool(false)).unwrap() == Value::Bool(true));
-        assert!(ALU::alternative(Value::Bool(false), Value::Bool(false)).unwrap() == Value::Bool(false));
-        assert!(ALU::alternative(Value::Bool(true), Value::I64(1)).is_err());
+        assert_eq!(ALU::alternative(Value::Bool(true), Value::Bool(true)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::alternative(Value::Bool(false), Value::Bool(true)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::alternative(Value::Bool(true), Value::Bool(false)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::alternative(Value::Bool(false), Value::Bool(false)).unwrap(), Value::Bool(false));
+        assert_eq!(
+            ALU::alternative(Value::Bool(true), Value::I64(1)).err().unwrap().message(),
+            String::from("Cannot perform alternative between values of type 'bool' and 'i64'.")
+        );
     }
 
     #[test]
     fn greater() {
-        assert!(ALU::greater(Value::I64(1), Value::I64(2)).unwrap() == Value::Bool(false));
-        assert!(ALU::greater(Value::I64(2), Value::I64(2)).unwrap() == Value::Bool(false));
-        assert!(ALU::greater(Value::I64(3), Value::I64(2)).unwrap() == Value::Bool(true));
-        assert!(ALU::greater(Value::F64(1.0), Value::F64(2.0)).unwrap() == Value::Bool(false));
-        assert!(ALU::greater(Value::F64(2.0), Value::F64(2.0)).unwrap() == Value::Bool(false));
-        assert!(ALU::greater(Value::F64(3.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
-        assert!(ALU::greater(Value::I64(2), Value::F64(3.0)).is_err());
+        assert_eq!(ALU::greater(Value::I64(1), Value::I64(2)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::greater(Value::I64(2), Value::I64(2)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::greater(Value::I64(3), Value::I64(2)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::greater(Value::F64(1.0), Value::F64(2.0)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::greater(Value::F64(2.0), Value::F64(2.0)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::greater(Value::F64(3.0), Value::F64(2.0)).unwrap(), Value::Bool(true));
+        assert_eq!(
+            ALU::greater(Value::I64(2), Value::F64(3.0)).err().unwrap().message(),
+            String::from("Cannot perform greater between values of type 'i64' and 'f64'.")
+        );
     }
 
     #[test]
     fn greater_or_equal() {
-        assert!(ALU::greater_or_equal(Value::I64(1), Value::I64(2)).unwrap() == Value::Bool(false));
-        assert!(ALU::greater_or_equal(Value::I64(2), Value::I64(2)).unwrap() == Value::Bool(true));
-        assert!(ALU::greater_or_equal(Value::I64(3), Value::I64(2)).unwrap() == Value::Bool(true));
-        assert!(ALU::greater_or_equal(Value::F64(1.0), Value::F64(2.0)).unwrap() == Value::Bool(false));
-        assert!(ALU::greater_or_equal(Value::F64(2.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
-        assert!(ALU::greater_or_equal(Value::F64(3.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
-        assert!(ALU::greater_or_equal(Value::I64(2), Value::F64(3.0)).is_err());
+        assert_eq!(ALU::greater_or_equal(Value::I64(1), Value::I64(2)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::greater_or_equal(Value::I64(2), Value::I64(2)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::greater_or_equal(Value::I64(3), Value::I64(2)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::greater_or_equal(Value::F64(1.0), Value::F64(2.0)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::greater_or_equal(Value::F64(2.0), Value::F64(2.0)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::greater_or_equal(Value::F64(3.0), Value::F64(2.0)).unwrap(), Value::Bool(true));
+        assert_eq!(
+            ALU::greater_or_equal(Value::I64(2), Value::F64(3.0)).err().unwrap().message(),
+            String::from("Cannot perform greater or equal between values of type 'i64' and 'f64'.")
+        );
     }
 
     #[test]
     fn less() {
-        assert!(ALU::less(Value::I64(1), Value::I64(2)).unwrap() == Value::Bool(true));
-        assert!(ALU::less(Value::I64(2), Value::I64(2)).unwrap() == Value::Bool(false));
-        assert!(ALU::less(Value::I64(3), Value::I64(2)).unwrap() == Value::Bool(false));
-        assert!(ALU::less(Value::F64(1.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
-        assert!(ALU::less(Value::F64(2.0), Value::F64(2.0)).unwrap() == Value::Bool(false));
-        assert!(ALU::less(Value::F64(3.0), Value::F64(2.0)).unwrap() == Value::Bool(false));
-        assert!(ALU::less(Value::I64(2), Value::F64(3.0)).is_err());
+        assert_eq!(ALU::less(Value::I64(1), Value::I64(2)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::less(Value::I64(2), Value::I64(2)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::less(Value::I64(3), Value::I64(2)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::less(Value::F64(1.0), Value::F64(2.0)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::less(Value::F64(2.0), Value::F64(2.0)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::less(Value::F64(3.0), Value::F64(2.0)).unwrap(), Value::Bool(false));
+        assert_eq!(
+            ALU::less(Value::I64(2), Value::F64(3.0)).err().unwrap().message(),
+            String::from("Cannot perform less between values of type 'i64' and 'f64'.")
+        );
     }
 
     #[test]
     fn less_or_equal() {
-        assert!(ALU::less_or_equal(Value::I64(1), Value::I64(2)).unwrap() == Value::Bool(true));
-        assert!(ALU::less_or_equal(Value::I64(2), Value::I64(2)).unwrap() == Value::Bool(true));
-        assert!(ALU::less_or_equal(Value::I64(3), Value::I64(2)).unwrap() == Value::Bool(false));
-        assert!(ALU::less_or_equal(Value::F64(1.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
-        assert!(ALU::less_or_equal(Value::F64(2.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
-        assert!(ALU::less_or_equal(Value::F64(3.0), Value::F64(2.0)).unwrap() == Value::Bool(false));
-        assert!(ALU::less_or_equal(Value::I64(2), Value::F64(3.0)).is_err());
+        assert_eq!(ALU::less_or_equal(Value::I64(1), Value::I64(2)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::less_or_equal(Value::I64(2), Value::I64(2)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::less_or_equal(Value::I64(3), Value::I64(2)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::less_or_equal(Value::F64(1.0), Value::F64(2.0)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::less_or_equal(Value::F64(2.0), Value::F64(2.0)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::less_or_equal(Value::F64(3.0), Value::F64(2.0)).unwrap(), Value::Bool(false));
+        assert_eq!(
+            ALU::less_or_equal(Value::I64(2), Value::F64(3.0)).err().unwrap().message(),
+            String::from("Cannot perform less or equal between values of type 'i64' and 'f64'.")
+        );
     }
 
     #[test]
     fn equal() {
-        assert!(ALU::equal(Value::I64(1), Value::I64(2)).unwrap() == Value::Bool(false));
-        assert!(ALU::equal(Value::I64(2), Value::I64(2)).unwrap() == Value::Bool(true));
-        assert!(ALU::equal(Value::F64(1.0), Value::F64(2.0)).unwrap() == Value::Bool(false));
-        assert!(ALU::equal(Value::F64(2.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
-        assert!(ALU::equal(Value::String(String::from("a")), Value::String(String::from("b"))).unwrap() == Value::Bool(false));
-        assert!(ALU::equal(Value::String(String::from("a")), Value::String(String::from("a"))).unwrap() == Value::Bool(true));
-        assert!(ALU::equal(Value::Bool(true), Value::Bool(false)).unwrap() == Value::Bool(false));
-        assert!(ALU::equal(Value::Bool(true), Value::Bool(true)).unwrap() == Value::Bool(true));
-        assert!(ALU::equal(Value::Bool(true), Value::I64(1)).is_err());
+        assert_eq!(ALU::equal(Value::I64(1), Value::I64(2)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::equal(Value::I64(2), Value::I64(2)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::equal(Value::F64(1.0), Value::F64(2.0)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::equal(Value::F64(2.0), Value::F64(2.0)).unwrap(), Value::Bool(true));
+        assert_eq!(
+            ALU::equal(Value::String(String::from("a")), Value::String(String::from("b"))).unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            ALU::equal(Value::String(String::from("a")), Value::String(String::from("a"))).unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(ALU::equal(Value::Bool(true), Value::Bool(false)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::equal(Value::Bool(true), Value::Bool(true)).unwrap(), Value::Bool(true));
+        assert_eq!(
+            ALU::equal(Value::Bool(true), Value::I64(1)).err().unwrap().message(),
+            String::from("Cannot perform equal between values of type 'bool' and 'i64'.")
+        );
     }
 
     #[test]
     fn not_equal() {
-        assert!(ALU::not_equal(Value::I64(1), Value::I64(2)).unwrap() == Value::Bool(true));
-        assert!(ALU::not_equal(Value::I64(2), Value::I64(2)).unwrap() == Value::Bool(false));
-        assert!(ALU::not_equal(Value::F64(1.0), Value::F64(2.0)).unwrap() == Value::Bool(true));
-        assert!(ALU::not_equal(Value::F64(2.0), Value::F64(2.0)).unwrap() == Value::Bool(false));
-        assert!(ALU::not_equal(Value::String(String::from("a")), Value::String(String::from("b"))).unwrap() == Value::Bool(true));
-        assert!(ALU::not_equal(Value::String(String::from("a")), Value::String(String::from("a"))).unwrap() == Value::Bool(false));
-        assert!(ALU::not_equal(Value::Bool(true), Value::Bool(false)).unwrap() == Value::Bool(true));
-        assert!(ALU::not_equal(Value::Bool(true), Value::Bool(true)).unwrap() == Value::Bool(false));
-        assert!(ALU::not_equal(Value::Bool(true), Value::I64(1)).is_err());
+        assert_eq!(ALU::not_equal(Value::I64(1), Value::I64(2)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::not_equal(Value::I64(2), Value::I64(2)).unwrap(), Value::Bool(false));
+        assert_eq!(ALU::not_equal(Value::F64(1.0), Value::F64(2.0)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::not_equal(Value::F64(2.0), Value::F64(2.0)).unwrap(), Value::Bool(false));
+        assert_eq!(
+            ALU::not_equal(Value::String(String::from("a")), Value::String(String::from("b"))).unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            ALU::not_equal(Value::String(String::from("a")), Value::String(String::from("a"))).unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(ALU::not_equal(Value::Bool(true), Value::Bool(false)).unwrap(), Value::Bool(true));
+        assert_eq!(ALU::not_equal(Value::Bool(true), Value::Bool(true)).unwrap(), Value::Bool(false));
+        assert_eq!(
+            ALU::not_equal(Value::Bool(true), Value::I64(1)).err().unwrap().message(),
+            String::from("Cannot perform not equal between values of type 'bool' and 'i64'.")
+        );
     }
 }
