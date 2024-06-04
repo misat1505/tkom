@@ -100,7 +100,13 @@ impl<L: ILexer> Parser<L> {
             let _ = self.next_token()?;
             return Ok(current_token.clone());
         }
-        Err(self.create_parser_error(format!("Unexpected token - {:?}. Expected {:?}.", current_token.category, category)))
+        let text = match current_token.value {
+            TokenValue::F64(f64) => f64.to_string(),
+            TokenValue::I64(i64) => i64.to_string(),
+            TokenValue::String(str) => str,
+            TokenValue::Null => format!("{:?}", current_token.category)
+        };
+        Err(self.create_parser_error(format!("Unexpected token - '{}'. Expected '{:?}'.", text, category)))
     }
 
     fn consume_if_matches(&mut self, category: TokenCategory) -> Result<Option<Token>, Box<dyn IError>> {
