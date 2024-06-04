@@ -81,7 +81,7 @@ impl Debug for TokenCategory {
             And => "&&",
             Or => "||",
             ParenOpen => "(",
-            ParenClose => "(",
+            ParenClose => ")",
             BracketOpen => "[",
             BracketClose => "]",
             BraceOpen => "{",

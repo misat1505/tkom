@@ -1372,7 +1372,7 @@ mod tests {
         let expected = [
             String::from("Unexpected token - 'ETX'. Expected ';'."),
             String::from("Couldn't create expression while parsing for statement."),
-            String::from("Unexpected token - '{'. Expected '('."),
+            String::from("Unexpected token - '{'. Expected ')'."),
         ];
 
         for idx in 0..token_series.len() {
@@ -1481,7 +1481,7 @@ mod tests {
                 create_token(TokenCategory::ETX, TokenValue::Null),
             ],
             vec![
-                // if (True {}
+                // if (true {}
                 create_token(TokenCategory::If, TokenValue::Null),
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
                 create_token(TokenCategory::True, TokenValue::Null),
@@ -1493,7 +1493,7 @@ mod tests {
 
         let expected = [
             String::from("Unexpected token - 'true'. Expected '('."),
-            String::from("Unexpected token - '{'. Expected '('."),
+            String::from("Unexpected token - '{'. Expected ')'."),
         ];
 
         for idx in 0..token_series.len() {
@@ -1589,7 +1589,7 @@ mod tests {
         ];
 
         let expected = [
-            String::from("Unexpected token - ';'. Expected '('."),
+            String::from("Unexpected token - ';'. Expected ')'."),
             String::from("Unexpected token - 'ETX'. Expected ';'."),
             String::from("Unexpected token - 'ETX'. Expected ';'."),
             String::from("Couldn't create assignment or call."),
@@ -2215,7 +2215,7 @@ mod tests {
 
         assert_eq!(
             parser.parse_factor().err().unwrap().message(),
-            create_error_message(String::from("Unexpected token - 'ETX'. Expected '('."))
+            create_error_message(String::from("Unexpected token - 'ETX'. Expected ')'."))
         );
     }
 
@@ -2244,7 +2244,7 @@ mod tests {
 
         let expected = [
             String::from("Couldn't create argument while parsing arguments."),
-            String::from("Unexpected token - 'ETX'. Expected '('."),
+            String::from("Unexpected token - 'ETX'. Expected ')'."),
         ];
 
         for idx in 0..token_series.len() {
