@@ -852,6 +852,15 @@ mod tests {
 
     use super::*;
 
+    macro_rules! test_node {
+        ($value:expr) => {
+            Node {
+                value: $value,
+                position: default_position(),
+            }
+        };
+    }
+
     struct LexerMock {
         current_token: Option<Token>,
         pub tokens: Vec<Token>,
@@ -949,46 +958,19 @@ mod tests {
 
         let expected = [
             Block(vec![]),
-            Block(vec![Node {
-                value: Statement::Assignment {
-                    identifier: Node {
-                        value: String::from("x"),
-                        position: default_position(),
-                    },
-                    value: Node {
-                        value: Expression::Literal(Literal::I64(5)),
-                        position: default_position(),
-                    },
-                },
-                position: default_position(),
-            }]),
+            Block(vec![test_node!(Statement::Assignment {
+                identifier: test_node!(String::from("x")),
+                value: test_node!(Expression::Literal(Literal::I64(5))),
+            })]),
             Block(vec![
-                Node {
-                    value: Statement::Assignment {
-                        identifier: Node {
-                            value: String::from("x"),
-                            position: default_position(),
-                        },
-                        value: Node {
-                            value: Expression::Literal(Literal::I64(5)),
-                            position: default_position(),
-                        },
-                    },
-                    position: default_position(),
-                },
-                Node {
-                    value: Statement::Assignment {
-                        identifier: Node {
-                            value: String::from("x"),
-                            position: default_position(),
-                        },
-                        value: Node {
-                            value: Expression::Literal(Literal::I64(5)),
-                            position: default_position(),
-                        },
-                    },
-                    position: default_position(),
-                },
+                test_node!(Statement::Assignment {
+                    identifier: test_node!(String::from("x")),
+                    value: test_node!(Expression::Literal(Literal::I64(5))),
+                }),
+                test_node!(Statement::Assignment {
+                    identifier: test_node!(String::from("x")),
+                    value: test_node!(Expression::Literal(Literal::I64(5))),
+                }),
             ]),
         ];
 
@@ -1104,85 +1086,40 @@ mod tests {
 
         let expected = [
             Statement::Assignment {
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
-                value: Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                },
+                identifier: test_node!(String::from("x")),
+                value: test_node!(Expression::Literal(Literal::I64(5))),
             },
             Statement::FunctionCall {
-                identifier: Node {
-                    value: String::from("print"),
-                    position: default_position(),
-                },
+                identifier: test_node!(String::from("print")),
                 arguments: vec![],
             },
             Statement::Conditional {
-                condition: Node {
-                    value: Expression::Literal(Literal::True),
-                    position: default_position(),
-                },
-                if_block: Node {
-                    value: Block(vec![]),
-                    position: default_position(),
-                },
+                condition: test_node!(Expression::Literal(Literal::True)),
+                if_block: test_node!(Block(vec![])),
                 else_block: None,
             },
             Statement::ForLoop {
                 declaration: None,
-                condition: Node {
-                    value: Expression::Literal(Literal::True),
-                    position: default_position(),
-                },
+                condition: test_node!(Expression::Literal(Literal::True)),
                 assignment: None,
-                block: Node {
-                    value: Block(vec![]),
-                    position: default_position(),
-                },
+                block: test_node!(Block(vec![])),
             },
             Statement::Switch {
-                expressions: vec![Node {
-                    value: SwitchExpression {
-                        expression: Node {
-                            value: Expression::Variable(String::from("x")),
-                            position: default_position(),
-                        },
-                        alias: None,
-                    },
-                    position: default_position(),
-                }],
-                cases: vec![Node {
-                    value: SwitchCase {
-                        condition: Node {
-                            value: Expression::Literal(Literal::True),
-                            position: default_position(),
-                        },
-                        block: Node {
-                            value: Block(vec![]),
-                            position: default_position(),
-                        },
-                    },
-                    position: default_position(),
-                }],
+                expressions: vec![test_node!(SwitchExpression {
+                    expression: test_node!(Expression::Variable(String::from("x"))),
+                    alias: None,
+                })],
+                cases: vec![test_node!(SwitchCase {
+                    condition: test_node!(Expression::Literal(Literal::True)),
+                    block: test_node!(Block(vec![])),
+                })],
             },
             Statement::Return(None),
             Statement::Break,
             Statement::Declaration {
-                var_type: Node {
-                    value: Type::I64,
-                    position: default_position(),
-                },
-                identifier: Node {
-                    value: String::from("a"),
-                    position: default_position(),
-                },
-                value: Some(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
+                var_type: test_node!(Type::I64),
+                identifier: test_node!(String::from("a")),
+                value: Some(test_node!(Expression::Literal(Literal::I64(5)))),
             },
         ];
 
@@ -1249,34 +1186,16 @@ mod tests {
 
         let expected = [
             FunctionDeclaration {
-                identifier: Node {
-                    value: String::from("add"),
-                    position: default_position(),
-                },
+                identifier: test_node!(String::from("add")),
                 parameters: vec![],
-                return_type: Node {
-                    value: Type::I64,
-                    position: default_position(),
-                },
-                block: Node {
-                    value: Block(vec![]),
-                    position: default_position(),
-                },
+                return_type: test_node!(Type::I64),
+                block: test_node!(Block(vec![])),
             },
             FunctionDeclaration {
-                identifier: Node {
-                    value: String::from("add"),
-                    position: default_position(),
-                },
+                identifier: test_node!(String::from("add")),
                 parameters: vec![],
-                return_type: Node {
-                    value: Type::Void,
-                    position: default_position(),
-                },
-                block: Node {
-                    value: Block(vec![]),
-                    position: default_position(),
-                },
+                return_type: test_node!(Type::Void),
+                block: test_node!(Block(vec![])),
             },
         ];
 
@@ -1331,49 +1250,22 @@ mod tests {
 
         let expected = [
             vec![],
-            vec![Node {
-                value: Parameter {
-                    passed_by: PassedBy::Value,
-                    parameter_type: Node {
-                        value: Type::I64,
-                        position: default_position(),
-                    },
-                    identifier: Node {
-                        value: String::from("x"),
-                        position: default_position(),
-                    },
-                },
-                position: default_position(),
-            }],
+            vec![test_node!(Parameter {
+                passed_by: PassedBy::Value,
+                parameter_type: test_node!(Type::I64),
+                identifier: test_node!(String::from("x")),
+            })],
             vec![
-                Node {
-                    value: Parameter {
-                        passed_by: PassedBy::Value,
-                        parameter_type: Node {
-                            value: Type::I64,
-                            position: default_position(),
-                        },
-                        identifier: Node {
-                            value: String::from("x"),
-                            position: default_position(),
-                        },
-                    },
-                    position: default_position(),
-                },
-                Node {
-                    value: Parameter {
-                        passed_by: PassedBy::Value,
-                        parameter_type: Node {
-                            value: Type::I64,
-                            position: default_position(),
-                        },
-                        identifier: Node {
-                            value: String::from("y"),
-                            position: default_position(),
-                        },
-                    },
-                    position: default_position(),
-                },
+                test_node!(Parameter {
+                    passed_by: PassedBy::Value,
+                    parameter_type: test_node!(Type::I64),
+                    identifier: test_node!(String::from("x")),
+                }),
+                test_node!(Parameter {
+                    passed_by: PassedBy::Value,
+                    parameter_type: test_node!(Type::I64),
+                    identifier: test_node!(String::from("y")),
+                }),
             ],
         ];
 
@@ -1409,25 +1301,13 @@ mod tests {
         let expected = [
             Parameter {
                 passed_by: PassedBy::Reference,
-                parameter_type: Node {
-                    value: Type::I64,
-                    position: default_position(),
-                },
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
+                parameter_type: test_node!(Type::I64),
+                identifier: test_node!(String::from("x")),
             },
             Parameter {
                 passed_by: PassedBy::Value,
-                parameter_type: Node {
-                    value: Type::I64,
-                    position: default_position(),
-                },
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
+                parameter_type: test_node!(Type::I64),
+                identifier: test_node!(String::from("x")),
             },
         ];
 
@@ -1525,83 +1405,32 @@ mod tests {
 
         let expected = vec![
             Statement::ForLoop {
-                declaration: Some(Box::new(Node {
-                    value: Statement::Declaration {
-                        var_type: Node {
-                            value: Type::I64,
-                            position: default_position(),
-                        },
-                        identifier: Node {
-                            value: String::from("x"),
-                            position: default_position(),
-                        },
-                        value: Some(Node {
-                            value: Expression::Literal(Literal::I64(0)),
-                            position: default_position(),
-                        }),
-                    },
-                    position: default_position(),
-                })),
-                condition: Node {
-                    value: Expression::Less(
-                        Box::new(Node {
-                            value: Expression::Variable(String::from("x")),
-                            position: default_position(),
-                        }),
-                        Box::new(Node {
-                            value: Expression::Literal(Literal::I64(5)),
-                            position: default_position(),
-                        }),
-                    ),
-                    position: default_position(),
-                },
-                assignment: Some(Box::new(Node {
-                    value: Statement::Assignment {
-                        identifier: Node {
-                            value: String::from("x"),
-                            position: default_position(),
-                        },
-                        value: Node {
-                            value: Expression::Addition(
-                                Box::new(Node {
-                                    value: Expression::Variable(String::from("x")),
-                                    position: default_position(),
-                                }),
-                                Box::new(Node {
-                                    value: Expression::Literal(Literal::I64(1)),
-                                    position: default_position(),
-                                }),
-                            ),
-                            position: default_position(),
-                        },
-                    },
-                    position: default_position(),
-                })),
-                block: Node {
-                    value: Block(vec![]),
-                    position: default_position(),
-                },
+                declaration: Some(Box::new(test_node!(Statement::Declaration {
+                    var_type: test_node!(Type::I64),
+                    identifier: test_node!(String::from("x")),
+                    value: Some(test_node!(Expression::Literal(Literal::I64(0)))),
+                }))),
+                condition: test_node!(Expression::Less(
+                    Box::new(test_node!(Expression::Variable(String::from("x")))),
+                    Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+                )),
+                assignment: Some(Box::new(test_node!(Statement::Assignment {
+                    identifier: test_node!(String::from("x")),
+                    value: test_node!(Expression::Addition(
+                        Box::new(test_node!(Expression::Variable(String::from("x")))),
+                        Box::new(test_node!(Expression::Literal(Literal::I64(1)))),
+                    )),
+                }))),
+                block: test_node!(Block(vec![])),
             },
             Statement::ForLoop {
                 declaration: None,
-                condition: Node {
-                    value: Expression::Less(
-                        Box::new(Node {
-                            value: Expression::Variable(String::from("x")),
-                            position: default_position(),
-                        }),
-                        Box::new(Node {
-                            value: Expression::Literal(Literal::I64(5)),
-                            position: default_position(),
-                        }),
-                    ),
-                    position: default_position(),
-                },
+                condition: test_node!(Expression::Less(
+                    Box::new(test_node!(Expression::Variable(String::from("x")))),
+                    Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+                )),
                 assignment: None,
-                block: Node {
-                    value: Block(vec![]),
-                    position: default_position(),
-                },
+                block: test_node!(Block(vec![])),
             },
         ];
 
@@ -1675,29 +1504,14 @@ mod tests {
 
         let expected = vec![
             Statement::Conditional {
-                condition: Node {
-                    value: Expression::Literal(Literal::True),
-                    position: default_position(),
-                },
-                if_block: Node {
-                    value: Block(vec![]),
-                    position: default_position(),
-                },
+                condition: test_node!(Expression::Literal(Literal::True)),
+                if_block: test_node!(Block(vec![])),
                 else_block: None,
             },
             Statement::Conditional {
-                condition: Node {
-                    value: Expression::Literal(Literal::True),
-                    position: default_position(),
-                },
-                if_block: Node {
-                    value: Block(vec![]),
-                    position: default_position(),
-                },
-                else_block: Some(Node {
-                    value: Block(vec![]),
-                    position: default_position(),
-                }),
+                condition: test_node!(Expression::Literal(Literal::True)),
+                if_block: test_node!(Block(vec![])),
+                else_block: Some(test_node!(Block(vec![]))),
             },
         ];
 
@@ -1772,21 +1586,12 @@ mod tests {
 
         let expected = vec![
             Statement::FunctionCall {
-                identifier: Node {
-                    value: String::from("print"),
-                    position: default_position(),
-                },
+                identifier: test_node!(String::from("print")),
                 arguments: vec![],
             },
             Statement::Assignment {
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
-                value: Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                },
+                identifier: test_node!(String::from("x")),
+                value: test_node!(Expression::Literal(Literal::I64(5))),
             },
         ];
 
@@ -1818,31 +1623,16 @@ mod tests {
             ],
         ];
 
-        let expected = [
+        let expected = vec![
             Statement::Declaration {
-                var_type: Node {
-                    value: Type::I64,
-                    position: default_position(),
-                },
-                identifier: Node {
-                    value: String::from("a"),
-                    position: default_position(),
-                },
+                var_type: test_node!(Type::I64),
+                identifier: test_node!(String::from("a")),
                 value: None,
             },
             Statement::Declaration {
-                var_type: Node {
-                    value: Type::I64,
-                    position: default_position(),
-                },
-                identifier: Node {
-                    value: String::from("a"),
-                    position: default_position(),
-                },
-                value: Some(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
+                var_type: test_node!(Type::I64),
+                identifier: test_node!(String::from("a")),
+                value: Some(test_node!(Expression::Literal(Literal::I64(5)))),
             },
         ];
 
@@ -1897,12 +1687,9 @@ mod tests {
             ],
         ];
 
-        let expected = [
+        let expected = vec![
             Statement::Return(None),
-            Statement::Return(Some(Node {
-                value: Expression::Literal(Literal::I64(5)),
-                position: default_position(),
-            })),
+            Statement::Return(Some(test_node!(Expression::Literal(Literal::I64(5))))),
         ];
 
         for (idx, series) in token_series.iter().enumerate() {
@@ -1983,39 +1770,21 @@ mod tests {
             ],
         ];
 
-        let expected = [
+        let expected = vec![
             vec![],
-            vec![Node {
-                value: Argument {
-                    value: Node {
-                        value: Expression::Literal(Literal::I64(1)),
-                        position: default_position(),
-                    },
-                    passed_by: PassedBy::Value,
-                },
-                position: default_position(),
-            }],
+            vec![test_node!(Argument {
+                value: test_node!(Expression::Literal(Literal::I64(1))),
+                passed_by: PassedBy::Value
+            })],
             vec![
-                Node {
-                    value: Argument {
-                        value: Node {
-                            value: Expression::Literal(Literal::I64(1)),
-                            position: default_position(),
-                        },
-                        passed_by: PassedBy::Reference,
-                    },
-                    position: default_position(),
-                },
-                Node {
-                    value: Argument {
-                        value: Node {
-                            value: Expression::Literal(Literal::I64(2)),
-                            position: default_position(),
-                        },
-                        passed_by: PassedBy::Value,
-                    },
-                    position: default_position(),
-                },
+                test_node!(Argument {
+                    value: test_node!(Expression::Literal(Literal::I64(1))),
+                    passed_by: PassedBy::Reference
+                }),
+                test_node!(Argument {
+                    value: test_node!(Expression::Literal(Literal::I64(2))),
+                    passed_by: PassedBy::Value
+                }),
             ],
         ];
 
@@ -2044,19 +1813,13 @@ mod tests {
             ],
         ];
 
-        let expected = [
+        let expected = vec![
             Argument {
-                value: Node {
-                    value: Expression::Literal(Literal::I64(1)),
-                    position: default_position(),
-                },
+                value: test_node!(Expression::Literal(Literal::I64(1))),
                 passed_by: PassedBy::Value,
             },
             Argument {
-                value: Node {
-                    value: Expression::Variable(String::from("x")),
-                    position: default_position(),
-                },
+                value: test_node!(Expression::Variable(String::from("x"))),
                 passed_by: PassedBy::Reference,
             },
         ];
@@ -2087,26 +1850,13 @@ mod tests {
 
         let node = parser.parse_expression().unwrap().unwrap();
         assert!(
-            node.value
-                == Expression::Alternative(
-                    Box::new(Node {
-                        value: Expression::Alternative(
-                            Box::new(Node {
-                                value: Expression::Variable(String::from("a")),
-                                position: default_position()
-                            }),
-                            Box::new(Node {
-                                value: Expression::Variable(String::from("b")),
-                                position: default_position()
-                            })
-                        ),
-                        position: default_position()
-                    }),
-                    Box::new(Node {
-                        value: Expression::Variable(String::from("c")),
-                        position: default_position()
-                    })
-                )
+            node == test_node!(Expression::Alternative(
+                Box::new(test_node!(Expression::Alternative(
+                    Box::new(test_node!(Expression::Variable(String::from("a")))),
+                    Box::new(test_node!(Expression::Variable(String::from("b")))),
+                ))),
+                Box::new(test_node!(Expression::Variable(String::from("c")))),
+            ))
         );
     }
 
@@ -2127,26 +1877,13 @@ mod tests {
 
         let node = parser.parse_concatenation_term().unwrap().unwrap();
         assert!(
-            node.value
-                == Expression::Concatenation(
-                    Box::new(Node {
-                        value: Expression::Concatenation(
-                            Box::new(Node {
-                                value: Expression::Variable(String::from("a")),
-                                position: default_position()
-                            }),
-                            Box::new(Node {
-                                value: Expression::Variable(String::from("b")),
-                                position: default_position()
-                            })
-                        ),
-                        position: default_position()
-                    }),
-                    Box::new(Node {
-                        value: Expression::Variable(String::from("c")),
-                        position: default_position()
-                    })
-                )
+            node == test_node!(Expression::Concatenation(
+                Box::new(test_node!(Expression::Concatenation(
+                    Box::new(test_node!(Expression::Variable(String::from("a")))),
+                    Box::new(test_node!(Expression::Variable(String::from("b")))),
+                ))),
+                Box::new(test_node!(Expression::Variable(String::from("c")))),
+            ))
         );
     }
 
@@ -2204,64 +1941,28 @@ mod tests {
 
         let expected = [
             Expression::Equal(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(1)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(2)),
-                    position: default_position(),
-                }),
+                Box::new(test_node!(Expression::Literal(Literal::I64(1)))),
+                Box::new(test_node!(Expression::Literal(Literal::I64(2)))),
             ),
             Expression::NotEqual(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(1)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(2)),
-                    position: default_position(),
-                }),
+                Box::new(test_node!(Expression::Literal(Literal::I64(1)))),
+                Box::new(test_node!(Expression::Literal(Literal::I64(2)))),
             ),
             Expression::Greater(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(1)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(2)),
-                    position: default_position(),
-                }),
+                Box::new(test_node!(Expression::Literal(Literal::I64(1)))),
+                Box::new(test_node!(Expression::Literal(Literal::I64(2)))),
             ),
             Expression::GreaterEqual(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(1)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(2)),
-                    position: default_position(),
-                }),
+                Box::new(test_node!(Expression::Literal(Literal::I64(1)))),
+                Box::new(test_node!(Expression::Literal(Literal::I64(2)))),
             ),
             Expression::Less(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(1)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(2)),
-                    position: default_position(),
-                }),
+                Box::new(test_node!(Expression::Literal(Literal::I64(1)))),
+                Box::new(test_node!(Expression::Literal(Literal::I64(2)))),
             ),
             Expression::LessEqual(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(1)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(2)),
-                    position: default_position(),
-                }),
+                Box::new(test_node!(Expression::Literal(Literal::I64(1)))),
+                Box::new(test_node!(Expression::Literal(Literal::I64(2)))),
             ),
             Expression::Literal(Literal::I64(1)),
         ];
@@ -2292,26 +1993,13 @@ mod tests {
 
         let node = parser.parse_additive_term().unwrap().unwrap();
         assert!(
-            node.value
-                == Expression::Subtraction(
-                    Box::new(Node {
-                        value: Expression::Addition(
-                            Box::new(Node {
-                                value: Expression::Literal(Literal::I64(5)),
-                                position: default_position()
-                            }),
-                            Box::new(Node {
-                                value: Expression::Literal(Literal::F64(2.0)),
-                                position: default_position()
-                            })
-                        ),
-                        position: default_position()
-                    }),
-                    Box::new(Node {
-                        value: Expression::Variable(String::from("x")),
-                        position: default_position()
-                    })
-                )
+            node == test_node!(Expression::Subtraction(
+                Box::new(test_node!(Expression::Addition(
+                    Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+                    Box::new(test_node!(Expression::Literal(Literal::F64(2.0))))
+                ))),
+                Box::new(test_node!(Expression::Variable(String::from("x"))))
+            ))
         )
     }
 
@@ -2332,26 +2020,13 @@ mod tests {
 
         let node = parser.parse_multiplicative_term().unwrap().unwrap();
         assert!(
-            node.value
-                == Expression::Division(
-                    Box::new(Node {
-                        value: Expression::Multiplication(
-                            Box::new(Node {
-                                value: Expression::Literal(Literal::I64(5)),
-                                position: default_position()
-                            }),
-                            Box::new(Node {
-                                value: Expression::Literal(Literal::F64(2.0)),
-                                position: default_position()
-                            })
-                        ),
-                        position: default_position()
-                    }),
-                    Box::new(Node {
-                        value: Expression::Variable(String::from("x")),
-                        position: default_position()
-                    })
-                )
+            node == test_node!(Expression::Division(
+                Box::new(test_node!(Expression::Multiplication(
+                    Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+                    Box::new(test_node!(Expression::Literal(Literal::F64(2.0))))
+                ))),
+                Box::new(test_node!(Expression::Variable(String::from("x"))))
+            ))
         )
     }
 
@@ -2374,14 +2049,8 @@ mod tests {
 
         let expected = vec![
             Expression::Casting {
-                value: Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-                to_type: Node {
-                    value: Type::Str,
-                    position: default_position(),
-                },
+                value: Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+                to_type: test_node!(Type::Str),
             },
             Expression::Literal(Literal::I64(5)),
         ];
@@ -2418,14 +2087,8 @@ mod tests {
         ];
 
         let expected = [
-            Expression::BooleanNegation(Box::new(Node {
-                value: Expression::Literal(Literal::True),
-                position: default_position(),
-            })),
-            Expression::ArithmeticNegation(Box::new(Node {
-                value: Expression::Literal(Literal::I64(5)),
-                position: default_position(),
-            })),
+            Expression::BooleanNegation(Box::new(test_node!(Expression::Literal(Literal::True)))),
+            Expression::ArithmeticNegation(Box::new(test_node!(Expression::Literal(Literal::I64(5))))),
             Expression::Literal(Literal::I64(5)),
         ];
 
@@ -2464,14 +2127,8 @@ mod tests {
 
         let expected = vec![
             Expression::Addition(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(2)),
-                    position: default_position(),
-                }),
+                Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+                Box::new(test_node!(Expression::Literal(Literal::I64(2)))),
             ),
             Expression::Literal(Literal::I64(5)),
             Expression::Variable(String::from("print")),
@@ -2570,57 +2227,30 @@ mod tests {
             ],
         ];
 
-        let expected = [
+        let expected = vec![
             Expression::Variable(String::from("print")),
             Expression::FunctionCall {
-                identifier: Node {
-                    value: String::from("print"),
-                    position: default_position(),
-                },
+                identifier: test_node!(String::from("print")),
                 arguments: vec![],
             },
             Expression::FunctionCall {
-                identifier: Node {
-                    value: String::from("print"),
-                    position: default_position(),
-                },
-                arguments: vec![Box::new(Node {
-                    value: Argument {
-                        value: Node {
-                            value: Expression::Literal(Literal::I64(5)),
-                            position: default_position(),
-                        },
-                        passed_by: PassedBy::Value,
-                    },
-                    position: default_position(),
-                })],
+                identifier: test_node!(String::from("print")),
+                arguments: vec![Box::new(test_node!(Argument {
+                    value: test_node!(Expression::Literal(Literal::I64(5))),
+                    passed_by: PassedBy::Value,
+                }))],
             },
             Expression::FunctionCall {
-                identifier: Node {
-                    value: String::from("print"),
-                    position: default_position(),
-                },
+                identifier: test_node!(String::from("print")),
                 arguments: vec![
-                    Box::new(Node {
-                        value: Argument {
-                            value: Node {
-                                value: Expression::Literal(Literal::I64(5)),
-                                position: default_position(),
-                            },
-                            passed_by: PassedBy::Reference,
-                        },
-                        position: default_position(),
-                    }),
-                    Box::new(Node {
-                        value: Argument {
-                            value: Node {
-                                value: Expression::Variable(String::from("x")),
-                                position: default_position(),
-                            },
-                            passed_by: PassedBy::Value,
-                        },
-                        position: default_position(),
-                    }),
+                    Box::new(test_node!(Argument {
+                        value: test_node!(Expression::Literal(Literal::I64(5))),
+                        passed_by: PassedBy::Reference,
+                    })),
+                    Box::new(test_node!(Argument {
+                        value: test_node!(Expression::Variable(String::from("x"))),
+                        passed_by: PassedBy::Value,
+                    })),
                 ],
             },
         ];
@@ -2656,29 +2286,14 @@ mod tests {
         ]];
 
         let expected_types = [Statement::Switch {
-            expressions: vec![Node {
-                value: SwitchExpression {
-                    expression: Node {
-                        value: Expression::Variable(String::from("x")),
-                        position: default_position(),
-                    },
-                    alias: None,
-                },
-                position: default_position(),
-            }],
-            cases: vec![Node {
-                value: SwitchCase {
-                    condition: Node {
-                        value: Expression::Literal(Literal::True),
-                        position: default_position(),
-                    },
-                    block: Node {
-                        value: Block(vec![]),
-                        position: default_position(),
-                    },
-                },
-                position: default_position(),
-            }],
+            expressions: vec![test_node!(SwitchExpression {
+                expression: test_node!(Expression::Variable(String::from("x"))),
+                alias: None,
+            })],
+            cases: vec![test_node!(SwitchCase {
+                condition: test_node!(Expression::Literal(Literal::True)),
+                block: test_node!(Block(vec![])),
+            })],
         }];
 
         for (idx, series) in token_series.iter().enumerate() {
@@ -2730,40 +2345,19 @@ mod tests {
 
         let expected_types = [
             vec![
-                Node {
-                    value: SwitchExpression {
-                        expression: Node {
-                            value: Expression::Variable(String::from("x")),
-                            position: default_position(),
-                        },
-                        alias: Some(Node {
-                            value: String::from("temp"),
-                            position: default_position(),
-                        }),
-                    },
-                    position: default_position(),
-                },
-                Node {
-                    value: SwitchExpression {
-                        expression: Node {
-                            value: Expression::Variable(String::from("y")),
-                            position: default_position(),
-                        },
-                        alias: None,
-                    },
-                    position: default_position(),
-                },
-            ],
-            vec![Node {
-                value: SwitchExpression {
-                    expression: Node {
-                        value: Expression::Variable(String::from("x")),
-                        position: default_position(),
-                    },
+                test_node!(SwitchExpression {
+                    expression: test_node!(Expression::Variable(String::from("x"))),
+                    alias: Some(test_node!(String::from("temp"))),
+                }),
+                test_node!(SwitchExpression {
+                    expression: test_node!(Expression::Variable(String::from("y"))),
                     alias: None,
-                },
-                position: default_position(),
-            }],
+                }),
+            ],
+            vec![test_node!(SwitchExpression {
+                expression: test_node!(Expression::Variable(String::from("x"))),
+                alias: None,
+            })],
         ];
 
         for (idx, series) in token_series.iter().enumerate() {
@@ -2794,20 +2388,11 @@ mod tests {
 
         let expected_types = [
             SwitchExpression {
-                expression: Node {
-                    value: Expression::Variable(String::from("x")),
-                    position: default_position(),
-                },
-                alias: Some(Node {
-                    value: String::from("temp"),
-                    position: default_position(),
-                }),
+                expression: test_node!(Expression::Variable(String::from("x"))),
+                alias: Some(test_node!(String::from("temp"))),
             },
             SwitchExpression {
-                expression: Node {
-                    value: Expression::Variable(String::from("x")),
-                    position: default_position(),
-                },
+                expression: test_node!(Expression::Variable(String::from("x"))),
                 alias: None,
             },
         ];
@@ -2835,14 +2420,8 @@ mod tests {
         ]];
 
         let expected_types = [SwitchCase {
-            condition: Node {
-                value: Expression::Literal(Literal::True),
-                position: default_position(),
-            },
-            block: Node {
-                value: Block(vec![]),
-                position: default_position(),
-            },
+            condition: test_node!(Expression::Literal(Literal::True)),
+            block: test_node!(Block(vec![])),
         }];
 
         for (idx, series) in token_series.iter().enumerate() {
