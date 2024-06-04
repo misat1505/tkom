@@ -742,7 +742,7 @@ impl<L: ILexer> Parser<L> {
         while let Some(_) = self.consume_if_matches(TokenCategory::Comma)? {
             expression = self
                 .parse_switch_expression()?
-                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create swicth expression while parsing switch expressions.")))?;
+                .ok_or_else(|| self.create_parser_error(String::from("Couldn't create switch expression while parsing switch expressions.")))?;
 
             switch_expressions.push(expression);
         }
@@ -915,25 +915,23 @@ mod tests {
 
     #[test]
     fn parse_statement_block_fail() {
-        let token_series = vec![vec![
+        let series = vec![
             create_token(TokenCategory::BraceOpen, TokenValue::Null),
             create_token(TokenCategory::ETX, TokenValue::Null),
-        ]];
+        ];
 
-        for series in token_series {
-            let mock_lexer = LexerMock::new(series);
-            let mut parser = Parser::new(mock_lexer);
+        let mock_lexer = LexerMock::new(series);
+        let mut parser = Parser::new(mock_lexer);
 
-            assert_eq!(
-                parser.parse_statement_block().err().unwrap().message(),
-                create_error_message(String::from("Couldn't create statement while parsing statement block."))
-            );
-        }
+        assert_eq!(
+            parser.parse_statement_block().err().unwrap().message(),
+            create_error_message(String::from("Couldn't create statement while parsing statement block."))
+        );
     }
 
     #[test]
     fn parse_statement_block() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 create_token(TokenCategory::BraceOpen, TokenValue::Null),
                 create_token(TokenCategory::BraceClose, TokenValue::Null),
@@ -992,29 +990,27 @@ mod tests {
 
     #[test]
     fn parse_statement_fail() {
-        let token_series = vec![vec![
+        let series = vec![
             // i64 a = 5
             create_token(TokenCategory::I64, TokenValue::Null),
             create_token(TokenCategory::Identifier, TokenValue::String(String::from("a"))),
             create_token(TokenCategory::Assign, TokenValue::Null),
             create_token(TokenCategory::I64Value, TokenValue::I64(5)),
             create_token(TokenCategory::ETX, TokenValue::Null),
-        ]];
+        ];
 
-        for series in token_series {
-            let mock_lexer = LexerMock::new(series);
-            let mut parser = Parser::new(mock_lexer);
+        let mock_lexer = LexerMock::new(series);
+        let mut parser = Parser::new(mock_lexer);
 
-            assert_eq!(
-                parser.parse_statement().err().unwrap().message(),
-                create_error_message(String::from("Unexpected token - 'ETX'. Expected ';'."))
-            );
-        }
+        assert_eq!(
+            parser.parse_statement().err().unwrap().message(),
+            create_error_message(String::from("Unexpected token - 'ETX'. Expected ';'."))
+        );
     }
 
     #[test]
     fn parse_statement() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // x = 5;
                 create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
@@ -1144,7 +1140,7 @@ mod tests {
 
     #[test]
     fn parse_function_declaration_fail() {
-        let token_series = [vec![
+        let series = vec![
             // fn add(): , {}
             create_token(TokenCategory::Fn, TokenValue::Null),
             create_token(TokenCategory::Identifier, TokenValue::String(String::from("add"))),
@@ -1155,22 +1151,20 @@ mod tests {
             create_token(TokenCategory::BraceOpen, TokenValue::Null),
             create_token(TokenCategory::BraceClose, TokenValue::Null),
             create_token(TokenCategory::ETX, TokenValue::Null),
-        ]];
+        ];
 
-        for series in token_series {
-            let mock_lexer = LexerMock::new(series);
-            let mut parser = Parser::new(mock_lexer);
+        let mock_lexer = LexerMock::new(series);
+        let mut parser = Parser::new(mock_lexer);
 
-            assert_eq!(
-                parser.parse_function_declaration().err().unwrap().message(),
-                create_error_message(String::from("Bad return type: ,. Expected one of: 'i64', 'f64', 'bool', 'str', 'void'."))
-            );
-        }
+        assert_eq!(
+            parser.parse_function_declaration().err().unwrap().message(),
+            create_error_message(String::from("Bad return type: ,. Expected one of: 'i64', 'f64', 'bool', 'str', 'void'."))
+        );
     }
 
     #[test]
     fn parse_function_declaration() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // fn add(): i64 {}
                 create_token(TokenCategory::Fn, TokenValue::Null),
@@ -1242,7 +1236,7 @@ mod tests {
 
     #[test]
     fn parse_parameters() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
@@ -1296,7 +1290,7 @@ mod tests {
 
     #[test]
     fn parse_parameter() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // &i64 x = 0
                 create_token(TokenCategory::Reference, TokenValue::Null),
@@ -1388,7 +1382,7 @@ mod tests {
 
     #[test]
     fn parse_for_statement() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // for (i64 x = 0; x < 5; x = x + 1) {}
                 create_token(TokenCategory::For, TokenValue::Null),
@@ -1428,7 +1422,7 @@ mod tests {
             ],
         ];
 
-        let expected = vec![
+        let expected = [
             Statement::ForLoop {
                 declaration: Some(Box::new(test_node!(Statement::Declaration {
                     var_type: test_node!(Type::I64),
@@ -1509,7 +1503,7 @@ mod tests {
 
     #[test]
     fn parse_if_statement() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // if (true) {}
                 create_token(TokenCategory::If, TokenValue::Null),
@@ -1535,7 +1529,7 @@ mod tests {
             ],
         ];
 
-        let expected = vec![
+        let expected = [
             Statement::Conditional {
                 condition: test_node!(Expression::Literal(Literal::True)),
                 if_block: test_node!(Block(vec![])),
@@ -1608,7 +1602,7 @@ mod tests {
 
     #[test]
     fn parse_assign_or_call() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // print();
                 create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
@@ -1627,7 +1621,7 @@ mod tests {
             ],
         ];
 
-        let expected = vec![
+        let expected = [
             Statement::FunctionCall {
                 identifier: test_node!(String::from("print")),
                 arguments: vec![],
@@ -1649,7 +1643,7 @@ mod tests {
 
     #[test]
     fn parse_declaration() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // i64 a
                 create_token(TokenCategory::I64, TokenValue::Null),
@@ -1666,7 +1660,7 @@ mod tests {
             ],
         ];
 
-        let expected = vec![
+        let expected = [
             Statement::Declaration {
                 var_type: test_node!(Type::I64),
                 identifier: test_node!(String::from("a")),
@@ -1690,7 +1684,7 @@ mod tests {
 
     #[test]
     fn parse_return_statement_fail() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // return
                 create_token(TokenCategory::Return, TokenValue::Null),
@@ -1717,7 +1711,7 @@ mod tests {
 
     #[test]
     fn parse_return_statement() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // return;
                 create_token(TokenCategory::Return, TokenValue::Null),
@@ -1733,7 +1727,7 @@ mod tests {
             ],
         ];
 
-        let expected = vec![
+        let expected = [
             Statement::Return(None),
             Statement::Return(Some(test_node!(Expression::Literal(Literal::I64(5))))),
         ];
@@ -1749,21 +1743,19 @@ mod tests {
 
     #[test]
     fn parse_break_statement_fail() {
-        let token_series = [vec![
+        let series = vec![
             // break
             create_token(TokenCategory::Break, TokenValue::Null),
             create_token(TokenCategory::ETX, TokenValue::Null),
-        ]];
+        ];
 
-        for series in token_series {
-            let mock_lexer = LexerMock::new(series);
-            let mut parser = Parser::new(mock_lexer);
+        let mock_lexer = LexerMock::new(series);
+        let mut parser = Parser::new(mock_lexer);
 
-            assert_eq!(
-                parser.parse_break_statement().err().unwrap().message(),
-                create_error_message(String::from("Unexpected token - 'ETX'. Expected ';'."))
-            );
-        }
+        assert_eq!(
+            parser.parse_break_statement().err().unwrap().message(),
+            create_error_message(String::from("Unexpected token - 'ETX'. Expected ';'."))
+        );
     }
 
     #[test]
@@ -1802,7 +1794,7 @@ mod tests {
 
     #[test]
     fn parse_arguments() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 create_token(TokenCategory::ParenClose, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
@@ -1822,7 +1814,7 @@ mod tests {
             ],
         ];
 
-        let expected = vec![
+        let expected = [
             vec![],
             vec![test_node!(Argument {
                 value: test_node!(Expression::Literal(Literal::I64(1))),
@@ -1851,7 +1843,7 @@ mod tests {
 
     #[test]
     fn parse_argument() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // 1
                 create_token(TokenCategory::I64Value, TokenValue::I64(1)),
@@ -1865,7 +1857,7 @@ mod tests {
             ],
         ];
 
-        let expected = vec![
+        let expected = [
             Argument {
                 value: test_node!(Expression::Literal(Literal::I64(1))),
                 passed_by: PassedBy::Value,
@@ -1943,7 +1935,7 @@ mod tests {
 
     #[test]
     fn parse_relation_term() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // 1 == 2
                 create_token(TokenCategory::I64Value, TokenValue::I64(1)),
@@ -2088,7 +2080,7 @@ mod tests {
 
     #[test]
     fn parse_casted_term() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // 5 as str
                 create_token(TokenCategory::I64Value, TokenValue::I64(5)),
@@ -2103,7 +2095,7 @@ mod tests {
             ],
         ];
 
-        let expected = vec![
+        let expected = [
             Expression::Casting {
                 value: Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
                 to_type: test_node!(Type::Str),
@@ -2122,7 +2114,7 @@ mod tests {
 
     #[test]
     fn parse_unary_term() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // !True
                 create_token(TokenCategory::Negate, TokenValue::Null),
@@ -2159,7 +2151,7 @@ mod tests {
 
     #[test]
     fn parse_factor() {
-        let token_series = vec![
+        let token_series = [
             // (5 + 2)
             vec![
                 create_token(TokenCategory::ParenOpen, TokenValue::Null),
@@ -2181,7 +2173,7 @@ mod tests {
             ],
         ];
 
-        let expected = vec![
+        let expected = [
             Expression::Addition(
                 Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
                 Box::new(test_node!(Expression::Literal(Literal::I64(2)))),
@@ -2260,7 +2252,7 @@ mod tests {
 
     #[test]
     fn parse_identifier_or_call() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // print
                 create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
@@ -2294,7 +2286,7 @@ mod tests {
             ],
         ];
 
-        let expected = vec![
+        let expected = [
             Expression::Variable(String::from("print")),
             Expression::FunctionCall {
                 identifier: test_node!(String::from("print")),
@@ -2333,7 +2325,7 @@ mod tests {
 
     #[test]
     fn parse_switch_statement() {
-        let token_series = vec![vec![
+        let series = vec![
             // switch(x) {
             //      (true) -> {}
             // }
@@ -2350,9 +2342,9 @@ mod tests {
             create_token(TokenCategory::BraceClose, TokenValue::Null),
             create_token(TokenCategory::BraceClose, TokenValue::Null),
             create_token(TokenCategory::ETX, TokenValue::Null),
-        ]];
+        ];
 
-        let expected_types = [Statement::Switch {
+        let expected = Statement::Switch {
             expressions: vec![test_node!(SwitchExpression {
                 expression: test_node!(Expression::Variable(String::from("x"))),
                 alias: None,
@@ -2361,42 +2353,38 @@ mod tests {
                 condition: test_node!(Expression::Literal(Literal::True)),
                 block: test_node!(Block(vec![])),
             })],
-        }];
+        };
 
-        for (idx, series) in token_series.iter().enumerate() {
-            let mock_lexer = LexerMock::new(series.to_vec());
-            let mut parser = Parser::new(mock_lexer);
+        let mock_lexer = LexerMock::new(series);
+        let mut parser = Parser::new(mock_lexer);
 
-            let node = parser.parse_switch_statement().unwrap().unwrap();
-            assert_eq!(node.value, expected_types[idx]);
-        }
+        let node = parser.parse_switch_statement().unwrap().unwrap();
+        assert_eq!(node.value, expected);
     }
 
     #[test]
     fn parse_switch_expressions_fail() {
-        let token_series = vec![vec![
+        let series = vec![
             // x: temp,
             create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
             create_token(TokenCategory::Colon, TokenValue::Null),
             create_token(TokenCategory::Identifier, TokenValue::String(String::from("temp"))),
             create_token(TokenCategory::Comma, TokenValue::Null),
             create_token(TokenCategory::ETX, TokenValue::Null),
-        ]];
+        ];
 
-        for series in token_series {
-            let mock_lexer = LexerMock::new(series);
-            let mut parser = Parser::new(mock_lexer);
+        let mock_lexer = LexerMock::new(series);
+        let mut parser = Parser::new(mock_lexer);
 
-            assert_eq!(
-                parser.parse_switch_expressions().err().unwrap().message(),
-                create_error_message(String::from("Couldn't create swicth expression while parsing switch expressions."))
-            );
-        }
+        assert_eq!(
+            parser.parse_switch_expressions().err().unwrap().message(),
+            create_error_message(String::from("Couldn't create switch expression while parsing switch expressions."))
+        );
     }
 
     #[test]
     fn parse_switch_expressions() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // x: temp, y
                 create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
@@ -2441,7 +2429,7 @@ mod tests {
 
     #[test]
     fn parse_switch_expression() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // x: temp
                 create_token(TokenCategory::Identifier, TokenValue::String(String::from("x"))),
@@ -2478,7 +2466,7 @@ mod tests {
 
     #[test]
     fn parse_switch_case() {
-        let token_series = vec![vec![
+        let series = vec![
             // (true) -> {}
             create_token(TokenCategory::ParenOpen, TokenValue::Null),
             create_token(TokenCategory::True, TokenValue::Null),
@@ -2487,25 +2475,23 @@ mod tests {
             create_token(TokenCategory::BraceOpen, TokenValue::Null),
             create_token(TokenCategory::BraceClose, TokenValue::Null),
             create_token(TokenCategory::ETX, TokenValue::Null),
-        ]];
+        ];
 
-        let expected_types = [SwitchCase {
+        let expected = SwitchCase {
             condition: test_node!(Expression::Literal(Literal::True)),
             block: test_node!(Block(vec![])),
-        }];
+        };
 
-        for (idx, series) in token_series.iter().enumerate() {
-            let mock_lexer = LexerMock::new(series.to_vec());
-            let mut parser = Parser::new(mock_lexer);
+        let mock_lexer = LexerMock::new(series);
+        let mut parser = Parser::new(mock_lexer);
 
-            let node = parser.parse_switch_case().unwrap().unwrap();
-            assert_eq!(node.value, expected_types[idx]);
-        }
+        let node = parser.parse_switch_case().unwrap().unwrap();
+        assert_eq!(node.value, expected);
     }
 
     #[test]
     fn parse_type() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 create_token(TokenCategory::I64, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
@@ -2537,7 +2523,7 @@ mod tests {
 
     #[test]
     fn parse_type_fail() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 create_token(TokenCategory::Void, TokenValue::Null),
                 create_token(TokenCategory::ETX, TokenValue::Null),
