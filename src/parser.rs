@@ -104,7 +104,7 @@ impl<L: ILexer> Parser<L> {
             TokenValue::F64(f64) => f64.to_string(),
             TokenValue::I64(i64) => i64.to_string(),
             TokenValue::String(str) => str,
-            TokenValue::Null => format!("{:?}", current_token.category)
+            TokenValue::Null => format!("{:?}", current_token.category),
         };
         Err(self.create_parser_error(format!("Unexpected token - '{}'. Expected '{:?}'.", text, category)))
     }
@@ -834,11 +834,7 @@ impl<L: ILexer> Parser<L> {
             };
             return Ok(Some(node));
         }
-        Err(self.create_parser_error(format!(
-            "Wrong token value type - given: {:?}, expected: {:?}.",
-            token.value,
-            TokenValue::String(String::new())
-        )))
+        Err(self.create_parser_error(format!("Wrong token value type - given: '{:?}', expected: 'str'.", token.category,)))
     }
 
     fn create_parser_error(&self, text: String) -> Box<dyn IError> {
@@ -913,7 +909,9 @@ mod tests {
         }
     }
 
-    // tests
+    fn create_error_message(text: String) -> String {
+        format!("{}\nAt {:?}.", text, default_position())
+    }
 
     #[test]
     fn parse_statement_block_fail() {
@@ -926,7 +924,10 @@ mod tests {
             let mock_lexer = LexerMock::new(series);
             let mut parser = Parser::new(mock_lexer);
 
-            assert!(parser.parse_statement_block().is_err());
+            assert_eq!(
+                parser.parse_statement_block().err().unwrap().message(),
+                create_error_message(String::from("Couldn't create statement while parsing statement block."))
+            );
         }
     }
 
@@ -985,7 +986,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_statement_block().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
@@ -1004,7 +1005,10 @@ mod tests {
             let mock_lexer = LexerMock::new(series);
             let mut parser = Parser::new(mock_lexer);
 
-            assert!(parser.parse_statement().is_err());
+            assert_eq!(
+                parser.parse_statement().err().unwrap().message(),
+                create_error_message(String::from("Unexpected token - 'ETX'. Expected ';'."))
+            );
         }
     }
 
@@ -1134,13 +1138,13 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_statement().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
     #[test]
     fn parse_function_declaration_fail() {
-        let token_series = vec![vec![
+        let token_series = [vec![
             // fn add(): , {}
             create_token(TokenCategory::Fn, TokenValue::Null),
             create_token(TokenCategory::Identifier, TokenValue::String(String::from("add"))),
@@ -1157,7 +1161,10 @@ mod tests {
             let mock_lexer = LexerMock::new(series);
             let mut parser = Parser::new(mock_lexer);
 
-            assert!(parser.parse_function_declaration().is_err());
+            assert_eq!(
+                parser.parse_function_declaration().err().unwrap().message(),
+                create_error_message(String::from("Bad return type: ,. Expected one of: 'i64', 'f64', 'bool', 'str', 'void'."))
+            );
         }
     }
 
@@ -1210,7 +1217,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_function_declaration().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
@@ -1227,7 +1234,10 @@ mod tests {
         let mock_lexer = LexerMock::new(tokens);
         let mut parser = Parser::new(mock_lexer);
 
-        assert!(parser.parse_parameters().is_err());
+        assert_eq!(
+            parser.parse_parameters().err().unwrap().message(),
+            create_error_message(String::from("Couldn't create parameter while parsing parameters."))
+        );
     }
 
     #[test]
@@ -1280,7 +1290,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let vector = parser.parse_parameters().unwrap();
-            assert!(vector == expected[idx]);
+            assert_eq!(vector, expected[idx]);
         }
     }
 
@@ -1322,13 +1332,13 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_parameter().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
     #[test]
     fn parse_for_statement_fail() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // for (
                 create_token(TokenCategory::For, TokenValue::Null),
@@ -1359,11 +1369,20 @@ mod tests {
             ],
         ];
 
-        for series in token_series {
-            let mock_lexer = LexerMock::new(series);
+        let expected = [
+            String::from("Unexpected token - 'ETX'. Expected ';'."),
+            String::from("Couldn't create expression while parsing for statement."),
+            String::from("Unexpected token - '{'. Expected '('."),
+        ];
+
+        for idx in 0..token_series.len() {
+            let mock_lexer = LexerMock::new(token_series[idx].clone());
             let mut parser = Parser::new(mock_lexer);
 
-            assert!(parser.parse_for_statement().is_err());
+            assert_eq!(
+                parser.parse_for_statement().err().unwrap().message(),
+                create_error_message(expected[idx].clone())
+            );
         }
     }
 
@@ -1445,13 +1464,13 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_for_statement().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
     #[test]
     fn parse_if_statement_fail() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // if true) {}
                 create_token(TokenCategory::If, TokenValue::Null),
@@ -1472,11 +1491,19 @@ mod tests {
             ],
         ];
 
-        for series in token_series {
-            let mock_lexer = LexerMock::new(series.to_vec());
+        let expected = [
+            String::from("Unexpected token - 'true'. Expected '('."),
+            String::from("Unexpected token - '{'. Expected '('."),
+        ];
+
+        for idx in 0..token_series.len() {
+            let mock_lexer = LexerMock::new(token_series[idx].to_vec());
             let mut parser = Parser::new(mock_lexer);
 
-            assert!(parser.parse_if_statement().is_err());
+            assert_eq!(
+                parser.parse_if_statement().err().unwrap().message(),
+                create_error_message(expected[idx].clone())
+            );
         }
     }
 
@@ -1526,13 +1553,13 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_if_statement().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
     #[test]
     fn parse_assign_or_call_fail() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // print(;
                 create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
@@ -1561,11 +1588,21 @@ mod tests {
             ],
         ];
 
-        for series in token_series {
-            let mock_lexer = LexerMock::new(series.to_vec());
+        let expected = [
+            String::from("Unexpected token - ';'. Expected '('."),
+            String::from("Unexpected token - 'ETX'. Expected ';'."),
+            String::from("Unexpected token - 'ETX'. Expected ';'."),
+            String::from("Couldn't create assignment or call."),
+        ];
+
+        for idx in 0..token_series.len() {
+            let mock_lexer = LexerMock::new(token_series[idx].clone());
             let mut parser = Parser::new(mock_lexer);
 
-            assert!(parser.parse_assign_or_call().is_err());
+            assert_eq!(
+                parser.parse_assign_or_call().err().unwrap().message(),
+                create_error_message(expected[idx].clone())
+            );
         }
     }
 
@@ -1606,7 +1643,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_assign_or_call().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
@@ -1647,7 +1684,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_declaration().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
@@ -1671,7 +1708,10 @@ mod tests {
             let mock_lexer = LexerMock::new(series);
             let mut parser = Parser::new(mock_lexer);
 
-            assert!(parser.parse_return_statement().is_err());
+            assert_eq!(
+                parser.parse_return_statement().err().unwrap().message(),
+                create_error_message(String::from("Unexpected token - 'ETX'. Expected ';'."))
+            );
         }
     }
 
@@ -1703,13 +1743,13 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_return_statement().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
     #[test]
     fn parse_break_statement_fail() {
-        let token_series = vec![vec![
+        let token_series = [vec![
             // break
             create_token(TokenCategory::Break, TokenValue::Null),
             create_token(TokenCategory::ETX, TokenValue::Null),
@@ -1719,7 +1759,10 @@ mod tests {
             let mock_lexer = LexerMock::new(series);
             let mut parser = Parser::new(mock_lexer);
 
-            assert!(parser.parse_break_statement().is_err());
+            assert_eq!(
+                parser.parse_break_statement().err().unwrap().message(),
+                create_error_message(String::from("Unexpected token - 'ETX'. Expected ';'."))
+            );
         }
     }
 
@@ -1736,7 +1779,7 @@ mod tests {
         let mut parser = Parser::new(mock_lexer);
 
         let node = parser.parse_break_statement().unwrap().unwrap();
-        assert!(node.value == Statement::Break);
+        assert_eq!(node.value, Statement::Break);
     }
 
     #[test]
@@ -1751,7 +1794,10 @@ mod tests {
         let mock_lexer = LexerMock::new(tokens);
         let mut parser = Parser::new(mock_lexer);
 
-        assert!(parser.parse_arguments().is_err());
+        assert_eq!(
+            parser.parse_arguments().err().unwrap().message(),
+            create_error_message(String::from("Couldn't create argument while parsing arguments."))
+        );
     }
 
     #[test]
@@ -1799,7 +1845,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let vector = parser.parse_arguments().unwrap();
-            assert!(vector == expected[idx]);
+            assert_eq!(vector, expected[idx]);
         }
     }
 
@@ -1835,7 +1881,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_argument().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
@@ -1855,8 +1901,9 @@ mod tests {
         let mut parser = Parser::new(mock_lexer);
 
         let node = parser.parse_expression().unwrap().unwrap();
-        assert!(
-            node == test_node!(Expression::Alternative(
+        assert_eq!(
+            node,
+            test_node!(Expression::Alternative(
                 Box::new(test_node!(Expression::Alternative(
                     Box::new(test_node!(Expression::Variable(String::from("a")))),
                     Box::new(test_node!(Expression::Variable(String::from("b")))),
@@ -1882,8 +1929,9 @@ mod tests {
         let mut parser = Parser::new(mock_lexer);
 
         let node = parser.parse_concatenation_term().unwrap().unwrap();
-        assert!(
-            node == test_node!(Expression::Concatenation(
+        assert_eq!(
+            node,
+            test_node!(Expression::Concatenation(
                 Box::new(test_node!(Expression::Concatenation(
                     Box::new(test_node!(Expression::Variable(String::from("a")))),
                     Box::new(test_node!(Expression::Variable(String::from("b")))),
@@ -1978,7 +2026,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_relation_term().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
@@ -1998,8 +2046,9 @@ mod tests {
         let mut parser = Parser::new(mock_lexer);
 
         let node = parser.parse_additive_term().unwrap().unwrap();
-        assert!(
-            node == test_node!(Expression::Subtraction(
+        assert_eq!(
+            node,
+            test_node!(Expression::Subtraction(
                 Box::new(test_node!(Expression::Addition(
                     Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
                     Box::new(test_node!(Expression::Literal(Literal::F64(2.0))))
@@ -2025,8 +2074,9 @@ mod tests {
         let mut parser = Parser::new(mock_lexer);
 
         let node = parser.parse_multiplicative_term().unwrap().unwrap();
-        assert!(
-            node == test_node!(Expression::Division(
+        assert_eq!(
+            node,
+            test_node!(Expression::Division(
                 Box::new(test_node!(Expression::Multiplication(
                     Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
                     Box::new(test_node!(Expression::Literal(Literal::F64(2.0))))
@@ -2066,7 +2116,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_casted_term().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
@@ -2103,7 +2153,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_unary_term().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
@@ -2145,7 +2195,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_factor().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
@@ -2163,12 +2213,15 @@ mod tests {
         let mock_lexer = LexerMock::new(tokens);
         let mut parser = Parser::new(mock_lexer);
 
-        assert!(parser.parse_factor().is_err());
+        assert_eq!(
+            parser.parse_factor().err().unwrap().message(),
+            create_error_message(String::from("Unexpected token - 'ETX'. Expected '('."))
+        );
     }
 
     #[test]
     fn parse_identifier_or_call_fail() {
-        let token_series = vec![
+        let token_series = [
             vec![
                 // print(5,)
                 create_token(TokenCategory::Identifier, TokenValue::String(String::from("print"))),
@@ -2189,11 +2242,19 @@ mod tests {
             ],
         ];
 
-        for series in token_series {
-            let mock_lexer = LexerMock::new(series);
+        let expected = [
+            String::from("Couldn't create argument while parsing arguments."),
+            String::from("Unexpected token - 'ETX'. Expected '('."),
+        ];
+
+        for idx in 0..token_series.len() {
+            let mock_lexer = LexerMock::new(token_series[idx].clone());
             let mut parser = Parser::new(mock_lexer);
 
-            assert!(parser.parse_identifier_or_call().is_err());
+            assert_eq!(
+                parser.parse_identifier_or_call().err().unwrap().message(),
+                create_error_message(expected[idx].clone())
+            );
         }
     }
 
@@ -2266,7 +2327,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_identifier_or_call().unwrap().unwrap();
-            assert!(node.value == expected[idx]);
+            assert_eq!(node.value, expected[idx]);
         }
     }
 
@@ -2307,7 +2368,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_switch_statement().unwrap().unwrap();
-            assert!(node.value == expected_types[idx]);
+            assert_eq!(node.value, expected_types[idx]);
         }
     }
 
@@ -2326,7 +2387,10 @@ mod tests {
             let mock_lexer = LexerMock::new(series);
             let mut parser = Parser::new(mock_lexer);
 
-            assert!(parser.parse_switch_expressions().is_err());
+            assert_eq!(
+                parser.parse_switch_expressions().err().unwrap().message(),
+                create_error_message(String::from("Couldn't create swicth expression while parsing switch expressions."))
+            );
         }
     }
 
@@ -2371,7 +2435,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let vector = parser.parse_switch_expressions().unwrap();
-            assert!(vector == expected_types[idx]);
+            assert_eq!(vector, expected_types[idx]);
         }
     }
 
@@ -2408,7 +2472,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_switch_expression().unwrap().unwrap();
-            assert!(node.value == expected_types[idx]);
+            assert_eq!(node.value, expected_types[idx]);
         }
     }
 
@@ -2435,7 +2499,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_switch_case().unwrap().unwrap();
-            assert!(node.value == expected_types[idx]);
+            assert_eq!(node.value, expected_types[idx]);
         }
     }
 
@@ -2467,7 +2531,7 @@ mod tests {
             let mut parser = Parser::new(mock_lexer);
 
             let node = parser.parse_type().unwrap().unwrap();
-            assert!(node.value == expected_types[idx]);
+            assert_eq!(node.value, expected_types[idx]);
         }
     }
 
@@ -2508,19 +2572,19 @@ mod tests {
         let mut parser = Parser::new(mock_lexer);
 
         let mut literal = parser.parse_literal().unwrap().unwrap();
-        assert!(literal.value == Literal::True);
+        assert_eq!(literal.value, Literal::True);
 
         literal = parser.parse_literal().unwrap().unwrap();
-        assert!(literal.value == Literal::False);
+        assert_eq!(literal.value, Literal::False);
 
         literal = parser.parse_literal().unwrap().unwrap();
-        assert!(literal.value == Literal::String(String::from("a")));
+        assert_eq!(literal.value, Literal::String(String::from("a")));
 
         literal = parser.parse_literal().unwrap().unwrap();
-        assert!(literal.value == Literal::I64(5));
+        assert_eq!(literal.value, Literal::I64(5));
 
         literal = parser.parse_literal().unwrap().unwrap();
-        assert!(literal.value == Literal::F64(5.0));
+        assert_eq!(literal.value, Literal::F64(5.0));
     }
 
     #[test]
@@ -2534,7 +2598,7 @@ mod tests {
         let mut parser = Parser::new(mock_lexer);
 
         let node = parser.parse_identifier().unwrap().unwrap();
-        assert!(node.value == String::from("print"));
+        assert_eq!(node.value, String::from("print"));
     }
 
     #[test]
@@ -2549,7 +2613,10 @@ mod tests {
         let mut parser = Parser::new(mock_lexer);
 
         let result = parser.parse_identifier();
-        assert!(result.is_err());
+        assert_eq!(
+            result.err().unwrap().message(),
+            create_error_message(String::from("Wrong token value type - given: 'identifier', expected: 'str'."))
+        );
     }
 
     #[test]
@@ -2561,10 +2628,10 @@ mod tests {
 
         let mock_lexer = LexerMock::new(tokens);
         let mut parser = Parser::new(mock_lexer);
-        assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
+        assert_eq!(parser.current_token().clone().category, TokenCategory::ParenOpen);
         let _ = parser.consume_must_be(TokenCategory::ParenOpen).unwrap();
 
-        assert!(parser.current_token().clone().category == TokenCategory::ETX);
+        assert_eq!(parser.current_token().clone().category, TokenCategory::ETX);
     }
 
     #[test]
@@ -2576,11 +2643,14 @@ mod tests {
 
         let mock_lexer = LexerMock::new(tokens);
         let mut parser = Parser::new(mock_lexer);
-        assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
+        assert_eq!(parser.current_token().clone().category, TokenCategory::ParenOpen);
         let result = parser.consume_must_be(TokenCategory::Semicolon);
 
-        assert!(result.is_err());
-        assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
+        assert_eq!(
+            result.err().unwrap().message(),
+            create_error_message(String::from("Unexpected token - '('. Expected ';'."))
+        );
+        assert_eq!(parser.current_token().clone().category, TokenCategory::ParenOpen);
     }
 
     #[test]
@@ -2592,10 +2662,10 @@ mod tests {
 
         let mock_lexer = LexerMock::new(tokens);
         let mut parser = Parser::new(mock_lexer);
-        assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
+        assert_eq!(parser.current_token().clone().category, TokenCategory::ParenOpen);
         let _ = parser.consume_if_matches(TokenCategory::ParenOpen).unwrap();
 
-        assert!(parser.current_token().clone().category == TokenCategory::ETX);
+        assert_eq!(parser.current_token().clone().category, TokenCategory::ETX);
     }
 
     #[test]
@@ -2607,10 +2677,10 @@ mod tests {
 
         let mock_lexer = LexerMock::new(tokens);
         let mut parser = Parser::new(mock_lexer);
-        assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
+        assert_eq!(parser.current_token().clone().category, TokenCategory::ParenOpen);
         let result = parser.consume_if_matches(TokenCategory::Semicolon);
 
         assert!(result.unwrap().is_none());
-        assert!(parser.current_token().clone().category == TokenCategory::ParenOpen);
+        assert_eq!(parser.current_token().clone().category, TokenCategory::ParenOpen);
     }
 }
