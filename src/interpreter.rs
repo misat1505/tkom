@@ -530,22 +530,21 @@ mod tests {
         Interpreter::new(program)
     }
 
+    macro_rules! test_node {
+        ($value:expr) => {
+            Node {
+                value: $value,
+                position: default_position(),
+            }
+        };
+    }
+
     #[test]
     fn interpret_casting() {
-        let ast = Node {
-            value: Expression::Casting {
-                value: Box::new(Node {
-                    value: Expression::Literal(Literal::I64(2)),
-                    position: default_position(),
-                }),
-                to_type: Node {
-                    value: Type::F64,
-                    position: default_position(),
-                },
-            },
-
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::Casting {
+            value: Box::new(test_node!(Expression::Literal(Literal::I64(2)))),
+            to_type: test_node!(Type::F64),
+        });
 
         let exp = Some(Value::F64(2.0));
 
@@ -558,13 +557,7 @@ mod tests {
 
     #[test]
     fn interpret_boolean_negation() {
-        let ast = Node {
-            value: Expression::BooleanNegation(Box::new(Node {
-                value: Expression::Literal(Literal::False),
-                position: default_position(),
-            })),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::BooleanNegation(Box::new(test_node!(Expression::Literal(Literal::False)))));
 
         let exp = Some(Value::Bool(true));
 
@@ -577,13 +570,7 @@ mod tests {
 
     #[test]
     fn interpret_arithmetic_negation() {
-        let ast = Node {
-            value: Expression::ArithmeticNegation(Box::new(Node {
-                value: Expression::Literal(Literal::I64(5)),
-                position: default_position(),
-            })),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::ArithmeticNegation(Box::new(test_node!(Expression::Literal(Literal::I64(5))))));
 
         let exp = Some(Value::I64(-5));
 
@@ -596,19 +583,10 @@ mod tests {
 
     #[test]
     fn interpret_addition() {
-        let ast = Node {
-            value: Expression::Addition(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(2)),
-                    position: default_position(),
-                }),
-            ),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::Addition(
+            Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+            Box::new(test_node!(Expression::Literal(Literal::I64(2))))
+        ));
 
         let exp = Some(Value::I64(7));
 
@@ -621,19 +599,10 @@ mod tests {
 
     #[test]
     fn interpret_subtraction() {
-        let ast = Node {
-            value: Expression::Subtraction(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(2)),
-                    position: default_position(),
-                }),
-            ),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::Subtraction(
+            Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+            Box::new(test_node!(Expression::Literal(Literal::I64(2))))
+        ));
 
         let exp = Some(Value::I64(3));
 
@@ -646,19 +615,10 @@ mod tests {
 
     #[test]
     fn interpret_multiplication() {
-        let ast = Node {
-            value: Expression::Multiplication(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(2)),
-                    position: default_position(),
-                }),
-            ),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::Multiplication(
+            Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+            Box::new(test_node!(Expression::Literal(Literal::I64(2))))
+        ));
 
         let exp = Some(Value::I64(10));
 
@@ -671,19 +631,10 @@ mod tests {
 
     #[test]
     fn interpret_division() {
-        let ast = Node {
-            value: Expression::Division(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(2)),
-                    position: default_position(),
-                }),
-            ),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::Division(
+            Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+            Box::new(test_node!(Expression::Literal(Literal::I64(2))))
+        ));
 
         let exp = Some(Value::I64(2));
 
@@ -696,19 +647,10 @@ mod tests {
 
     #[test]
     fn interpret_concatenation() {
-        let ast = Node {
-            value: Expression::Concatenation(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::True),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::False),
-                    position: default_position(),
-                }),
-            ),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::Concatenation(
+            Box::new(test_node!(Expression::Literal(Literal::True))),
+            Box::new(test_node!(Expression::Literal(Literal::False)))
+        ));
 
         let exp = Some(Value::Bool(false));
 
@@ -721,19 +663,10 @@ mod tests {
 
     #[test]
     fn interpret_alternative() {
-        let ast = Node {
-            value: Expression::Alternative(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::True),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::False),
-                    position: default_position(),
-                }),
-            ),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::Alternative(
+            Box::new(test_node!(Expression::Literal(Literal::True))),
+            Box::new(test_node!(Expression::Literal(Literal::False)))
+        ));
 
         let exp = Some(Value::Bool(true));
 
@@ -746,19 +679,10 @@ mod tests {
 
     #[test]
     fn interpret_greater() {
-        let ast = Node {
-            value: Expression::Greater(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-            ),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::Greater(
+            Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+            Box::new(test_node!(Expression::Literal(Literal::I64(5))))
+        ));
 
         let exp = Some(Value::Bool(false));
 
@@ -771,19 +695,10 @@ mod tests {
 
     #[test]
     fn interpret_greater_equal() {
-        let ast = Node {
-            value: Expression::GreaterEqual(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-            ),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::GreaterEqual(
+            Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+            Box::new(test_node!(Expression::Literal(Literal::I64(5))))
+        ));
 
         let exp = Some(Value::Bool(true));
 
@@ -796,19 +711,10 @@ mod tests {
 
     #[test]
     fn interpret_less() {
-        let ast = Node {
-            value: Expression::Less(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-            ),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::Less(
+            Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+            Box::new(test_node!(Expression::Literal(Literal::I64(5))))
+        ));
 
         let exp = Some(Value::Bool(false));
 
@@ -820,19 +726,10 @@ mod tests {
     }
     #[test]
     fn interpret_less_equal() {
-        let ast = Node {
-            value: Expression::LessEqual(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-            ),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::LessEqual(
+            Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+            Box::new(test_node!(Expression::Literal(Literal::I64(5))))
+        ));
 
         let exp = Some(Value::Bool(true));
 
@@ -845,19 +742,10 @@ mod tests {
 
     #[test]
     fn interpret_equal() {
-        let ast = Node {
-            value: Expression::Equal(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-            ),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::Equal(
+            Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+            Box::new(test_node!(Expression::Literal(Literal::I64(5))))
+        ));
 
         let exp = Some(Value::Bool(true));
 
@@ -870,19 +758,10 @@ mod tests {
 
     #[test]
     fn interpret_not_equal() {
-        let ast = Node {
-            value: Expression::NotEqual(
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-                Box::new(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-            ),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::NotEqual(
+            Box::new(test_node!(Expression::Literal(Literal::I64(5)))),
+            Box::new(test_node!(Expression::Literal(Literal::I64(5))))
+        ));
 
         let exp = Some(Value::Bool(false));
 
@@ -895,10 +774,7 @@ mod tests {
 
     #[test]
     fn interpret_literal() {
-        let ast = Node {
-            value: Expression::Literal(Literal::I64(5)),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::Literal(Literal::I64(5)));
 
         let exp = Some(Value::I64(5));
 
@@ -911,10 +787,7 @@ mod tests {
 
     #[test]
     fn interpret_variable() {
-        let ast = Node {
-            value: Expression::Variable(String::from("x")),
-            position: default_position(),
-        };
+        let ast = test_node!(Expression::Variable(String::from("x")));
 
         let exp = Some(Value::I64(5));
 
@@ -929,23 +802,11 @@ mod tests {
     #[test]
     fn declare_variable() {
         // i64 x = 5;
-        let ast = Node {
-            value: Statement::Declaration {
-                var_type: Node {
-                    value: Type::I64,
-                    position: default_position(),
-                },
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
-                value: Some(Node {
-                    value: Expression::Literal(Literal::I64(5)),
-                    position: default_position(),
-                }),
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::Declaration {
+            var_type: test_node!(Type::I64),
+            identifier: test_node!(String::from("x")),
+            value: Some(test_node!(Expression::Literal(Literal::I64(5)))),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -957,20 +818,11 @@ mod tests {
     #[test]
     fn declare_variable_with_default_value() {
         // i64 x;
-        let ast = Node {
-            value: Statement::Declaration {
-                var_type: Node {
-                    value: Type::I64,
-                    position: default_position(),
-                },
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
-                value: None,
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::Declaration {
+            var_type: test_node!(Type::I64),
+            identifier: test_node!(String::from("x")),
+            value: None,
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -982,23 +834,11 @@ mod tests {
     #[test]
     fn declare_variable_bad_type() {
         // i64 x = false;
-        let ast = Node {
-            value: Statement::Declaration {
-                var_type: Node {
-                    value: Type::I64,
-                    position: default_position(),
-                },
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
-                value: Some(Node {
-                    value: Expression::Literal(Literal::False),
-                    position: default_position(),
-                }),
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::Declaration {
+            var_type: test_node!(Type::I64),
+            identifier: test_node!(String::from("x")),
+            value: Some(test_node!(Expression::Literal(Literal::False))),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1008,20 +848,11 @@ mod tests {
 
     #[test]
     fn redeclare_variable_fails() {
-        let ast = Node {
-            value: Statement::Declaration {
-                var_type: Node {
-                    value: Type::I64,
-                    position: default_position(),
-                },
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
-                value: None,
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::Declaration {
+            var_type: test_node!(Type::I64),
+            identifier: test_node!(String::from("x")),
+            value: None,
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1038,38 +869,17 @@ mod tests {
     #[test]
     fn declare_with_none_value_fails() {
         // i64 x = print("hello world");
-        let ast = Node {
-            value: Statement::Declaration {
-                var_type: Node {
-                    value: Type::I64,
-                    position: default_position(),
-                },
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
-                value: Some(Node {
-                    value: Expression::FunctionCall {
-                        identifier: Node {
-                            value: String::from("print"),
-                            position: default_position(),
-                        },
-                        arguments: vec![Box::new(Node {
-                            value: Argument {
-                                value: Node {
-                                    value: Expression::Literal(Literal::String(String::from("hello world"))),
-                                    position: default_position(),
-                                },
-                                passed_by: PassedBy::Value,
-                            },
-                            position: default_position(),
-                        })],
-                    },
-                    position: default_position(),
-                }),
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::Declaration {
+            var_type: test_node!(Type::I64),
+            identifier: test_node!(String::from("x")),
+            value: Some(test_node!(Expression::FunctionCall {
+                identifier: test_node!(String::from("print")),
+                arguments: vec![Box::new(test_node!(Argument {
+                    value: test_node!(Expression::Literal(Literal::String(String::from("hello world")))),
+                    passed_by: PassedBy::Value,
+                })),],
+            })),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1082,23 +892,11 @@ mod tests {
     #[test]
     fn declare_with_bad_type_fails() {
         // i64 x = true;
-        let ast = Node {
-            value: Statement::Declaration {
-                var_type: Node {
-                    value: Type::I64,
-                    position: default_position(),
-                },
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
-                value: Some(Node {
-                    value: Expression::Literal(Literal::True),
-                    position: default_position(),
-                }),
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::Declaration {
+            var_type: test_node!(Type::I64),
+            identifier: test_node!(String::from("x")),
+            value: Some(test_node!(Expression::Literal(Literal::True))),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1112,19 +910,10 @@ mod tests {
     fn assigns_to_variable() {
         // i64 x = 0;
         // x = 5;
-        let ast = Node {
-            value: Statement::Assignment {
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
-                value: Node {
-                    value: Expression::Literal(Literal::I64(1)),
-                    position: default_position(),
-                },
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::Assignment {
+            identifier: test_node!(String::from("x")),
+            value: test_node!(Expression::Literal(Literal::I64(1))),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1138,19 +927,10 @@ mod tests {
     fn assigns_bad_type_fails() {
         // i64 x = 0;
         // x = false;
-        let ast = Node {
-            value: Statement::Assignment {
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
-                value: Node {
-                    value: Expression::Literal(Literal::False),
-                    position: default_position(),
-                },
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::Assignment {
+            identifier: test_node!(String::from("x")),
+            value: test_node!(Expression::Literal(Literal::False)),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1167,34 +947,16 @@ mod tests {
     #[test]
     fn assign_with_none_value_fails() {
         // x = print("hello world");
-        let ast = Node {
-            value: Statement::Assignment {
-                identifier: Node {
-                    value: String::from("x"),
-                    position: default_position(),
-                },
-                value: Node {
-                    value: Expression::FunctionCall {
-                        identifier: Node {
-                            value: String::from("print"),
-                            position: default_position(),
-                        },
-                        arguments: vec![Box::new(Node {
-                            value: Argument {
-                                value: Node {
-                                    value: Expression::Literal(Literal::String(String::from("hello world"))),
-                                    position: default_position(),
-                                },
-                                passed_by: PassedBy::Value,
-                            },
-                            position: default_position(),
-                        })],
-                    },
-                    position: default_position(),
-                },
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::Assignment {
+            identifier: test_node!(String::from("x")),
+            value: test_node!(Expression::FunctionCall {
+                identifier: test_node!(String::from("print")),
+                arguments: vec![Box::new(test_node!(Argument {
+                    value: test_node!(Expression::Literal(Literal::String(String::from("hello world")))),
+                    passed_by: PassedBy::Value,
+                })),],
+            }),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1210,47 +972,17 @@ mod tests {
     fn if_true_branch() {
         // i64 x = 0;
         // if (true) {x = 1;} else {x = 2;}
-        let ast = Node {
-            value: Statement::Conditional {
-                condition: Node {
-                    value: Expression::Literal(Literal::True),
-                    position: default_position(),
-                },
-                if_block: Node {
-                    value: Block(vec![Node {
-                        value: Statement::Assignment {
-                            identifier: Node {
-                                value: String::from("x"),
-                                position: default_position(),
-                            },
-                            value: Node {
-                                value: Expression::Literal(Literal::I64(1)),
-                                position: default_position(),
-                            },
-                        },
-                        position: default_position(),
-                    }]),
-                    position: default_position(),
-                },
-                else_block: Some(Node {
-                    value: Block(vec![Node {
-                        value: Statement::Assignment {
-                            identifier: Node {
-                                value: String::from("x"),
-                                position: default_position(),
-                            },
-                            value: Node {
-                                value: Expression::Literal(Literal::I64(2)),
-                                position: default_position(),
-                            },
-                        },
-                        position: default_position(),
-                    }]),
-                    position: default_position(),
-                }),
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::Conditional {
+            condition: test_node!(Expression::Literal(Literal::True)),
+            if_block: test_node!(Block(vec![test_node!(Statement::Assignment {
+                identifier: test_node!(String::from("x")),
+                value: test_node!(Expression::Literal(Literal::I64(1))),
+            }),])),
+            else_block: Some(test_node!(Block(vec![test_node!(Statement::Assignment {
+                identifier: test_node!(String::from("x")),
+                value: test_node!(Expression::Literal(Literal::I64(2))),
+            }),]))),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1263,48 +995,18 @@ mod tests {
     #[test]
     fn if_false_branch() {
         // i64 x = 0;
-        // if (true) {x = 1;} else {x = 2;}
-        let ast = Node {
-            value: Statement::Conditional {
-                condition: Node {
-                    value: Expression::Literal(Literal::False),
-                    position: default_position(),
-                },
-                if_block: Node {
-                    value: Block(vec![Node {
-                        value: Statement::Assignment {
-                            identifier: Node {
-                                value: String::from("x"),
-                                position: default_position(),
-                            },
-                            value: Node {
-                                value: Expression::Literal(Literal::I64(1)),
-                                position: default_position(),
-                            },
-                        },
-                        position: default_position(),
-                    }]),
-                    position: default_position(),
-                },
-                else_block: Some(Node {
-                    value: Block(vec![Node {
-                        value: Statement::Assignment {
-                            identifier: Node {
-                                value: String::from("x"),
-                                position: default_position(),
-                            },
-                            value: Node {
-                                value: Expression::Literal(Literal::I64(2)),
-                                position: default_position(),
-                            },
-                        },
-                        position: default_position(),
-                    }]),
-                    position: default_position(),
-                }),
-            },
-            position: default_position(),
-        };
+        // if (false) {x = 1;} else {x = 2;}
+        let ast = test_node!(Statement::Conditional {
+            condition: test_node!(Expression::Literal(Literal::False)),
+            if_block: test_node!(Block(vec![test_node!(Statement::Assignment {
+                identifier: test_node!(String::from("x")),
+                value: test_node!(Expression::Literal(Literal::I64(1))),
+            }),])),
+            else_block: Some(test_node!(Block(vec![test_node!(Statement::Assignment {
+                identifier: test_node!(String::from("x")),
+                value: test_node!(Expression::Literal(Literal::I64(2))),
+            }),]))),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1318,20 +1020,11 @@ mod tests {
     fn if_bad_condition_type_fails() {
         // i64 x = 0;
         // if (2137) {}
-        let ast = Node {
-            value: Statement::Conditional {
-                condition: Node {
-                    value: Expression::Literal(Literal::I64(2137)),
-                    position: default_position(),
-                },
-                if_block: Node {
-                    value: Block(vec![]),
-                    position: default_position(),
-                },
-                else_block: None,
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::Conditional {
+            condition: test_node!(Expression::Literal(Literal::I64(2137))),
+            if_block: test_node!(Block(vec![])),
+            else_block: None,
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1347,88 +1040,31 @@ mod tests {
     fn for_loop() {
         // i64 total = 0;
         // for (i64 i = 1; i <= 5; i = i + 1) {total = total + i;}
-        let ast = Node {
-            value: Statement::ForLoop {
-                declaration: Some(Box::new(Node {
-                    value: Statement::Declaration {
-                        var_type: Node {
-                            value: Type::I64,
-                            position: default_position(),
-                        },
-                        identifier: Node {
-                            value: String::from("i"),
-                            position: default_position(),
-                        },
-                        value: Some(Node {
-                            value: Expression::Literal(Literal::I64(1)),
-                            position: default_position(),
-                        }),
-                    },
-                    position: default_position(),
-                })),
-                condition: Node {
-                    value: Expression::LessEqual(
-                        Box::new(Node {
-                            value: Expression::Variable(String::from("i")),
-                            position: default_position(),
-                        }),
-                        Box::new(Node {
-                            value: Expression::Literal(Literal::I64(5)),
-                            position: default_position(),
-                        }),
-                    ),
-                    position: default_position(),
-                },
-                assignment: Some(Box::new(Node {
-                    value: Statement::Assignment {
-                        identifier: Node {
-                            value: String::from("i"),
-                            position: default_position(),
-                        },
-                        value: Node {
-                            value: Expression::Addition(
-                                Box::new(Node {
-                                    value: Expression::Variable(String::from("i")),
-                                    position: default_position(),
-                                }),
-                                Box::new(Node {
-                                    value: Expression::Literal(Literal::I64(1)),
-                                    position: default_position(),
-                                }),
-                            ),
-                            position: default_position(),
-                        },
-                    },
-                    position: default_position(),
-                })),
-                block: Node {
-                    value: Block(vec![Node {
-                        value: Statement::Assignment {
-                            identifier: Node {
-                                value: String::from("total"),
-                                position: default_position(),
-                            },
-                            value: Node {
-                                value: Expression::Addition(
-                                    Box::new(Node {
-                                        value: Expression::Variable(String::from("total")),
-                                        position: default_position(),
-                                    }),
-                                    Box::new(Node {
-                                        value: Expression::Variable(String::from("i")),
-                                        position: default_position(),
-                                    }),
-                                ),
-                                position: default_position(),
-                            },
-                        },
-                        position: default_position(),
-                    }]),
-                    position: default_position(),
-                },
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::ForLoop {
+            declaration: Some(Box::new(test_node!(Statement::Declaration {
+                var_type: test_node!(Type::I64),
+                identifier: test_node!(String::from("i")),
+                value: Some(test_node!(Expression::Literal(Literal::I64(1)))),
+            }))),
+            condition: test_node!(Expression::LessEqual(
+                Box::new(test_node!(Expression::Variable(String::from("i")))),
+                Box::new(test_node!(Expression::Literal(Literal::I64(5))))
+            )),
+            assignment: Some(Box::new(test_node!(Statement::Assignment {
+                identifier: test_node!(String::from("i")),
+                value: test_node!(Expression::Addition(
+                    Box::new(test_node!(Expression::Variable(String::from("i")))),
+                    Box::new(test_node!(Expression::Literal(Literal::I64(1))))
+                )),
+            }))),
+            block: test_node!(Block(vec![test_node!(Statement::Assignment {
+                identifier: test_node!(String::from("total")),
+                value: test_node!(Expression::Addition(
+                    Box::new(test_node!(Expression::Variable(String::from("total")))),
+                    Box::new(test_node!(Expression::Variable(String::from("i"))))
+                )),
+            }),])),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1446,75 +1082,30 @@ mod tests {
         // i64 total = 0;
         // i64 i = 1;
         // for (;i <= 5;) {total = total + i; i = i + 1}
-        let ast = Node {
-            value: Statement::ForLoop {
-                declaration: None,
-                condition: Node {
-                    value: Expression::LessEqual(
-                        Box::new(Node {
-                            value: Expression::Variable(String::from("i")),
-                            position: default_position(),
-                        }),
-                        Box::new(Node {
-                            value: Expression::Literal(Literal::I64(5)),
-                            position: default_position(),
-                        }),
-                    ),
-                    position: default_position(),
-                },
-                assignment: None,
-                block: Node {
-                    value: Block(vec![
-                        Node {
-                            value: Statement::Assignment {
-                                identifier: Node {
-                                    value: String::from("total"),
-                                    position: default_position(),
-                                },
-                                value: Node {
-                                    value: Expression::Addition(
-                                        Box::new(Node {
-                                            value: Expression::Variable(String::from("total")),
-                                            position: default_position(),
-                                        }),
-                                        Box::new(Node {
-                                            value: Expression::Variable(String::from("i")),
-                                            position: default_position(),
-                                        }),
-                                    ),
-                                    position: default_position(),
-                                },
-                            },
-                            position: default_position(),
-                        },
-                        Node {
-                            value: Statement::Assignment {
-                                identifier: Node {
-                                    value: String::from("i"),
-                                    position: default_position(),
-                                },
-                                value: Node {
-                                    value: Expression::Addition(
-                                        Box::new(Node {
-                                            value: Expression::Variable(String::from("i")),
-                                            position: default_position(),
-                                        }),
-                                        Box::new(Node {
-                                            value: Expression::Literal(Literal::I64(1)),
-                                            position: default_position(),
-                                        }),
-                                    ),
-                                    position: default_position(),
-                                },
-                            },
-                            position: default_position(),
-                        },
-                    ]),
-                    position: default_position(),
-                },
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::ForLoop {
+            declaration: None,
+            condition: test_node!(Expression::LessEqual(
+                Box::new(test_node!(Expression::Variable(String::from("i")))),
+                Box::new(test_node!(Expression::Literal(Literal::I64(5))))
+            )),
+            assignment: None,
+            block: test_node!(Block(vec![
+                test_node!(Statement::Assignment {
+                    identifier: test_node!(String::from("total")),
+                    value: test_node!(Expression::Addition(
+                        Box::new(test_node!(Expression::Variable(String::from("total")))),
+                        Box::new(test_node!(Expression::Variable(String::from("i"))))
+                    )),
+                }),
+                test_node!(Statement::Assignment {
+                    identifier: test_node!(String::from("i")),
+                    value: test_node!(Expression::Addition(
+                        Box::new(test_node!(Expression::Variable(String::from("i")))),
+                        Box::new(test_node!(Expression::Literal(Literal::I64(1))))
+                    )),
+                }),
+            ])),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1531,21 +1122,12 @@ mod tests {
     #[test]
     fn for_loop_bad_condition_type() {
         // for (;1;) {}
-        let ast = Node {
-            value: Statement::ForLoop {
-                declaration: None,
-                condition: Node {
-                    value: Expression::Literal(Literal::I64(1)),
-                    position: default_position(),
-                },
-                assignment: None,
-                block: Node {
-                    value: Block(vec![]),
-                    position: default_position(),
-                },
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::ForLoop {
+            declaration: None,
+            condition: test_node!(Expression::Literal(Literal::I64(1))),
+            assignment: None,
+            block: test_node!(Block(vec![])),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1560,67 +1142,25 @@ mod tests {
     fn for_loop_with_break() {
         // i64 i = 0;
         // for (;true; i = i + 1) {if (i == 5) {break;}}
-        let ast = Node {
-            value: Statement::ForLoop {
-                declaration: None,
-                condition: Node {
-                    value: Expression::Literal(Literal::True),
-                    position: default_position(),
-                },
-                assignment: Some(Box::new(Node {
-                    value: Statement::Assignment {
-                        identifier: Node {
-                            value: String::from("i"),
-                            position: default_position(),
-                        },
-                        value: Node {
-                            value: Expression::Addition(
-                                Box::new(Node {
-                                    value: Expression::Variable(String::from("i")),
-                                    position: default_position(),
-                                }),
-                                Box::new(Node {
-                                    value: Expression::Literal(Literal::I64(1)),
-                                    position: default_position(),
-                                }),
-                            ),
-                            position: default_position(),
-                        },
-                    },
-                    position: default_position(),
-                })),
-                block: Node {
-                    value: Block(vec![Node {
-                        value: Statement::Conditional {
-                            condition: Node {
-                                value: Expression::Equal(
-                                    Box::new(Node {
-                                        value: Expression::Variable(String::from("i")),
-                                        position: default_position(),
-                                    }),
-                                    Box::new(Node {
-                                        value: Expression::Literal(Literal::I64(5)),
-                                        position: default_position(),
-                                    }),
-                                ),
-                                position: default_position(),
-                            },
-                            if_block: Node {
-                                value: Block(vec![Node {
-                                    value: Statement::Break,
-                                    position: default_position(),
-                                }]),
-                                position: default_position(),
-                            },
-                            else_block: None,
-                        },
-                        position: default_position(),
-                    }]),
-                    position: default_position(),
-                },
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::ForLoop {
+            declaration: None,
+            condition: test_node!(Expression::Literal(Literal::True)),
+            assignment: Some(Box::new(test_node!(Statement::Assignment {
+                identifier: test_node!(String::from("i")),
+                value: test_node!(Expression::Addition(
+                    Box::new(test_node!(Expression::Variable(String::from("i")))),
+                    Box::new(test_node!(Expression::Literal(Literal::I64(1))))
+                )),
+            }))),
+            block: test_node!(Block(vec![test_node!(Statement::Conditional {
+                condition: test_node!(Expression::Equal(
+                    Box::new(test_node!(Expression::Variable(String::from("i")))),
+                    Box::new(test_node!(Expression::Literal(Literal::I64(5))))
+                )),
+                if_block: test_node!(Block(vec![test_node!(Statement::Break)])),
+                else_block: None,
+            })])),
+        });
 
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
@@ -1633,104 +1173,44 @@ mod tests {
 
     #[test]
     fn test_function_call() {
-        let ast = Node {
-            value: Statement::FunctionCall {
-                identifier: Node {
-                    value: String::from("add"),
-                    position: default_position(),
-                },
-                arguments: vec![
-                    Box::new(Node {
-                        value: Argument {
-                            value: Node {
-                                value: Expression::Literal(Literal::I64(3)),
-                                position: default_position(),
-                            },
-                            passed_by: PassedBy::Value,
-                        },
-                        position: default_position(),
-                    }),
-                    Box::new(Node {
-                        value: Argument {
-                            value: Node {
-                                value: Expression::Literal(Literal::I64(4)),
-                                position: default_position(),
-                            },
-                            passed_by: PassedBy::Value,
-                        },
-                        position: default_position(),
-                    }),
-                ],
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::FunctionCall {
+            identifier: test_node!(String::from("add")),
+            arguments: vec![
+                Box::new(test_node!(Argument {
+                    value: test_node!(Expression::Literal(Literal::I64(3))),
+                    passed_by: PassedBy::Value,
+                })),
+                Box::new(test_node!(Argument {
+                    value: test_node!(Expression::Literal(Literal::I64(4))),
+                    passed_by: PassedBy::Value,
+                })),
+            ],
+        });
 
         let mut functions: HashMap<String, Rc<Node<FunctionDeclaration>>> = HashMap::new();
 
         functions.insert(
             String::from("add"),
-            Rc::new(Node {
-                value: FunctionDeclaration {
-                    identifier: Node {
-                        value: String::from("add"),
-                        position: default_position(),
-                    },
-                    parameters: vec![
-                        Node {
-                            value: Parameter {
-                                passed_by: PassedBy::Value,
-                                parameter_type: Node {
-                                    value: Type::I64,
-                                    position: default_position(),
-                                },
-                                identifier: Node {
-                                    value: String::from("a"),
-                                    position: default_position(),
-                                },
-                            },
-                            position: default_position(),
-                        },
-                        Node {
-                            value: Parameter {
-                                passed_by: PassedBy::Value,
-                                parameter_type: Node {
-                                    value: Type::I64,
-                                    position: default_position(),
-                                },
-                                identifier: Node {
-                                    value: String::from("b"),
-                                    position: default_position(),
-                                },
-                            },
-                            position: default_position(),
-                        },
-                    ],
-                    return_type: Node {
-                        value: Type::I64,
-                        position: default_position(),
-                    },
-                    block: Node {
-                        value: Block(vec![Node {
-                            value: Statement::Return(Some(Node {
-                                value: Expression::Addition(
-                                    Box::new(Node {
-                                        value: Expression::Variable(String::from("a")),
-                                        position: default_position(),
-                                    }),
-                                    Box::new(Node {
-                                        value: Expression::Variable(String::from("b")),
-                                        position: default_position(),
-                                    }),
-                                ),
-                                position: default_position(),
-                            })),
-                            position: default_position(),
-                        }]),
-                        position: default_position(),
-                    },
-                },
-                position: default_position(),
-            }),
+            Rc::new(test_node!(FunctionDeclaration {
+                identifier: test_node!(String::from("add")),
+                parameters: vec![
+                    test_node!(Parameter {
+                        passed_by: PassedBy::Value,
+                        parameter_type: test_node!(Type::I64),
+                        identifier: test_node!(String::from("a")),
+                    }),
+                    test_node!(Parameter {
+                        passed_by: PassedBy::Value,
+                        parameter_type: test_node!(Type::I64),
+                        identifier: test_node!(String::from("b")),
+                    }),
+                ],
+                return_type: test_node!(Type::I64),
+                block: test_node!(Block(vec![test_node!(Statement::Return(Some(test_node!(Expression::Addition(
+                    Box::new(test_node!(Expression::Variable(String::from("a")))),
+                    Box::new(test_node!(Expression::Variable(String::from("b")))),
+                )))))])),
+            })),
         );
 
         let program = Program {
@@ -1757,90 +1237,39 @@ mod tests {
         // }
 
         fn create_assignment(val: i64) -> Node<Statement> {
-            Node {
-                value: Statement::Assignment {
-                    identifier: Node {
-                        value: String::from("result"),
-                        position: default_position(),
-                    },
-                    value: Node {
-                        value: Expression::Literal(Literal::I64(val)),
-                        position: default_position(),
-                    },
-                },
-                position: default_position(),
-            }
+            test_node!(Statement::Assignment {
+                identifier: test_node!(String::from("result")),
+                value: test_node!(Expression::Literal(Literal::I64(val))),
+            })
         }
 
         fn create_condition(val: i64) -> Node<Expression> {
-            Node {
-                value: Expression::Less(
-                    Box::new(Node {
-                        value: Expression::Variable(String::from("x")),
-                        position: default_position(),
-                    }),
-                    Box::new(Node {
-                        value: Expression::Literal(Literal::I64(val)),
-                        position: default_position(),
-                    }),
-                ),
-                position: default_position(),
-            }
+            test_node!(Expression::Less(
+                Box::new(test_node!(Expression::Variable(String::from("x")))),
+                Box::new(test_node!(Expression::Literal(Literal::I64(val)))),
+            ))
         }
 
-        Node {
-            value: Statement::Switch {
-                expressions: vec![Node {
-                    value: SwitchExpression {
-                        expression: Node {
-                            value: Expression::Variable(String::from("x")),
-                            position: default_position(),
-                        },
-                        alias: None,
-                    },
-                    position: default_position(),
-                }],
-                cases: vec![
-                    Node {
-                        value: SwitchCase {
-                            condition: create_condition(15),
-                            block: Node {
-                                value: Block(vec![create_assignment(15)]),
-                                position: default_position(),
-                            },
-                        },
-                        position: default_position(),
-                    },
-                    Node {
-                        value: SwitchCase {
-                            condition: create_condition(10),
-                            block: Node {
-                                value: Block(vec![
-                                    create_assignment(10),
-                                    Node {
-                                        value: Statement::Break,
-                                        position: default_position(),
-                                    },
-                                ]),
-                                position: default_position(),
-                            },
-                        },
-                        position: default_position(),
-                    },
-                    Node {
-                        value: SwitchCase {
-                            condition: create_condition(5),
-                            block: Node {
-                                value: Block(vec![create_assignment(5)]),
-                                position: default_position(),
-                            },
-                        },
-                        position: default_position(),
-                    },
-                ],
-            },
-            position: default_position(),
-        }
+        test_node!(Statement::Switch {
+            expressions: vec![test_node!(SwitchExpression {
+                expression: test_node!(Expression::Variable(String::from("x"))),
+                alias: None,
+            }),],
+            cases: vec![
+                test_node!(SwitchCase {
+                    condition: create_condition(15),
+                    block: test_node!(Block(vec![create_assignment(15)])),
+                }),
+                test_node!(SwitchCase {
+                    condition: create_condition(10),
+                    block: test_node!(Block(vec![create_assignment(10), test_node!(Statement::Break),])),
+                }),
+                test_node!(SwitchCase {
+                    condition: create_condition(5),
+                    block: test_node!(Block(vec![create_assignment(5)])),
+                }),
+            ],
+        })
     }
 
     #[test]
@@ -1908,25 +1337,13 @@ mod tests {
         let program = setup_program();
         let mut interpreter = create_interpreter(&program);
 
-        let ast = Node {
-            value: Statement::Switch {
-                expressions: vec![],
-                cases: vec![Node {
-                    value: SwitchCase {
-                        condition: Node {
-                            value: Expression::Literal(Literal::I64(1)),
-                            position: default_position(),
-                        },
-                        block: Node {
-                            value: Block(vec![]),
-                            position: default_position(),
-                        },
-                    },
-                    position: default_position(),
-                }],
-            },
-            position: default_position(),
-        };
+        let ast = test_node!(Statement::Switch {
+            expressions: vec![],
+            cases: vec![test_node!(SwitchCase {
+                condition: test_node!(Expression::Literal(Literal::I64(1))),
+                block: test_node!(Block(vec![])),
+            }),],
+        });
 
         assert_eq!(
             interpreter.visit_statement(&ast).err().unwrap().message(),
@@ -1939,23 +1356,11 @@ mod tests {
         let program = Program {
             functions: HashMap::new(),
             std_functions: HashMap::new(),
-            statements: vec![Node {
-                value: Statement::Conditional {
-                    condition: Node {
-                        value: Expression::Literal(Literal::True),
-                        position: default_position(),
-                    },
-                    if_block: Node {
-                        value: Block(vec![Node {
-                            value: Statement::Break,
-                            position: default_position(),
-                        }]),
-                        position: default_position(),
-                    },
-                    else_block: None,
-                },
-                position: default_position(),
-            }],
+            statements: vec![test_node!(Statement::Conditional {
+                condition: test_node!(Expression::Literal(Literal::True)),
+                if_block: test_node!(Block(vec![test_node!(Statement::Break),])),
+                else_block: None,
+            })],
         };
 
         let mut interpreter = Interpreter::new(&program);
@@ -1971,22 +1376,10 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let ast = FunctionDeclaration {
-            identifier: Node {
-                value: String::from("fun"),
-                position: default_position(),
-            },
+            identifier: test_node!(String::from("fun")),
             parameters: vec![],
-            return_type: Node {
-                value: Type::Void,
-                position: default_position(),
-            },
-            block: Node {
-                value: Block(vec![Node {
-                    value: Statement::Break,
-                    position: default_position(),
-                }]),
-                position: default_position(),
-            },
+            return_type: test_node!(Type::Void),
+            block: test_node!(Block(vec![test_node!(Statement::Break),])),
         };
 
         assert_eq!(
@@ -2000,23 +1393,11 @@ mod tests {
         let program = Program {
             functions: HashMap::new(),
             std_functions: HashMap::new(),
-            statements: vec![Node {
-                value: Statement::Conditional {
-                    condition: Node {
-                        value: Expression::Literal(Literal::True),
-                        position: default_position(),
-                    },
-                    if_block: Node {
-                        value: Block(vec![Node {
-                            value: Statement::Return(None),
-                            position: default_position(),
-                        }]),
-                        position: default_position(),
-                    },
-                    else_block: None,
-                },
-                position: default_position(),
-            }],
+            statements: vec![test_node!(Statement::Conditional {
+                condition: test_node!(Expression::Literal(Literal::True)),
+                if_block: test_node!(Block(vec![test_node!(Statement::Return(None)),])),
+                else_block: None,
+            })],
         };
 
         let mut interpreter = Interpreter::new(&program);
@@ -2032,32 +1413,14 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let ast = FunctionDeclaration {
-            identifier: Node {
-                value: String::from("fun"),
-                position: default_position(),
-            },
-            parameters: vec![Node {
-                value: Parameter {
-                    passed_by: PassedBy::Value,
-                    parameter_type: Node {
-                        value: Type::I64,
-                        position: default_position(),
-                    },
-                    identifier: Node {
-                        value: String::from("x"),
-                        position: default_position(),
-                    },
-                },
-                position: default_position(),
-            }],
-            return_type: Node {
-                value: Type::Void,
-                position: default_position(),
-            },
-            block: Node {
-                value: Block(vec![]),
-                position: default_position(),
-            },
+            identifier: test_node!(String::from("fun")),
+            parameters: vec![test_node!(Parameter {
+                passed_by: PassedBy::Value,
+                parameter_type: test_node!(Type::I64),
+                identifier: test_node!(String::from("x")),
+            })],
+            return_type: test_node!(Type::Void),
+            block: test_node!(Block(vec![])),
         };
 
         interpreter.last_arguments = vec![Rc::new(RefCell::new(Value::F64(3.2)))];
@@ -2074,25 +1437,12 @@ mod tests {
         let mut interpreter = create_interpreter(&program);
 
         let ast = FunctionDeclaration {
-            identifier: Node {
-                value: String::from("fun"),
-                position: default_position(),
-            },
+            identifier: test_node!(String::from("fun")),
             parameters: vec![],
-            return_type: Node {
-                value: Type::Void,
-                position: default_position(),
-            },
-            block: Node {
-                value: Block(vec![Node {
-                    value: Statement::Return(Some(Node {
-                        value: Expression::Literal(Literal::I64(1)),
-                        position: default_position(),
-                    })),
-                    position: default_position(),
-                }]),
-                position: default_position(),
-            },
+            return_type: test_node!(Type::Void),
+            block: test_node!(Block(vec![test_node!(Statement::Return(Some(test_node!(Expression::Literal(
+                Literal::I64(1)
+            ))))),])),
         };
 
         assert_eq!(
