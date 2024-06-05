@@ -178,7 +178,6 @@ impl<T: BufRead> Lexer<T> {
     }
 
     fn try_generating_string(&mut self) -> Result<Option<Token>, Box<dyn IError>> {
-        // current_char do lexera
         let mut current_char = self.src.current().clone();
         if current_char != '"' {
             return Ok(None);

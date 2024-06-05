@@ -283,17 +283,14 @@ impl<'a> Visitor<'a> for SemanticChecker<'a> {
     }
 
     fn visit_type(&mut self, _node_type: &'a Node<Type>) -> Result<(), Box<dyn IError>> {
-        // println!("{:?}", _node_type);
         Ok(())
     }
 
     fn visit_literal(&mut self, _literal: &'a Literal) -> Result<(), Box<dyn IError>> {
-        // println!("{:?}", _literal);
         Ok(())
     }
 
     fn visit_variable(&mut self, _variable: &'a String) -> Result<(), Box<dyn IError>> {
-        // println!("{:?}", _variable);
         Ok(())
     }
 }
