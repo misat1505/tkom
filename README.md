@@ -1,47 +1,67 @@
-## Funkcjonalność
+# Interpreter for custom programming language
 
-Język silnie i statycznie typowany.
+This documentation covers the interpreter for a custom programming language with a focus on strong static typing and clear variable scoping. The interpreter handles various data types such as integers (i64), floating-point numbers (f64), strings (str), and booleans (bool). It supports key features like mutable variables, type conversions, and control flow constructs including if, for, and switch statements.
 
-1. Obsługiwane typy danych:
-   - i64 (liczby całkowite)
-   - f64 (liczby zmiennoprzecinkowe)
-   - str (łańcuchy znaków)
-   - bool (prawda / fałsz)
-   - void (brak zwracanej wartości z funkcji)
-2. Zmienne:
-   - Przyjmują jeden z wyżej wymienionych typów oprócz void.
-   - Wszystkie są mutowalne.
-   - Zmienna widoczna jedynie w bloku instrukcji, w którym została zadeklarowana.
-   - Możliwość zadeklarowania zmiennej danego typu bez podania wartości. W takim przypadku zostanie przypisana wartość domyślna dla tego typu.
-3. Operacje na Zmiennych:
-   - Przypisanie (=)
-   - Arytmetyczne (+, -, \*, /)
-   - Porównania (==, <, <=, >, >=, !=)
-   - Operatory logiczne (||, &&)
-4. Konwersja typów:
-   - i64 i f64 mogą być castowane na siebie nawzajem, na stringa i na boolean (jeżeli są <= 0 to będzie false inaczej prawda)
-   - string może być castowany na i64 i na f64, ze zgłoszeniem błędów, oraz na boolean (pusty string oznacza false inaczej true)
-5. Funkcje:
-   - Mogą przyjmować parametry przez wartość i referencję
-   - Mogą zwracać wartość określonego typu (możliwość funkcji nie zwracającej nic).
-   - Funkcje mogą być wywoływane rekurencyjnie
-6. Instrukcja if:
-   - Opcjonalny else.
-7. Pętla for:
-   - Iterator nie musi być deklarowany, ani aktualizowany
-   - Zadeklarowany iterator nie jest widoczny poza for'em
-8. Instrukcja switch (pattern matching):
-   - Możliwość zadeklarowania zmiennej widocznej jedynie wewnątrz switch'a
-   - Uruchamiany jest każdy blok, dla którego warunek jest spełniony
-   - Możliwość przedwczesnego wyjścia przy pomocy break
-9. Funkcje wbudowane:
-   - print(text): wypisuje string na standardowe wyjście wraz ze znakiem końca linii
-   - input(text): wypisuje string na standardowe wyjście i oczekuje na wprowadzenie tekstu od użytkownika, zwraca string
-   - mod(a, b): przyjmuje dwie liczby i zwraca wartość a % b
+## Functionality
 
-## Przykłady wykorzystania języka
+The language is strongly and statically typed.
 
-1. Funkcja sprawdzająca czy podana liczba jest liczbą pierwszą. Dodatkowo otrzymuje licznik iteracji przez referencję.
+1. Supported Data Types:
+
+   - i64 (integers)
+   - f64 (floating-point numbers)
+   - str (strings)
+   - bool (true / false)
+   - void (no return value from a function)
+
+2. Variables:
+
+   - Can hold one of the aforementioned types except void.
+   - All variables are mutable.
+   - Variables are visible only within the block where they are declared.
+   - Variables of a specific type can be declared without initializing them. In such cases, the default value for that type will be assigned.
+
+3. Variable Operations:
+
+   - Assignment (=)
+   - Arithmetic (+, -, \*, /)
+   - Comparisons (==, <, <=, >, >=, !=)
+   - Logical operators (||, &&)
+
+4. Type Conversion:
+
+   - i64 and f64 can be cast to each other, to strings, and to boolean (if <= 0, it will be false, otherwise true).
+   - Strings can be cast to i64 and f64 with error reporting, and to boolean (an empty string means false, otherwise true).
+
+5. Functions:
+
+   - Can accept parameters by value and by reference.
+   - Can return a value of a specified type (functions may also return nothing).
+   - Functions can be called recursively.
+
+6. If Statement:
+
+   - Optional else.
+
+7. For Loop:
+
+   - The iterator does not need to be declared or updated.
+   - The declared iterator is not visible outside the for loop.
+
+8. Switch Statement (pattern matching):
+
+   - Allows declaring a variable visible only within the switch.
+   - Each block where the condition is met is executed.
+   - Premature exit is possible using break.
+
+9. Built-in Functions:
+   - `print(text)`: prints a string to standard output with a newline character.
+   - `input(text)`: prints a string to standard output and waits for user input, returning a string.
+   - `mod(a, b)`: takes two numbers and returns the value of `a % b`.
+
+## Language Examples
+
+1. Function that checks if a given number is a prime number. It also receives an iteration count by reference.
 
 ```
 fn is_prime(i64 x, &i64 total_iters): bool {
@@ -60,7 +80,7 @@ fn is_prime(i64 x, &i64 total_iters): bool {
 }
 ```
 
-2. Funkcja wyliczająca podany wyraz ciągu Fibonacciego metodą iteracyjną.
+2. Function that calculates the nth term of the Fibonacci sequence using an iterative method.
 
 ```
 fn fib_iter(i64 x): i64 {
@@ -82,7 +102,7 @@ fn fib_iter(i64 x): i64 {
 }
 ```
 
-3. Funkcja wyliczająca podany wyraz ciągu Fibonacciego metodą rekurencyjną.
+3. Function that calculates the nth term of the Fibonacci sequence using a recursive method.
 
 ```
 fn fib_rec(i64 x): i64 {
@@ -94,7 +114,7 @@ fn fib_rec(i64 x): i64 {
 }
 ```
 
-4. Program proszący użytkownika o liczbę i wyświetlający informacje o jej znaku.
+4. Program that asks the user for a number and displays information about its sign.
 
 ```
 switch (input("Pick a number: ") as i64: x) {
@@ -108,12 +128,11 @@ switch (input("Pick a number: ") as i64: x) {
     print("Positive");
   }
 }
-
 ```
 
-## Gramatyka
+## Grammar
 
-### Część składniowa
+### Syntax Part
 
 **program** = { function_declaration | assign_or_call | if_statement | for_statement | switch_statement | declaration, ";" };
 
@@ -228,7 +247,7 @@ x == y
 2 as bool               # true
 0 as bool               # false
 “123” as i64            # 123
-“fdsfs” as i64          # błąd
+“fdsfs” as i64          # error
 “” as bool              # false
 “a” as bool             # true
 ```
@@ -285,7 +304,7 @@ switch (x: temp1, y: temp2) {
 }
 ```
 
-### Część leksykalna
+### Lexical Part
 
 **letter** = "a" - "z" | "A" - "Z";
 
@@ -315,19 +334,19 @@ switch (x: temp1, y: temp2) {
 
 **character** = "a" - "z" | "A" - "Z" | "0" - "9" | "\_";
 
-**unicode_character** = (wszystkie znaki unicode)
+**unicode_character** = (all unicode characters)
 
-## Priorytety operatorów
+## Operator priority
 
 <table>
   <tr>
    <td>operator
    </td>
-   <td>priorytet
+   <td>priority
    </td>
   </tr>
   <tr>
-   <td>- (negacja liczby)
+   <td>- (number negetion)
    </td>
    <td>7
    </td>
@@ -363,7 +382,7 @@ switch (x: temp1, y: temp2) {
    </td>
   </tr>
   <tr>
-   <td>- (odejmowanie)
+   <td>- (subtraction)
    </td>
    <td>4
    </td>
@@ -418,16 +437,16 @@ switch (x: temp1, y: temp2) {
   </tr>
 </table>
 
-## Obsługa błędów
+## Error Handling
 
-Podział na errory i warningi:
+Errors and Warnings Division:
 
-1. errory: zgłaszają błąd komponentowi wyżej, oznaczają brak możliwości kontynuacji działania
-2. warningi: komponent wyższego poziomu tworzy funkcję, która ma być uruchomiona w razie wystąpienia warninga, działanie nie jest zatrzymywane
+1. **Errors:** Reported to the higher-level component, indicating that execution cannot continue.
+2. **Warnings:** The higher-level component creates a function to be executed in case of a warning; execution is not halted.
 
-### Błędy lexera
+### Lexer Errors
 
-Lexer zgłasza błąd gdy nie może przypisać podanego ciągu znaków do żadnego tokenu. Ponadto, wyłapuje on przepełnienia liczb wpisanych przez uzytkownika oraz za długie komentarze i identyfikatory.
+The lexer reports an error when it cannot map a given string to any token. Additionally, it catches overflows for numbers entered by users and excessively long comments and identifiers.
 
 ```
 Overflow occurred while parsing integer
@@ -438,7 +457,7 @@ i64 a = 7647326473264873264873264;
                            ^
 ```
 
-Lexer zgłasza warningi w przypadku, gdy może się domyśleć o co chodziło użytkownikowi, ale nie zostało przez niego poprawnie napisane.
+The lexer reports warnings when it can infer what the user likely intended but the input was not correctly written.
 
 ```
 Expected '|'
@@ -447,12 +466,12 @@ At line: 18, column: 15
 
 ```
 String not closed
-at line: 21, column: 37
+At line: 21, column: 37
 ```
 
-### Błędy parsera
+### Parser Errors
 
-Parser zgłasza błąd gdy natrafi na token, który nie zgadza się ze specyfikacją gramatyki języka oraz gdy wykryje redeklarację funkcji.
+The parser reports an error when it encounters a token that does not match the language grammar specification or when it detects function redeclaration.
 
 ```
 Couldn't create statement block while parsing if statement.
@@ -464,9 +483,9 @@ Redeclaration of function 'print'.
 At: line: 14, column: 1.
 ```
 
-### Błędy analizatora semantycznego
+### Semantic Analyzer Errors
 
-Analizator semantyczny zgłasza błąd, gdy znajdzie w drzewie rozbioru wywołanie funkcji nieistniejącej, ze złą liczbą argumentów, albo z argumentami przekazanymi w niewłaściwy sposób.
+The semantic analyzer reports an error when it finds a function call in the parse tree for a non-existent function, with the wrong number of arguments, or with arguments passed incorrectly.
 
 ```
 Invalid number of arguments for function 'foo'. Expected 1, given 0.
@@ -478,21 +497,21 @@ Parameter 'x' in function 'foo' passed by Reference - should be passed by Value.
 At line: 19, column: 6.
 ```
 
-### Błędy interpretera
+### Interpreter Errors
 
-Interpreter zgłasza błąd, gdy natrafi na niedozwoloną operację, tj:
+The interpreter reports an error when it encounters an illegal operation, such as:
 
-- dodanie wartości różnych typów,
-- przypisanie wartości o innym typie niż zmienna,
-- przekazanie złego typu jako argumentu funkcji,
-- zwrócenie złego typu z funkcji,
-- ponowne zadeklarowanie zmiennej,
-- gdy warunek w blokach if, switch, for nie są typu bool,
-- gdy break jest użyty poza for'em lub switch'em,
-- gdy return jest użyty poza funkcją,
-- gdy nastąpi przepełnienie stosu wywołań funkcji,
-- podczas przepełnienia w operacjach arytmetycznych,
-- podczas błędu konwersji typów
+- Adding values of different types,
+- Assigning a value of a different type to a variable,
+- Passing an incorrect type as a function argument,
+- Returning an incorrect type from a function,
+- Redeclaring a variable,
+- Conditions in if, switch, for blocks not being of type bool,
+- Using break outside of a for or switch,
+- Using return outside of a function,
+- Stack overflow due to function calls,
+- Arithmetic overflow,
+- Type conversion errors.
 
 ```
 Cannot perform addition between values of type 'i64' and 'f64'.
@@ -509,77 +528,77 @@ Cannot cast String 'abc' to i64.
 At: line: 18, column: 9
 ```
 
-## Sposób uruchomienia
+## Execution Instructions
 
-1. Uruchomienie w trybie do debuggowania
+1. **Running in Debug Mode:**
 
 ```
-cargo run ścieżka_do_pliku
+cargo run path_to_file
 ```
 
-2. Zbudowanie projektu
+2. **Building the Project:**
 
 ```
 cargo build --release
-.\target\release\tkom.exe ścieżka_do_pliku
+.\target\release\tkom.exe path_to_file
 ```
 
-**Analiza wymagań funkcjonalnych i niefunkcjonalnych**
+**Analysis of Functional and Non-Functional Requirements**
 
-## Sposób realizacji
+## Implementation Method
 
-Głównymi komponentami programu są analizator leksykalny, składniowy, semantyczny i interpreter.
+The main components of the program are the lexical analyzer, parser, semantic analyzer, and interpreter.
 
-### Analizator leksykalny
+### Lexical Analyzer
 
-Lexer działa wraz z klasą LazyStreamReader. LazyStreamReader przyjmuje na swoje wejście źródło i oferuje 3 metody:
+The lexer operates with the `LazyStreamReader` class. `LazyStreamReader` takes an input source and provides 3 methods:
 
-- current() - zwraca obecny znak
-- next() - konsumuje 1 znak i go zwraca
-- position() - zwraca obecną pozycję
+- `current()` - returns the current character
+- `next()` - consumes 1 character and returns it
+- `position()` - returns the current position
 
-Lexer pracuje w sposób leniwy - udostępnia metodę 'generate_token'. Odpytuje LazyStreamReader o kolejne znaki i na ich podstawie próbuje stworzyć token. Gdy nie uda mu się stworzyć tokenu z jakielkolwiek kategorii zgłasza błąd.
+The lexer works lazily - it provides the `generate_token` method. It queries `LazyStreamReader` for subsequent characters and tries to create a token based on them. If it fails to create a token of any category, it reports an error.
 
-### Analizator składniowy
+### Parser
 
-Głównym zadaniem parsera jest stworzenie drzewa rozbioru składniowego zgodnego z przyjętą gramatyką. Odpytuje on Lexer o kolejne tokeny poprzez 'generate_token'. Wynikiem jego działania jest drzewo programu podzielone na główne statementy programu, definicję funkcji uzytkownika i funckje wbudowane.
+The primary task of the parser is to create a syntax tree that adheres to the accepted grammar. It queries the lexer for tokens through `generate_token`. The result is a program tree divided into main statements, user-defined function definitions, and built-in functions.
 
-### Analizator semantyczny
+### Semantic Analyzer
 
-Implementuje trait wizytatora, przechodząc wgłąb drzewa szuka wywołań funkcji i sprawdza czy są one poprawne. Jego działanie nie kończy się błędem, ale przechowuje on je w polu wewnątrz siebie.
+Implements the visitor trait, traversing the tree to find function calls and checking their correctness. It does not terminate with an error but stores any errors it finds internally.
 
 ### Interpreter
 
-Interpreter implementuje trait wizytatora i wykonuje program. W celu komunikacji pomiędzy wizytacjami wprowadzono do interpretera następujące pola:
+The interpreter implements the visitor trait and executes the program. To facilitate communication between visits, the interpreter includes the following fields:
 
-- 'last_result' - przetrzymuje wyniki pośrednie obliczeń,
-- 'last_arguments' - przechowuje argumenty wywołania funkcji (wskaźniki na wartości),
-- flagi 'is_breaking' i 'is_returning', które są zapalane podczas odwiedzin break'a i return'a, a zgaszane zostają przy natrafieniu na konstrukcję umożliwiającą to.
+- `last_result` - stores intermediate computation results,
+- `last_arguments` - holds function call arguments (pointers to values),
+- Flags `is_breaking` and `is_returning`, which are set during visits to break and return, and are cleared upon encountering structures that allow this.
 
-Interpreter współpracuje z klasą Stack, która przechowuje stos wywołań funkcji. Pojedyńczy StackFrame przechowuje instancję klasy ScopeManager'a, która jest również stosem, ale służy ona zarządzania zasięgiem zmiennych. Pojedyńcze pole w stosie ScopeManager'a (Scope) przechowuje HashMap'ę nazwa_zmiennej -> wskaźnik_na_wartość. Wartości reprezentowane są przez enumerację Value, a operacje na nich wykonuje klasa ALU.
+The interpreter interacts with the `Stack` class, which stores the function call stack. A single `StackFrame` holds an instance of the `ScopeManager` class, which is also a stack but is used for managing variable scopes. Each field in the `ScopeManager` stack (Scope) stores a `HashMap` of variable name -> value pointer. Values are represented by an enumeration `Value`, and operations on them are performed by the `ALU` class.
 
-## Opis sposobu testowania
+## Testing Approach
 
-1. Testy leksera
+1. **Lexer Tests:**
 
-   - Sprawdzenie czy poprawnie tworzone są tokeny.
-   - Sprawdzenie czy lekser reaguje odpowiednio na niepoprawne wejście.
+   - Check if tokens are created correctly.
+   - Check if the lexer responds appropriately to incorrect input.
 
-2. Testy parsera
+2. **Parser Tests:**
 
-   - Sprawdzenie poprawności drzewa rozbioru.
-   - Sprawdzenie czy parser reaguje na błędy składniowe.
+   - Verify the correctness of the parse tree.
+   - Check if the parser handles syntax errors correctly.
 
-3. Testy interpretera
+3. **Interpreter Tests:**
 
-   - Sprawdzenie czy interpreter poprawnie reaguje na podane drzewa ast.
+   - Check if the interpreter reacts correctly to given AST trees.
 
-4. Testy jednostkowe na:
+4. **Unit Tests for:**
 
-   - LazyStreamReader,
-   - ALU,
-   - Value,
-   - Scope i ScopeManager,
-   - Stack
+   - `LazyStreamReader`,
+   - `ALU`,
+   - `Value`,
+   - `Scope` and `ScopeManager`,
+   - `Stack`
 
-5. Testy integracyjne na całość projektu
+5. **Integration Tests for the entire project**
