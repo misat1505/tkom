@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+
 use inkwell::builder::Builder;
 use inkwell::context::Context;
+use inkwell::types::StructType;
 use inkwell::values::IntValue;
 use inkwell::{AddressSpace, IntPredicate};
 
@@ -10,7 +13,7 @@ use crate::{
     backend::llvm::{
         libc_functions::LibcFunctions,
         llvm_alu::{
-            llvm_value::{LlvmValue, VEC_DATA, VEC_LENGTH},
+            llvm_value::{LlvmValue, ENUM_PAYLOAD, ENUM_REFCOUNT, ENUM_TAG, VEC_DATA, VEC_LENGTH},
             LlvmAlu,
         },
     },
@@ -55,6 +58,53 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
         let value = op(&self.llvm_alu, &self.builder, &self.libc, computed_value, span)?;
         self.last_value = Some(value);
         Ok(())
+    }
+
+    /// Builds (or re-derives) the LLVM struct type and `variant_name -> tag`
+    /// mapping for a declared enum type, mirroring `struct_llvm_type`.
+    ///
+    /// `Type::Enum::fields` is a `HashMap<String, Option<Type>>`, which has no
+    /// stable iteration order of its own - so this method defines the *one*
+    /// canonical order (variants sorted alphabetically by name) that both
+    /// enum-literal codegen and match codegen must use. Never assign or read
+    /// a tag value except through this method, or the two will disagree on
+    /// what a given tag means.
+    ///
+    /// Returns `(enum_struct_type, variant_indices, ordered_variants)`:
+    /// - `enum_struct_type`: the `{ i64, i64, [N x i64] }` LLVM struct type.
+    /// - `variant_indices`: `variant_name -> tag` (position in canonical order).
+    /// - `ordered_variants`: `(variant_name, payload_type)` in canonical
+    ///   order, i.e. `ordered_variants[tag]` is the variant for that tag -
+    ///   used by match codegen to know each arm's payload type.
+    pub(in crate::backend::llvm::compiler) fn enum_llvm_type(
+        &self,
+        identifier: &str,
+        span: Span,
+    ) -> Result<(StructType<'ctx>, HashMap<String, u32>, Vec<(String, Option<Type>)>), Box<dyn IError>> {
+        let declared_type =
+            self.program.types.get(identifier).cloned().ok_or_else(|| {
+                Box::new(CompilerError::at(ErrorSeverity::HIGH, format!("Unknown type '{}'.", identifier), span)) as Box<dyn IError>
+            })?;
+        let Type::Enum { fields, .. } = &declared_type else {
+            return Err(Box::new(CompilerError::at(
+                ErrorSeverity::HIGH,
+                format!("'{}' is not an enum type.", identifier),
+                span,
+            )));
+        };
+
+        let mut ordered_variants: Vec<(String, Option<Type>)> = fields.iter().map(|(name, ty)| (name.clone(), ty.clone())).collect();
+        ordered_variants.sort_by(|a, b| a.0.cmp(&b.0));
+
+        let variant_indices = ordered_variants
+            .iter()
+            .enumerate()
+            .map(|(index, (name, _))| (name.clone(), index as u32))
+            .collect();
+
+        let enum_struct_type = LlvmValue::enum_struct_type(&ordered_variants, self.context, span)?;
+
+        Ok((enum_struct_type, variant_indices, ordered_variants))
     }
 
     pub(in crate::backend::llvm::compiler) fn compile_expression(&mut self, expression: &'a Node<Expression>) -> Result<(), Box<dyn IError>> {
@@ -439,7 +489,134 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
                 self.last_value = Some(field_value);
                 Ok(())
             }
-            Expression::EnumLiteral { .. } => todo!(),
+            Expression::EnumLiteral {
+                enum_name,
+                variant_name,
+                variant_value,
+            } => {
+                let declared_type = self.program.types.get(&enum_name.value).cloned().ok_or_else(|| {
+                    Box::new(CompilerError::at(
+                        ErrorSeverity::HIGH,
+                        format!("Unknown type '{}'.", enum_name.value),
+                        span,
+                    )) as Box<dyn IError>
+                })?;
+                let Type::Enum { fields, .. } = &declared_type else {
+                    return Err(Box::new(CompilerError::at(
+                        ErrorSeverity::HIGH,
+                        format!("'{}' is not an enum type.", enum_name.value),
+                        span,
+                    )));
+                };
+                // Payload type declared for this specific variant (`None` for
+                // a unit variant like `Aborted`), read before we move
+                // `declared_type` into the resulting `LlvmValue::Enum` below.
+                let variant_payload_type = fields.get(&variant_name.value).cloned().ok_or_else(|| {
+                    Box::new(CompilerError::at(
+                        ErrorSeverity::HIGH,
+                        format!("Enum '{}' has no variant '{}'.", enum_name.value, variant_name.value),
+                        variant_name.span,
+                    )) as Box<dyn IError>
+                })?;
+
+                let (enum_struct_type, variant_indices, _ordered_variants) = self.enum_llvm_type(&enum_name.value, span)?;
+                let tag_index = *variant_indices.get(&variant_name.value).ok_or_else(|| {
+                    Box::new(CompilerError::at(
+                        ErrorSeverity::HIGH,
+                        format!("Enum '{}' has no variant '{}'.", enum_name.value, variant_name.value),
+                        variant_name.span,
+                    )) as Box<dyn IError>
+                })?;
+
+                let size = enum_struct_type.size_of().expect("enum type should be sized");
+                let enum_ptr = self
+                    .builder
+                    .build_call(self.libc.malloc_fn, &[size.into()], "enum.malloc")
+                    .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?
+                    .try_as_basic_value()
+                    .basic()
+                    .expect("malloc should return a value")
+                    .into_pointer_value();
+
+                let refcount_field = self
+                    .builder
+                    .build_struct_gep(enum_struct_type, enum_ptr, ENUM_REFCOUNT, "enum.refcount")
+                    .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?;
+                self.builder
+                    .build_store(refcount_field, self.context.i64_type().const_int(1, false))
+                    .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?;
+
+                let tag_field = self
+                    .builder
+                    .build_struct_gep(enum_struct_type, enum_ptr, ENUM_TAG, "enum.tag")
+                    .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?;
+                self.builder
+                    .build_store(tag_field, self.context.i64_type().const_int(tag_index as u64, false))
+                    .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?;
+
+                match (variant_payload_type, variant_value) {
+                    (None, None) => {
+                        // Unit variant (e.g. `Task::Aborted`) - nothing to store.
+                    }
+                    (Some(expected_type), None) => {
+                        return Err(Box::new(CompilerError::at(
+                            ErrorSeverity::HIGH,
+                            format!(
+                                "Variant '{}::{}' requires a value of type '{}'.",
+                                enum_name.value, variant_name.value, expected_type
+                            ),
+                            span,
+                        )));
+                    }
+                    (None, Some(_)) => {
+                        return Err(Box::new(CompilerError::at(
+                            ErrorSeverity::HIGH,
+                            format!("Variant '{}::{}' does not take a value.", enum_name.value, variant_name.value),
+                            span,
+                        )));
+                    }
+                    (Some(expected_type), Some(value_expr)) => {
+                        let is_empty_vector = matches!(
+                            &value_expr.value,
+                            Expression::Vector(elements) if elements.is_empty()
+                        );
+
+                        let payload_value = if is_empty_vector {
+                            let resolved_expected_type = self.resolve_type(&expected_type);
+                            let Type::Vector(inner) = &resolved_expected_type else {
+                                return Err(Box::new(CompilerError::expected_found(
+                                    ErrorSeverity::HIGH,
+                                    format!("Cannot assign value to variant '{}::{}'.", enum_name.value, variant_name.value),
+                                    format!("{}", resolved_expected_type),
+                                    "empty vector".to_string(),
+                                    value_expr.span,
+                                )));
+                            };
+                            let vector_ptr = self.build_empty_vector(inner, value_expr.span)?;
+                            LlvmValue::Vector(vector_ptr, inner.clone())
+                        } else {
+                            self.visit_expression(value_expr)?;
+                            let raw_value = self.read_last_value()?;
+                            self.finalize_owned_value_for_new_slot(raw_value, &value_expr.value, value_expr.span)?
+                        };
+
+                        // Payload field is `[N x i64]` backing storage - GEP
+                        // to its start (which is 8-byte aligned) and store
+                        // the actual value straight through, same as struct
+                        // field init above does for a normally-typed field.
+                        let payload_field = self
+                            .builder
+                            .build_struct_gep(enum_struct_type, enum_ptr, ENUM_PAYLOAD, "enum.payload")
+                            .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), value_expr.span)) as Box<dyn IError>)?;
+                        self.builder
+                            .build_store(payload_field, payload_value.as_basic_value_enum())
+                            .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), value_expr.span)) as Box<dyn IError>)?;
+                    }
+                }
+
+                self.last_value = Some(LlvmValue::Enum(enum_ptr, Box::new(declared_type.clone())));
+                Ok(())
+            }
         }
     }
 

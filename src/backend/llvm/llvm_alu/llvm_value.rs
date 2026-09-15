@@ -33,6 +33,15 @@ pub enum LlvmValue<'ctx> {
     Vector(PointerValue<'ctx>, Box<Type>),
     /// Pointer to the struct's fields, followed by a trailing `refcount: i64` field.
     Struct(PointerValue<'ctx>, Box<Type>),
+    /// Pointer to an `EnumHeader { refcount: i64, tag: i64, payload: [N x i64] }`.
+    /// `N` is the number of 8-byte words needed for the largest variant's
+    /// payload for this enum type (every supported field type is at most 8
+    /// bytes, so payload is always exactly 0 or 1 words in practice - the
+    /// array form just keeps this future-proof and keeps `enum_struct_type`
+    /// symmetric with `vector_struct_type`/`str_header_type`).
+    /// The `Box<Type>` is the enum's own `Type` (carries variant names/field
+    /// types), the same way `Struct`'s `Box<Type>` carries its field layout.
+    Enum(PointerValue<'ctx>, Box<Type>),
 }
 
 // ============================================================================
@@ -52,6 +61,18 @@ pub const VEC_DATA: u32 = 1;
 pub const VEC_LENGTH: u32 = 2;
 /// Field index of the `capacity: i64` field inside a `VecHeader`.
 pub const VEC_CAPACITY: u32 = 3;
+
+/// Field index of the `refcount: i64` field inside an `EnumHeader`.
+pub const ENUM_REFCOUNT: u32 = 0;
+/// Field index of the `tag: i64` field inside an `EnumHeader`. The tag is the
+/// 0-based index of the active variant, in declaration order.
+pub const ENUM_TAG: u32 = 1;
+/// Field index of the `payload: [N x i64]` field inside an `EnumHeader`. This
+/// is raw union storage: to read/write the active variant's value, GEP into
+/// this word array (giving an 8-byte-aligned pointer) and load/store through
+/// a pointer of the concrete field type - the array itself is never
+/// read/written as a whole.
+pub const ENUM_PAYLOAD: u32 = 2;
 
 impl<'ctx> LlvmValue<'ctx> {
     pub fn to_type(&self) -> Type {
@@ -73,13 +94,17 @@ impl<'ctx> LlvmValue<'ctx> {
 
             LlvmValue::Vector(_, inner) => Type::Vector(inner.clone()),
             LlvmValue::Struct(_, ty) => (**ty).clone(),
+            LlvmValue::Enum(_, ty) => (**ty).clone(),
         }
     }
 
     /// Whether this value is a heap object managed by the refcounting
     /// runtime (i.e. `retain_value`/`release_value` do something for it).
     pub fn is_refcounted(&self) -> bool {
-        matches!(self, LlvmValue::Str(_) | LlvmValue::Vector(_, _) | LlvmValue::Struct(_, _))
+        matches!(
+            self,
+            LlvmValue::Str(_) | LlvmValue::Vector(_, _) | LlvmValue::Struct(_, _) | LlvmValue::Enum(_, _)
+        )
     }
 
     pub fn as_basic_value_enum(&self) -> BasicValueEnum<'ctx> {
@@ -101,6 +126,7 @@ impl<'ctx> LlvmValue<'ctx> {
 
             LlvmValue::Vector(v, _) => (*v).into(),
             LlvmValue::Struct(v, _) => (*v).into(),
+            LlvmValue::Enum(v, _) => (*v).into(),
         }
     }
 
@@ -137,6 +163,7 @@ impl<'ctx> LlvmValue<'ctx> {
 
             (Type::Vector(inner), BasicValueEnum::PointerValue(v)) => LlvmValue::Vector(v, inner.clone()),
             (Type::Struct { .. }, BasicValueEnum::PointerValue(v)) => LlvmValue::Struct(v, Box::new(target_type.clone())),
+            (Type::Enum { .. }, BasicValueEnum::PointerValue(v)) => LlvmValue::Enum(v, Box::new(target_type.clone())),
 
             _ => unreachable!("BasicValueEnum variant should always match the declared Type"),
         }
@@ -163,6 +190,7 @@ impl<'ctx> LlvmValue<'ctx> {
 
             Type::Vector(_) => Some(context.ptr_type(AddressSpace::default()).into()),
             Type::Struct { .. } => Some(context.ptr_type(AddressSpace::default()).into()),
+            Type::Enum { .. } => Some(context.ptr_type(AddressSpace::default()).into()),
 
             _ => None,
         }
@@ -202,6 +230,52 @@ impl<'ctx> LlvmValue<'ctx> {
         )
     }
 
+    /// `EnumHeader { refcount: i64, tag: i64, payload: [word_count x i64] }`.
+    ///
+    /// Field order matches the `ENUM_*` index constants above.
+    ///
+    /// `variants` is `(variant_name, payload_type)` - one optional payload
+    /// type per variant, matching `Type::Enum`'s single-payload-per-variant
+    /// shape (`InProgress(Deadline)`, `Aborted` with no value, etc). This is
+    /// NOT the declaration order from the AST/`Type::Enum` HashMap (which has
+    /// no stable order) - callers must pass variants pre-sorted into the
+    /// same canonical order everywhere (see `Compiler::enum_llvm_type`),
+    /// since the position in this slice becomes the runtime tag value that
+    /// both enum-literal and match codegen must agree on.
+    ///
+    /// `payload_size` is the byte size of the largest variant's payload type;
+    /// a variant with no payload (e.g. a bare `Aborted`) contributes 0 and
+    /// never grows it. It's rounded up to whole 8-byte words so the payload
+    /// field is naturally 8-byte aligned - required since every supported
+    /// field type (ints up to i64, f64, and heap pointers) needs up to 8-byte
+    /// alignment, which a `[N x i8]` field would not guarantee.
+    pub fn enum_struct_type(variants: &[(String, Option<Type>)], context: &'ctx Context, span: Span) -> Result<StructType<'ctx>, Box<dyn IError>> {
+        let i64_type = context.i64_type();
+
+        let mut payload_size: u64 = 0;
+        for (_, payload_ty) in variants {
+            let variant_size = match payload_ty {
+                Some(ty) => Self::element_byte_size(ty, i64_type, span)?
+                    .get_zero_extended_constant()
+                    .expect("element_byte_size always returns a constant int"),
+                None => 0,
+            };
+            payload_size = payload_size.max(variant_size);
+        }
+
+        let word_count = (payload_size + 7) / 8;
+        let payload_type = i64_type.array_type(word_count as u32);
+
+        Ok(context.struct_type(
+            &[
+                i64_type.into(),     // refcount
+                i64_type.into(),     // tag
+                payload_type.into(), // payload (union storage, see ENUM_PAYLOAD)
+            ],
+            false,
+        ))
+    }
+
     pub fn element_byte_size(inner_type: &Type, i64_type: IntType<'ctx>, span: Span) -> Result<IntValue<'ctx>, Box<dyn IError>> {
         let size: u64 = match inner_type {
             Type::I8 | Type::U8 => 1,
@@ -220,6 +294,7 @@ impl<'ctx> LlvmValue<'ctx> {
             Type::Str => 8,           // TODO: 64-bit platform only
             Type::Vector(_) => 8,     // TODO: 64-bit platform only
             Type::Struct { .. } => 8, // TODO: 64-bit platform only
+            Type::Enum { .. } => 8,   // TODO: 64-bit platform only
 
             other => {
                 return Err(Box::new(CompilerError::new(
@@ -257,6 +332,32 @@ impl<'ctx> LlvmValue<'ctx> {
         }
     }
 
+    pub fn into_char_value(self, span: Span) -> Result<IntValue<'ctx>, Box<dyn IError>> {
+        match self {
+            LlvmValue::Char(v) => Ok(v),
+
+            other => Err(Box::new(CompilerError::at(
+                ErrorSeverity::HIGH,
+                format!("Expected a char, got '{}'.", other.to_type()),
+                span,
+            ))),
+        }
+    }
+
+    /// Unwraps an `Enum` value's pointer, or errors. Used by match codegen to
+    /// get at the `EnumHeader` pointer before GEP-ing into `tag`/`payload`.
+    pub fn into_enum_value(self, span: Span) -> Result<(PointerValue<'ctx>, Type), Box<dyn IError>> {
+        match self {
+            LlvmValue::Enum(v, ty) => Ok((v, *ty)),
+
+            other => Err(Box::new(CompilerError::at(
+                ErrorSeverity::HIGH,
+                format!("Expected an enum value, got '{}'.", other.to_type()),
+                span,
+            ))),
+        }
+    }
+
     pub fn is_integer(&self) -> bool {
         matches!(
             self,
@@ -269,17 +370,5 @@ impl<'ctx> LlvmValue<'ctx> {
                 | LlvmValue::U32(_)
                 | LlvmValue::U64(_)
         )
-    }
-
-    pub fn into_char_value(self, span: Span) -> Result<IntValue<'ctx>, Box<dyn IError>> {
-        match self {
-            LlvmValue::Char(v) => Ok(v),
-
-            other => Err(Box::new(CompilerError::at(
-                ErrorSeverity::HIGH,
-                format!("Expected a char, got '{}'.", other.to_type()),
-                span,
-            ))),
-        }
     }
 }

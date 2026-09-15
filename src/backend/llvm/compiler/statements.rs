@@ -2,9 +2,9 @@ use inkwell::AddressSpace;
 
 use super::{Compiler, ControlFrame};
 use crate::common::visitor::Visitor;
-use crate::frontend::ast::VariableDeclarationKind;
+use crate::frontend::ast::{Block, MatchArm, VariableDeclarationKind};
 use crate::{
-    backend::llvm::llvm_alu::llvm_value::LlvmValue,
+    backend::llvm::llvm_alu::llvm_value::{LlvmValue, ENUM_PAYLOAD, ENUM_TAG},
     common::{
         errors::{CompilerError, ErrorSeverity, IError},
         span::Span,
@@ -502,15 +502,266 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             }
 
             Statement::Switch { expressions, cases } => self.compile_switch(expressions, cases),
-            Statement::Match { .. } => todo!(),
+
+            Statement::Match {
+                expression,
+                match_arms,
+                rest_arm,
+            } => self.compile_match(expression, match_arms, rest_arm, span),
         }
+    }
+
+    /// Compiles a `match (expr) { Enum::Variant(binding) { ... }, ... }`
+    /// statement into a `switch` over the scrutinee's runtime tag.
+    ///
+    /// Tag numbering comes from `enum_llvm_type`'s canonical (alphabetical)
+    /// variant order - the only place tags are ever assigned, so this always
+    /// agrees with how `Expression::EnumLiteral` numbered them.
+    fn compile_match(
+        &mut self,
+        expression: &'a Node<Expression>,
+        match_arms: &'a [Node<MatchArm>],
+        rest_arm: &'a Option<Node<Block>>,
+        span: Span,
+    ) -> Result<(), Box<dyn IError>> {
+        self.visit_expression(expression)?;
+        let scrutinee_value = self.read_last_value()?;
+
+        let (enum_ptr, enum_type) = match &scrutinee_value {
+            LlvmValue::Enum(ptr, ty) => (*ptr, (**ty).clone()),
+            other => {
+                return Err(Box::new(CompilerError::at(
+                    ErrorSeverity::HIGH,
+                    format!("Cannot match on type '{}'.", other.to_type()),
+                    span,
+                )));
+            }
+        };
+
+        let Type::Enum { identifier, .. } = &enum_type else {
+            return Err(Box::new(CompilerError::at(
+                ErrorSeverity::HIGH,
+                format!("Cannot match on a non-enum type '{}'.", enum_type),
+                span,
+            )));
+        };
+
+        let (enum_struct_type, variant_indices, ordered_variants) = self.enum_llvm_type(identifier, span)?;
+
+        let i64_type = self.context.i64_type();
+
+        let tag_field = self
+            .builder
+            .build_struct_gep(enum_struct_type, enum_ptr, ENUM_TAG, "match.tag")
+            .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?;
+        let tag_value = self
+            .builder
+            .build_load(i64_type, tag_field, "match.tag.val")
+            .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?
+            .into_int_value();
+
+        let function = self.current_function();
+        let after_block = self.context.append_basic_block(function, "match.after");
+
+        // One block + tag per arm, built together so a bad variant name
+        // fails before any switch cases are emitted.
+        let mut arms = Vec::with_capacity(match_arms.len());
+        let mut cases = Vec::with_capacity(match_arms.len());
+        for arm in match_arms {
+            if arm.value.enum_name.value.as_str() != identifier.as_str() {
+                return Err(Box::new(CompilerError::at(
+                    ErrorSeverity::HIGH,
+                    format!(
+                        "Match arm expects enum '{}', but the matched value is of type '{}'.",
+                        arm.value.enum_name.value, identifier
+                    ),
+                    arm.span,
+                )));
+            }
+
+            let tag_index = *variant_indices.get(&arm.value.variant_name.value).ok_or_else(|| {
+                Box::new(CompilerError::at(
+                    ErrorSeverity::HIGH,
+                    format!("Enum '{}' has no variant '{}'.", identifier, arm.value.variant_name.value),
+                    arm.span,
+                )) as Box<dyn IError>
+            })?;
+
+            let block = self
+                .context
+                .append_basic_block(function, &format!("match.{}", arm.value.variant_name.value));
+
+            cases.push((i64_type.const_int(tag_index as u64, false), block));
+            arms.push((arm, block, tag_index));
+        }
+
+        let default_block = if rest_arm.is_some() {
+            self.context.append_basic_block(function, "match.rest")
+        } else {
+            self.context.append_basic_block(function, "match.unreachable")
+        };
+
+        self.builder
+            .build_switch(tag_value, default_block, &cases)
+            .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?;
+
+        let source_needs_release = Self::expr_needs_release(&expression.value);
+
+        for (arm, block, tag_index) in arms {
+            self.builder.position_at_end(block);
+
+            let (_, payload_type) = &ordered_variants[tag_index as usize];
+
+            self.push_scope();
+
+            match (payload_type, &arm.value.variant_value) {
+                (None, None) => {}
+
+                (Some(expected_type), Some(binding_name)) => {
+                    let field_llvm_type = LlvmValue::type_to_basic_type_enum(expected_type, self.context).ok_or_else(|| {
+                        Box::new(CompilerError::at(
+                            ErrorSeverity::HIGH,
+                            format!("Compiling enum payloads of type '{}' is not yet supported.", expected_type),
+                            arm.span,
+                        )) as Box<dyn IError>
+                    })?;
+
+                    let payload_field = self
+                        .builder
+                        .build_struct_gep(enum_struct_type, enum_ptr, ENUM_PAYLOAD, "match.payload")
+                        .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), arm.span)) as Box<dyn IError>)?;
+
+                    let raw_value = self
+                        .builder
+                        .build_load(field_llvm_type, payload_field, "match.payload.val")
+                        .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), arm.span)) as Box<dyn IError>)?;
+
+                    let payload_value = LlvmValue::from_basic_value_enum(raw_value, expected_type);
+
+                    // Binding the payload creates a new owning reference,
+                    // independent of the enum's own copy - same rule as
+                    // extracting a struct field (see `FieldAccess`).
+                    let payload_value = match payload_value {
+                        LlvmValue::Str(ptr) => LlvmValue::Str(self.build_string_copy(ptr, arm.span)?),
+                        other => {
+                            self.retain_value(&other, arm.span)?;
+                            other
+                        }
+                    };
+
+                    let binding_ptr = self
+                        .builder
+                        .build_alloca(field_llvm_type, binding_name.value.as_str())
+                        .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), arm.span)) as Box<dyn IError>)?;
+
+                    self.builder
+                        .build_store(binding_ptr, payload_value.as_basic_value_enum())
+                        .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), arm.span)) as Box<dyn IError>)?;
+
+                    self.declare_scoped_variable(binding_name.value.clone(), binding_ptr, expected_type.clone());
+                }
+
+                (Some(expected_type), None) => {
+                    return Err(Box::new(CompilerError::at(
+                        ErrorSeverity::HIGH,
+                        format!(
+                            "Variant '{}::{}' holds a value of type '{}' - bind it, e.g. `{}::{}(value) {{ ... }}`.",
+                            identifier, arm.value.variant_name.value, expected_type, identifier, arm.value.variant_name.value
+                        ),
+                        arm.span,
+                    )));
+                }
+
+                (None, Some(binding_name)) => {
+                    return Err(Box::new(CompilerError::at(
+                        ErrorSeverity::HIGH,
+                        format!(
+                            "Variant '{}::{}' holds no value to bind '{}' to.",
+                            identifier, arm.value.variant_name.value, binding_name.value
+                        ),
+                        arm.span,
+                    )));
+                }
+            }
+
+            if source_needs_release {
+                self.release_value(&scrutinee_value, arm.span)?;
+            }
+
+            self.visit_block(&arm.value.block)?;
+
+            self.pop_scope_and_release(span)?;
+
+            self.branch_if_no_terminator(after_block, span)?;
+        }
+
+        self.builder.position_at_end(default_block);
+
+        match rest_arm {
+            Some(block) => {
+                if source_needs_release {
+                    self.release_value(&scrutinee_value, span)?;
+                }
+
+                self.push_scope();
+
+                self.visit_block(block)?;
+
+                self.pop_scope_and_release(span)?;
+
+                self.branch_if_no_terminator(after_block, span)?;
+            }
+
+            None => {
+                // The typechecker is expected to guarantee exhaustiveness;
+                // this is a safety net in case it doesn't (e.g. a variant
+                // added to the enum without updating every `match` on it).
+                let error = CompilerError::at(ErrorSeverity::HIGH, String::from("Non-exhaustive match: no arm matched."), span);
+                let message = format!("{}\n", error.get_stderr_message());
+
+                let format_str = self
+                    .builder
+                    .build_global_string_ptr(&message, "match.msg")
+                    .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?;
+
+                let stderr = self
+                    .builder
+                    .build_load(
+                        self.context.ptr_type(AddressSpace::default()),
+                        self.libc.stderr.as_pointer_value(),
+                        "stderr",
+                    )
+                    .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?;
+
+                self.builder
+                    .build_call(
+                        self.libc.fprintf_fn,
+                        &[stderr.into(), format_str.as_pointer_value().into()],
+                        "match.fprintf",
+                    )
+                    .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?;
+
+                let i32_type = self.context.i32_type();
+                self.builder
+                    .build_call(self.libc.exit_fn, &[i32_type.const_int(1, false).into()], "match.exit")
+                    .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?;
+
+                self.builder
+                    .build_unreachable()
+                    .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), span)) as Box<dyn IError>)?;
+            }
+        }
+
+        self.builder.position_at_end(after_block);
+
+        Ok(())
     }
 
     /// Loads whatever `ptr` (of type `ty`) currently holds and releases it,
     /// if it's an owned heap value. Used right before overwriting a
     /// variable or an indexed slot.
     fn release_current_value(&mut self, ptr: inkwell::values::PointerValue<'ctx>, ty: &Type, span: Span) -> Result<(), Box<dyn IError>> {
-        if !matches!(ty, Type::Str | Type::Vector(_) | Type::Struct { .. }) {
+        if !matches!(ty, Type::Str | Type::Vector(_) | Type::Struct { .. } | Type::Enum { .. }) {
             return Ok(());
         }
 
@@ -550,7 +801,7 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
                 Ok(LlvmValue::Str(copied))
             }
 
-            LlvmValue::Vector(_, _) | LlvmValue::Struct(_, _) => {
+            LlvmValue::Vector(_, _) | LlvmValue::Struct(_, _) | LlvmValue::Enum(_, _) => {
                 if Self::expr_needs_retain(source_expr) {
                     self.retain_value(&value, span)?;
                 }
