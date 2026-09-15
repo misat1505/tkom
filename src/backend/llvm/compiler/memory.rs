@@ -2,8 +2,11 @@ use inkwell::values::PointerValue;
 use inkwell::{AddressSpace, IntPredicate};
 
 use super::Compiler;
+use crate::frontend::ast::{DeclaredType, EnumDeclaration};
 use crate::{
-    backend::llvm::llvm_alu::llvm_value::{LlvmValue, STR_DATA, STR_REFCOUNT, VEC_DATA, VEC_LENGTH, VEC_REFCOUNT},
+    backend::llvm::llvm_alu::llvm_value::{
+        LlvmValue, ENUM_PAYLOAD, ENUM_REFCOUNT, ENUM_TAG, STR_DATA, STR_REFCOUNT, VEC_DATA, VEC_LENGTH, VEC_REFCOUNT,
+    },
     common::{
         errors::{CompilerError, ErrorSeverity, IError},
         span::Span,
@@ -17,16 +20,10 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
     // Scope tracking
     // ========================================================================
 
-    /// Opens a new lexical scope. Every block (`{ ... }`) pushes one of these
-    /// on entry (see `visit_block`); function bodies additionally push one
-    /// for their parameters.
     pub(in crate::backend::llvm::compiler) fn push_scope(&mut self) {
         self.scopes.push(Vec::new());
     }
 
-    /// Declares a new local variable: stores it for lookup (`get_variable`)
-    /// and registers it in the innermost active scope so it gets released
-    /// automatically when that scope ends.
     pub(in crate::backend::llvm::compiler) fn declare_scoped_variable(&mut self, name: String, ptr: PointerValue<'ctx>, ty: Type) {
         self.variables.insert(name.clone(), (ptr, ty.clone()));
 
@@ -35,12 +32,6 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
         }
     }
 
-    /// Closes the innermost lexical scope: releases every owned local
-    /// declared directly in it (in reverse declaration order) and removes
-    /// them from the variable table. If the current basic block already has
-    /// a terminator (e.g. a `return`/`break`/`continue` already released
-    /// every active scope and jumped away), no release instructions are
-    /// emitted - only the compiler's bookkeeping is cleaned up.
     pub(in crate::backend::llvm::compiler) fn pop_scope_and_release(&mut self, span: Span) -> Result<(), Box<dyn IError>> {
         let scope = self.scopes.pop().unwrap_or_default();
 
@@ -58,12 +49,6 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
         Ok(())
     }
 
-    /// Releases every scope from `depth` (inclusive) to the innermost one,
-    /// without popping them. Used by `break`/`continue` to unwind the
-    /// scopes opened since the loop/switch was entered, before branching
-    /// away. The scopes are still popped later, as their owning `visit_block`
-    /// calls return normally (see `pop_scope_and_release`'s terminator
-    /// check).
     pub(in crate::backend::llvm::compiler) fn release_scopes_from(&mut self, depth: usize, span: Span) -> Result<(), Box<dyn IError>> {
         for scope_index in (depth..self.scopes.len()).rev() {
             let vars = self.scopes[scope_index].clone();
@@ -77,7 +62,6 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
         Ok(())
     }
 
-    /// Releases every currently active scope. Used by `return`.
     pub(in crate::backend::llvm::compiler) fn release_all_scopes(&mut self, span: Span) -> Result<(), Box<dyn IError>> {
         self.release_scopes_from(0, span)
     }
@@ -98,15 +82,6 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
         Ok(LlvmValue::from_basic_value_enum(raw, ty))
     }
 
-    /// Whether an expression, once evaluated, is a "new reference" that the
-    /// consumer already owns outright (fresh allocations, field/element
-    /// reads, function results, ...), as opposed to a "borrow" of an
-    /// existing local variable's own reference.
-    ///
-    /// Only bare variable reads need an explicit `retain` before being
-    /// stored into a new owning slot (`let`, assignment, struct field,
-    /// vector element, by-value argument, `return`) - everything else
-    /// already evaluates to an owned +1 reference by construction.
     pub(in crate::backend) fn expr_needs_retain(expr: &Expression) -> bool {
         matches!(expr, Expression::Variable(_))
     }
@@ -115,14 +90,10 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
     // Retain / release
     // ========================================================================
 
-    /// Function checks if we should release rhs of statements such as let x = <expr>;
-    /// Note: indexing and field accessing copy the value so we want to release it
     pub(in crate::backend) fn expr_needs_release(expr: &Expression) -> bool {
         !matches!(expr, Expression::Variable(_))
     }
 
-    /// Function checks if we should release arguments of a function.
-    /// Note: indexing and field accessing copy the value so we want to release it
     pub(in crate::backend) fn expr_needs_release_in_function_call(expr: &Expression) -> bool {
         matches!(
             expr,
@@ -159,6 +130,20 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
                 let rc_index = Self::struct_refcount_field_index(struct_type);
 
                 self.bump_refcount(struct_type, *ptr, rc_index, 1, &err)?;
+            }
+
+            // BUG FIX: this arm was missing, so enum values were never
+            // retained - the second owner's refcount never went up, so the
+            // first `release` could free the enum while someone else still
+            // held it (use-after-free / segfault).
+            LlvmValue::Enum(ptr, ty) => {
+                let Type::Enum { identifier, .. } = ty.as_ref() else {
+                    return Ok(());
+                };
+
+                let (header_type, _variant_indices, _ordered_variants) = self.enum_llvm_type(identifier, span)?;
+
+                self.bump_refcount(header_type, *ptr, ENUM_REFCOUNT, 1, &err)?;
             }
 
             _ => {}
@@ -204,13 +189,11 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             LlvmValue::Str(ptr) => self.release_str(*ptr, span),
             LlvmValue::Vector(ptr, inner) => self.release_vector(*ptr, inner, span),
             LlvmValue::Struct(ptr, ty) => self.release_struct(*ptr, ty, span),
+            LlvmValue::Enum(ptr, ty) => self.release_enum(*ptr, ty, span),
             _ => Ok(()),
         }
     }
 
-    /// Runs `body` only if decrementing the refcount at `(header_type, ptr,
-    /// refcount_index)` brings it down to zero, i.e. this was the last
-    /// reference. Positions the builder at the merge block afterwards.
     fn with_last_reference<F>(
         &mut self,
         header_type: inkwell::types::StructType<'ctx>,
@@ -295,7 +278,7 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
         let i64_type = self.context.i64_type();
 
         let inner_type = inner_type.clone();
-        let element_is_owned = matches!(inner_type, Type::Str | Type::Vector(_) | Type::Struct { .. });
+        let element_is_owned = matches!(inner_type, Type::Str | Type::Vector(_) | Type::Struct { .. } | Type::Enum { .. });
 
         self.with_last_reference(header_type, ptr, VEC_REFCOUNT, span, "vec.release", move |compiler| {
             let err = Self::builder_err(span);
@@ -404,7 +387,7 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             if let Some(declared_type) = fields.get(field_name) {
                 let resolved = self.resolve_type(declared_type);
 
-                if matches!(resolved, Type::Str | Type::Vector(_) | Type::Struct { .. }) {
+                if matches!(resolved, Type::Str | Type::Vector(_) | Type::Struct { .. } | Type::Enum { .. }) {
                     owned_fields.push((*field_index, resolved));
                 }
             }
@@ -414,8 +397,8 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             let err = Self::builder_err(span);
 
             for (field_index, field_type) in owned_fields.iter() {
-                let field_llvm_type =
-                    LlvmValue::type_to_basic_type_enum(field_type, compiler.context).expect("Str, Vector and Struct always map to a pointer type");
+                let field_llvm_type = LlvmValue::type_to_basic_type_enum(field_type, compiler.context)
+                    .expect("Str, Vector, Struct and Enum always map to a pointer type");
 
                 let field_ptr = compiler
                     .builder
@@ -438,5 +421,143 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
 
             Ok(())
         })
+    }
+
+    /// Releases an `EnumHeader`: once the refcount hits zero, the active
+    /// variant's payload (if it owns a heap value) is released based on the
+    /// runtime tag, then the header itself is freed.
+    ///
+    /// Tag values come from `enum_variants_in_order`'s position (see that
+    /// function's doc comment for why `Type::Enum::fields`, a `HashMap`,
+    /// can't be used for this).
+    fn release_enum(&mut self, ptr: PointerValue<'ctx>, ty: &Type, span: Span) -> Result<(), Box<dyn IError>> {
+        let Type::Enum { identifier, .. } = ty else {
+            return Ok(());
+        };
+
+        let (header_type, _variant_indices, ordered_variants) = self.enum_llvm_type(identifier, span)?;
+        let i64_type = self.context.i64_type();
+
+        let mut owned_variants: Vec<(u32, Type)> = Vec::new();
+
+        for (tag, (_, payload_type)) in ordered_variants.iter().enumerate() {
+            if let Some(resolved) = payload_type {
+                if matches!(resolved, Type::Str | Type::Vector(_) | Type::Struct { .. } | Type::Enum { .. }) {
+                    owned_variants.push((tag as u32, resolved.clone()));
+                }
+            }
+        }
+
+        self.with_last_reference(header_type, ptr, ENUM_REFCOUNT, span, "enum.release", move |compiler| {
+            let err = Self::builder_err(span);
+
+            if !owned_variants.is_empty() {
+                let tag_field = compiler
+                    .builder
+                    .build_struct_gep(header_type, ptr, ENUM_TAG, "enum.release.tag.field")
+                    .map_err(&err)?;
+                let tag_val = compiler
+                    .builder
+                    .build_load(i64_type, tag_field, "enum.release.tag.val")
+                    .map_err(&err)?
+                    .into_int_value();
+
+                let payload_field = compiler
+                    .builder
+                    .build_struct_gep(header_type, ptr, ENUM_PAYLOAD, "enum.release.payload.field")
+                    .map_err(&err)?;
+
+                let function = compiler.current_function();
+                let after_block = compiler.context.append_basic_block(function, "enum.release.after");
+
+                let mut cases = Vec::with_capacity(owned_variants.len());
+                let mut variant_blocks = Vec::with_capacity(owned_variants.len());
+
+                for (tag, payload_type) in owned_variants.iter() {
+                    let block = compiler.context.append_basic_block(function, &format!("enum.release.variant_{}", tag));
+                    cases.push((i64_type.const_int(*tag as u64, false), block));
+                    variant_blocks.push((block, payload_type.clone()));
+                }
+
+                compiler.builder.build_switch(tag_val, after_block, &cases).map_err(&err)?;
+
+                for (block, payload_type) in variant_blocks {
+                    compiler.builder.position_at_end(block);
+
+                    let payload_llvm_type = LlvmValue::type_to_basic_type_enum(&payload_type, compiler.context)
+                        .expect("Str, Vector, Struct and Enum payloads always map to a pointer type");
+
+                    let payload_raw = compiler
+                        .builder
+                        .build_load(payload_llvm_type, payload_field, "enum.release.payload.val")
+                        .map_err(&err)?;
+
+                    let payload_value = LlvmValue::from_basic_value_enum(payload_raw, &payload_type);
+                    compiler.release_value(&payload_value, span)?;
+
+                    compiler.branch_if_no_terminator(after_block, span)?;
+                }
+
+                compiler.builder.position_at_end(after_block);
+            }
+
+            compiler
+                .builder
+                .build_call(compiler.libc.free_fn, &[ptr.into()], "enum.header.free")
+                .map_err(&err)?;
+
+            Ok(())
+        })
+    }
+
+    fn enum_declaration(&self, identifier: &str, span: Span) -> Result<&'a EnumDeclaration, Box<dyn IError>> {
+        let declared = self.program.declared_types.get(identifier).ok_or_else(|| {
+            Box::new(CompilerError::at(
+                ErrorSeverity::HIGH,
+                format!("Unknown enum type '{}'.", identifier),
+                span,
+            )) as Box<dyn IError>
+        })?;
+
+        #[allow(irrefutable_let_patterns)]
+        let DeclaredType::Enum(enum_decl) = &declared.value
+        else {
+            return Err(Box::new(CompilerError::at(
+                ErrorSeverity::HIGH,
+                format!("'{}' is not an enum type.", identifier),
+                span,
+            )));
+        };
+
+        Ok(enum_decl)
+    }
+
+    /// Returns this enum's variants in canonical declaration order:
+    /// `(variant_name, resolved_payload_type)`. Index in this `Vec` = the
+    /// runtime tag value (see `ENUM_TAG`'s doc comment), so this is the single
+    /// source of truth every piece of codegen (enum-literal construction,
+    /// `match`, and the refcounting runtime's `retain_value`/`release_value`
+    /// for `LlvmValue::Enum`) must call to agree on tags.
+    ///
+    /// Order comes from `EnumDeclaration::members` (a `Vec`, so declaration
+    /// order is preserved) - never from `Type::Enum::fields` (a `HashMap`,
+    /// unordered). Only use `fields` to look up a resolved payload type by
+    /// name, never to iterate for order.
+    pub(in crate::backend::llvm::compiler) fn enum_variants_in_order(
+        &self,
+        identifier: &str,
+        span: Span,
+    ) -> Result<Vec<(String, Option<Type>)>, Box<dyn IError>> {
+        let enum_decl = self.enum_declaration(identifier, span)?;
+
+        Ok(enum_decl
+            .members
+            .iter()
+            .map(|member| {
+                let name = member.value.identifier.value.clone();
+                let payload_type = member.value.member_type.as_ref().map(|t| self.resolve_type(&t.value));
+                (name, payload_type)
+            })
+            .collect())
     }
 }
