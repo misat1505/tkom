@@ -134,7 +134,6 @@ impl Value {
 
             Type::F64 => Ok(Value::F64(0.0)),
             Type::Str => Ok(Value::String("".to_owned())),
-            Type::Char => Ok(Value::Char('\0')),
 
             Type::Vector(inner) => Ok(Value::Vector {
                 kind: Box::new(Type::Vector(inner.clone())),

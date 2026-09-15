@@ -248,12 +248,12 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
 
                 let (element_ptr, element_type) = self.resolve_indexed_element(vector_ptr, &var_type, accessors, span)?;
 
+                self.visit_expression(value)?;
+
                 // The slot being overwritten currently holds a live
                 // reference (owned by the containing vector/struct) -
                 // release it before storing the new value.
                 self.release_current_value(element_ptr, &element_type, span)?;
-
-                self.visit_expression(value)?;
 
                 let new_value = self.read_last_value()?;
 

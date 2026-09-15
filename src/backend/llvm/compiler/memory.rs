@@ -2,7 +2,6 @@ use inkwell::values::PointerValue;
 use inkwell::{AddressSpace, IntPredicate};
 
 use super::Compiler;
-use crate::frontend::ast::{DeclaredType, EnumDeclaration};
 use crate::{
     backend::llvm::llvm_alu::llvm_value::{
         LlvmValue, ENUM_PAYLOAD, ENUM_REFCOUNT, ENUM_TAG, STR_DATA, STR_REFCOUNT, VEC_DATA, VEC_LENGTH, VEC_REFCOUNT,
@@ -508,56 +507,5 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
 
             Ok(())
         })
-    }
-
-    fn enum_declaration(&self, identifier: &str, span: Span) -> Result<&'a EnumDeclaration, Box<dyn IError>> {
-        let declared = self.program.declared_types.get(identifier).ok_or_else(|| {
-            Box::new(CompilerError::at(
-                ErrorSeverity::HIGH,
-                format!("Unknown enum type '{}'.", identifier),
-                span,
-            )) as Box<dyn IError>
-        })?;
-
-        #[allow(irrefutable_let_patterns)]
-        let DeclaredType::Enum(enum_decl) = &declared.value
-        else {
-            return Err(Box::new(CompilerError::at(
-                ErrorSeverity::HIGH,
-                format!("'{}' is not an enum type.", identifier),
-                span,
-            )));
-        };
-
-        Ok(enum_decl)
-    }
-
-    /// Returns this enum's variants in canonical declaration order:
-    /// `(variant_name, resolved_payload_type)`. Index in this `Vec` = the
-    /// runtime tag value (see `ENUM_TAG`'s doc comment), so this is the single
-    /// source of truth every piece of codegen (enum-literal construction,
-    /// `match`, and the refcounting runtime's `retain_value`/`release_value`
-    /// for `LlvmValue::Enum`) must call to agree on tags.
-    ///
-    /// Order comes from `EnumDeclaration::members` (a `Vec`, so declaration
-    /// order is preserved) - never from `Type::Enum::fields` (a `HashMap`,
-    /// unordered). Only use `fields` to look up a resolved payload type by
-    /// name, never to iterate for order.
-    pub(in crate::backend::llvm::compiler) fn enum_variants_in_order(
-        &self,
-        identifier: &str,
-        span: Span,
-    ) -> Result<Vec<(String, Option<Type>)>, Box<dyn IError>> {
-        let enum_decl = self.enum_declaration(identifier, span)?;
-
-        Ok(enum_decl
-            .members
-            .iter()
-            .map(|member| {
-                let name = member.value.identifier.value.clone();
-                let payload_type = member.value.member_type.as_ref().map(|t| self.resolve_type(&t.value));
-                (name, payload_type)
-            })
-            .collect())
     }
 }
