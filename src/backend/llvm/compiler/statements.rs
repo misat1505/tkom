@@ -662,20 +662,7 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
                     self.declare_scoped_variable(binding_name.value.clone(), binding_ptr, resolved_type.clone());
                 }
 
-                (Some(expected_type), None) => {
-                    return Err(Box::new(CompilerError::at(
-                        ErrorSeverity::HIGH,
-                        format!(
-                            "Variant '{}::{}' holds a value of type '{}' - bind it, e.g. `{}::{}(value) {{ ... }}`.",
-                            identifier,
-                            arm.value.variant_name.value,
-                            self.resolve_type(expected_type),
-                            identifier,
-                            arm.value.variant_name.value
-                        ),
-                        arm.span,
-                    )));
-                }
+                (Some(_), None) => {}
 
                 (None, Some(binding_name)) => {
                     return Err(Box::new(CompilerError::at(
