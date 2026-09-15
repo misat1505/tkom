@@ -618,10 +618,11 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
                 (None, None) => {}
 
                 (Some(expected_type), Some(binding_name)) => {
-                    let field_llvm_type = LlvmValue::type_to_basic_type_enum(expected_type, self.context).ok_or_else(|| {
+                    let resolved_type = self.resolve_type(expected_type);
+                    let field_llvm_type = LlvmValue::type_to_basic_type_enum(&resolved_type, self.context).ok_or_else(|| {
                         Box::new(CompilerError::at(
                             ErrorSeverity::HIGH,
-                            format!("Compiling enum payloads of type '{}' is not yet supported.", expected_type),
+                            format!("Compiling enum payloads of type '{}' is not yet supported.", resolved_type),
                             arm.span,
                         )) as Box<dyn IError>
                     })?;
@@ -636,7 +637,7 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
                         .build_load(field_llvm_type, payload_field, "match.payload.val")
                         .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), arm.span)) as Box<dyn IError>)?;
 
-                    let payload_value = LlvmValue::from_basic_value_enum(raw_value, expected_type);
+                    let payload_value = LlvmValue::from_basic_value_enum(raw_value, &resolved_type);
 
                     // Binding the payload creates a new owning reference,
                     // independent of the enum's own copy - same rule as
@@ -658,7 +659,7 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
                         .build_store(binding_ptr, payload_value.as_basic_value_enum())
                         .map_err(|err| Box::new(CompilerError::at(ErrorSeverity::HIGH, err.to_string(), arm.span)) as Box<dyn IError>)?;
 
-                    self.declare_scoped_variable(binding_name.value.clone(), binding_ptr, expected_type.clone());
+                    self.declare_scoped_variable(binding_name.value.clone(), binding_ptr, resolved_type.clone());
                 }
 
                 (Some(expected_type), None) => {
@@ -666,7 +667,11 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
                         ErrorSeverity::HIGH,
                         format!(
                             "Variant '{}::{}' holds a value of type '{}' - bind it, e.g. `{}::{}(value) {{ ... }}`.",
-                            identifier, arm.value.variant_name.value, expected_type, identifier, arm.value.variant_name.value
+                            identifier,
+                            arm.value.variant_name.value,
+                            self.resolve_type(expected_type),
+                            identifier,
+                            arm.value.variant_name.value
                         ),
                         arm.span,
                     )));
