@@ -230,52 +230,6 @@ impl<'ctx> LlvmValue<'ctx> {
         )
     }
 
-    /// `EnumHeader { refcount: i64, tag: i64, payload: [word_count x i64] }`.
-    ///
-    /// Field order matches the `ENUM_*` index constants above.
-    ///
-    /// `variants` is `(variant_name, payload_type)` - one optional payload
-    /// type per variant, matching `Type::Enum`'s single-payload-per-variant
-    /// shape (`InProgress(Deadline)`, `Aborted` with no value, etc). This is
-    /// NOT the declaration order from the AST/`Type::Enum` HashMap (which has
-    /// no stable order) - callers must pass variants pre-sorted into the
-    /// same canonical order everywhere (see `Compiler::enum_llvm_type`),
-    /// since the position in this slice becomes the runtime tag value that
-    /// both enum-literal and match codegen must agree on.
-    ///
-    /// `payload_size` is the byte size of the largest variant's payload type;
-    /// a variant with no payload (e.g. a bare `Aborted`) contributes 0 and
-    /// never grows it. It's rounded up to whole 8-byte words so the payload
-    /// field is naturally 8-byte aligned - required since every supported
-    /// field type (ints up to i64, f64, and heap pointers) needs up to 8-byte
-    /// alignment, which a `[N x i8]` field would not guarantee.
-    pub fn enum_struct_type(variants: &[(String, Option<Type>)], context: &'ctx Context, span: Span) -> Result<StructType<'ctx>, Box<dyn IError>> {
-        let i64_type = context.i64_type();
-
-        let mut payload_size: u64 = 0;
-        for (_, payload_ty) in variants {
-            let variant_size = match payload_ty {
-                Some(ty) => Self::element_byte_size(ty, i64_type, span)?
-                    .get_zero_extended_constant()
-                    .expect("element_byte_size always returns a constant int"),
-                None => 0,
-            };
-            payload_size = payload_size.max(variant_size);
-        }
-
-        let word_count = (payload_size + 7) / 8;
-        let payload_type = i64_type.array_type(word_count as u32);
-
-        Ok(context.struct_type(
-            &[
-                i64_type.into(),     // refcount
-                i64_type.into(),     // tag
-                payload_type.into(), // payload (union storage, see ENUM_PAYLOAD)
-            ],
-            false,
-        ))
-    }
-
     pub fn element_byte_size(inner_type: &Type, i64_type: IntType<'ctx>, span: Span) -> Result<IntValue<'ctx>, Box<dyn IError>> {
         let size: u64 = match inner_type {
             Type::I8 | Type::U8 => 1,

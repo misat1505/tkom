@@ -102,7 +102,7 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             .map(|(index, (name, _))| (name.clone(), index as u32))
             .collect();
 
-        let enum_struct_type = LlvmValue::enum_struct_type(&ordered_variants, self.context, span)?;
+        let enum_struct_type = self.enum_struct_type(&ordered_variants, self.context, span)?;
 
         Ok((enum_struct_type, variant_indices, ordered_variants))
     }
